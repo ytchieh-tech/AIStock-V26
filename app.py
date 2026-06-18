@@ -5,6 +5,7 @@ import numpy as np
 import yfinance as yf
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+from zoneinfo import zoneInfo
 import time
 import re
 
@@ -90,7 +91,7 @@ def fetch_price(symbol: str, period: str = "2y"):
 @st.cache_data(show_spinner=False, ttl=20)
 def fetch_realtime(symbol: str):
     result = {"price": np.nan, "prev": np.nan, "open": np.nan, "high": np.nan, "low": np.nan, "volume": np.nan,
-              "market_cap": np.nan, "pe": np.nan, "div_yield": np.nan, "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+              "market_cap": np.nan, "pe": np.nan, "div_yield": np.nan, "time": datetime.now(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d %H:%M:%S 台灣時間"),
               "intraday": pd.DataFrame()}
     try:
         t = yf.Ticker(symbol)
