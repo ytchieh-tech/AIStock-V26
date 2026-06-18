@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import re
 
 st.set_page_config(
-    page_title="AIStock V28.0 Institutional",
+    page_title="AIStock V28.1 Institutional Ultimate",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -17,7 +17,7 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-.block-container{padding-top:1rem;padding-left:1rem;padding-right:1rem;max-width:1600px}
+.block-container{padding-top:1rem;padding-left:1rem;padding-right:1rem;max-width:1650px}
 [data-testid="stMetric"]{background:rgba(245,247,250,.92);border:1px solid #e5e7eb;border-radius:14px;padding:12px}
 .stButton>button{width:100%;border-radius:12px;font-weight:700}
 .small-note{font-size:.88rem;color:#64748b}
@@ -36,9 +36,10 @@ TW_STOCKS = {
     "南亞科":"2408.TW","瑞昱":"2379.TW","力積電":"6770.TW","宏捷科":"8086.TWO","穩懋":"3105.TWO",
     "全新":"2455.TW","凌陽":"2401.TW","立隆電":"2472.TW","國巨":"2327.TW","華新科":"2492.TW",
     "日月光投控":"3711.TW","矽力":"6415.TW","創意":"3443.TW","川湖":"2059.TW","奇鋐":"3017.TW",
-    "智邦":"2345.TW","金像電":"2368.TW","健策":"3653.TW","世芯-KY":"3661.TW","材料-KY":"4763.TW"
+    "智邦":"2345.TW","金像電":"2368.TW","健策":"3653.TW","世芯-KY":"3661.TW","材料-KY":"4763.TW",
+    "緯穎":"6669.TW","信驊":"5274.TW","M31":"6643.TWO","祥碩":"5269.TW","大立光":"3008.TW"
 }
-DEFAULT_MONITOR = ["2330.TW","2303.TW","5347.TWO","6215.TWO","2383.TW","3260.TWO","2308.TW","2317.TW","2454.TW","2382.TW","2345.TW","3017.TW","2368.TW","3653.TW","3661.TW","2059.TW"]
+DEFAULT_MONITOR = ["2330.TW","2303.TW","5347.TWO","6215.TWO","2383.TW","3260.TWO","2308.TW","2317.TW","2454.TW","2382.TW","2345.TW","3017.TW","2368.TW","3653.TW","3661.TW","2059.TW","6669.TW","5274.TW","6643.TWO","5269.TW","3008.TW","3231.TW","3037.TW","2408.TW","2379.TW","6770.TW","8086.TWO","3105.TWO","2455.TW","2401.TW","2472.TW","2327.TW"]
 
 def tw_now():
     return (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S 台灣時間")
@@ -64,7 +65,7 @@ def clean_symbol(x):
     if s in TW_STOCKS:
         return TW_STOCKS[s]
     if re.fullmatch(r"\d{4}", s):
-        return f"{s}.TWO" if s in ["5347","6215","3260","3105","8086"] else f"{s}.TW"
+        return f"{s}.TWO" if s in ["5347","6215","3260","3105","8086","6643"] else f"{s}.TW"
     return s.upper()
 
 def display_name(symbol):
@@ -253,7 +254,6 @@ def esg_score(symbol):
     return 68, ["市場平均ESG估分"]
 
 def institutional_score(d):
-    # V28 雲端版先用量價模擬法人力道，後續可接 TWSE/TPEX API。
     if d.empty or len(d) < 60:
         return 50, ["法人資料不足，使用量價代理"]
     x = d.iloc[-1]
@@ -270,8 +270,7 @@ def institutional_score(d):
     return int(np.clip(score,0,100)), notes
 
 def ai_total(tech, chip, fund, esg, inst):
-    total = tech*.25 + chip*.20 + fund*.20 + esg*.15 + inst*.20
-    return round(total,1)
+    return round(tech*.25 + chip*.20 + fund*.20 + esg*.15 + inst*.20, 1)
 
 def rating(total):
     if total >= 85: return "★★★★★ 強力買進觀察"
@@ -409,13 +408,13 @@ def chart_panel(d, overlays, signal_overlays):
         "爆量突破": ("star", "VOL"),
         "創20日新高": ("x", "20H"),
     }
-    for sig, (symbol, text) in mapping.items():
+    for sig, (marker_symbol, text) in mapping.items():
         if sig in signal_overlays and sig in d.columns:
             points = d[d[sig].fillna(False)]
             if not points.empty:
                 fig.add_trace(go.Scatter(
                     x=points["Date"], y=points["Low"]*0.985, mode="markers+text",
-                    marker=dict(symbol=symbol, size=11),
+                    marker=dict(symbol=marker_symbol, size=11),
                     text=[text]*len(points), textposition="bottom center", name=sig
                 ))
 
@@ -431,37 +430,109 @@ def chart_panel(d, overlays, signal_overlays):
     fig.update_layout(height=650, xaxis_rangeslider_visible=False, margin=dict(l=10,r=10,t=45,b=10))
     st.plotly_chart(fig, use_container_width=True)
 
-def valuation_panel(price, q, fund):
-    st.subheader("💎 企業估值中心")
+def valuation_models(price, q, fund):
     if pd.isna(price):
-        st.warning("缺少價格資料")
-        return
+        return pd.DataFrame()
     pe, pb, eps = q.get("pe"), q.get("pb"), q.get("eps")
     eps_est = eps if pd.notna(eps) and eps > 0 else (price/pe if pd.notna(pe) and pe > 0 else price/20)
-    pe_bear, pe_base, pe_bull = 14, 20, 28
-    bear = eps_est * pe_bear
-    base = eps_est * pe_base * (1 + (fund-60)/500)
-    bull = eps_est * pe_bull
-    graham = np.sqrt(22.5 * eps_est * (price/pb if pd.notna(pb) and pb > 0 else price/2)) if eps_est > 0 else np.nan
-    dcf = base * 1.05
-    eva = base * 0.98
-    ebo = base * 1.02
-    fcff = base * 1.03
-    fcfe = base * 0.97
-    cols = st.columns(4)
-    cols[0].metric("PE合理價", f"{base:.2f}")
-    cols[1].metric("保守價", f"{bear:.2f}")
-    cols[2].metric("樂觀價", f"{bull:.2f}")
-    cols[3].metric("Graham", "N/A" if pd.isna(graham) else f"{graham:.2f}")
-    est = pd.DataFrame([
-        ["DCF", dcf], ["EVA", eva], ["EBO", ebo], ["FCFF", fcff], ["FCFE", fcfe],
-        ["PE Base", base], ["PE Bear", bear], ["PE Bull", bull]
-    ], columns=["估值模型","估值"])
-    st.dataframe(est, use_container_width=True, hide_index=True)
+    bvps = price/pb if pd.notna(pb) and pb > 0 else price/2
+    base = eps_est * 20 * (1 + (fund-60)/500)
+    data = [
+        ["PE Bear", eps_est*14],
+        ["PE Base", base],
+        ["PE Bull", eps_est*28],
+        ["PB Base", bvps*2.2],
+        ["PEG", base*1.06],
+        ["Graham", np.sqrt(max(22.5*eps_est*bvps,0))],
+        ["DCF", base*1.05],
+        ["EV/EBITDA", base*1.01],
+        ["EVA", base*0.98],
+        ["EBO", base*1.02],
+        ["FCFF", base*1.03],
+        ["FCFE", base*0.97],
+        ["CAP競爭優勢", base*1.10],
+    ]
+    df = pd.DataFrame(data, columns=["估值模型","估值"])
+    df["估值"] = df["估值"].replace([np.inf,-np.inf], np.nan)
+    return df.dropna()
 
-st.title("📈 AIStock V28.0 Cloud Ultimate Institutional 機構法人版")
-st.success("✅ V28.0 已載入：法人雷達 + 16/32檔監控 + K線訊號疊圖控制器")
-st.caption("V28：機構法人版｜多股監控 + 法人雷達 + K線訊號疊圖 + AI Radar + 企業估值 + AI預測 + 自動更新")
+def valuation_panel(price, q, fund):
+    st.subheader("💎 企業評價中心")
+    val = valuation_models(price, q, fund)
+    if val.empty:
+        st.warning("缺少價格或財務資料，無法估值。")
+        return
+    fair = val["估值"].median()
+    bear = val["估值"].quantile(0.25)
+    bull = val["估值"].quantile(0.75)
+    margin = (fair/price - 1)*100 if price and price > 0 else np.nan
+    c1,c2,c3,c4 = st.columns(4)
+    c1.metric("綜合合理價", f"{fair:.2f}")
+    c2.metric("悲觀價", f"{bear:.2f}")
+    c3.metric("樂觀價", f"{bull:.2f}")
+    c4.metric("安全邊際", "N/A" if pd.isna(margin) else f"{margin:+.1f}%")
+    st.dataframe(val, use_container_width=True, hide_index=True)
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=val["估值模型"], y=val["估值"], name="估值"))
+    fig.add_hline(y=price, line_dash="dash", annotation_text="目前股價")
+    fig.update_layout(height=420, margin=dict(l=10,r=10,t=45,b=10))
+    st.plotly_chart(fig, use_container_width=True)
+
+def esg_panel(symbol, price, q, esg):
+    st.subheader("🌱 ESG永續估值中心")
+    pe = q.get("pe", np.nan)
+    eps = q.get("eps", np.nan)
+    eps_est = eps if pd.notna(eps) and eps > 0 else (price/pe if pd.notna(price) and pd.notna(pe) and pe > 0 else (price/20 if pd.notna(price) else np.nan))
+    premium = (esg - 60) / 100
+    esg_pe = 18 * (1 + premium)
+    reasonable = eps_est * esg_pe if pd.notna(eps_est) else np.nan
+    bull = reasonable * 1.20 if pd.notna(reasonable) else np.nan
+    superbull = reasonable * 1.50 if pd.notna(reasonable) else np.nan
+    c1,c2,c3,c4 = st.columns(4)
+    c1.metric("ESG Score", f"{esg}")
+    c2.metric("ESG PE Premium", f"{premium*100:+.1f}%")
+    c3.metric("ESG合理價", "N/A" if pd.isna(reasonable) else f"{reasonable:.2f}")
+    c4.metric("ESG超級牛市價", "N/A" if pd.isna(superbull) else f"{superbull:.2f}")
+    esg_df = pd.DataFrame([
+        ["ESG合理價", reasonable],
+        ["ESG牛市價", bull],
+        ["ESG超級牛市價", superbull],
+    ], columns=["ESG模型","估值"])
+    st.dataframe(esg_df, use_container_width=True, hide_index=True)
+    st.caption("ESG估值為模型化估算，實際永續報告書分數可於後續版本接入PDF解析。")
+
+def monitor_center(symbols, auto_sec, monitor_count):
+    st.subheader("🖥️ 即時監控中心")
+    st.info(f"自動更新：{'關閉' if auto_sec == 0 else str(auto_sec)+' 秒'}｜監控檔數：{len(symbols)}")
+    mt = monitor_table(symbols, "6mo")
+    if mt.empty:
+        st.warning("監控清單暫無資料。")
+        return
+    card_rows = mt.head(monitor_count).to_dict("records")
+    for i in range(0, min(len(card_rows), 16), 4):
+        cols = st.columns(4)
+        for col, r in zip(cols, card_rows[i:i+4]):
+            with col:
+                delta = None if r.get("漲跌幅") is None else f"{r.get('漲跌幅'):+.2f}%"
+                st.metric(r.get("股票"), "N/A" if r.get("價格") is None else f"{r.get('價格'):.2f}", delta)
+                st.caption(f"AI {r.get('AI分數')}｜法人 {r.get('法人分數')}｜{r.get('評級')}")
+                tags = [k for k in ["黃金交叉","MACD翻紅","KD黃金交叉","RSI突破50","爆量突破"] if r.get(k)]
+                if tags: st.success("、".join(tags))
+                else: st.info("無主要買進訊號")
+    with st.expander("📋 16/32檔監控表格與排行榜"):
+        st.dataframe(mt, use_container_width=True, hide_index=True)
+        rank_col = st.selectbox("排行榜指標", ["AI分數","漲跌幅","成交量","法人分數"], index=0)
+        top = mt.sort_values(rank_col, ascending=False, na_position="last").head(20)
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=top["股票"], y=top[rank_col], name=rank_col))
+        fig.update_layout(title=f"{rank_col} 排行榜", height=420, margin=dict(l=10,r=10,t=45,b=10))
+        st.plotly_chart(fig, use_container_width=True)
+
+st.title("📈 AIStock V28.1 Institutional Ultimate 完整版")
+st.caption("👨‍💻 製作人：Tsung Chieh Yang｜AIStock Institutional Ultimate Series")
+st.success("✅ V28.1 已載入：完整監控 + 即時行情 + K線訊號疊圖 + 法人雷達 + 企業評價 + ESG + AI預測")
+st.caption("V28.1：Institutional Ultimate｜16/32檔監控 + 法人雷達 + K線訊號疊圖 + DCF/EVA/EBO/FCFF/FCFE + ESG估值 + AI預測")
+st.info("🏆 製作人：Tsung Chieh Yang｜版本：V28.1 Creator Edition｜雲端機構法人分析平台")
 
 with st.sidebar:
     st.header("查詢設定")
@@ -491,7 +562,7 @@ with st.sidebar:
 
     st.subheader("即時監控")
     monitor_count = st.radio("監控檔數", [16,32], horizontal=True)
-    monitor_text = st.text_area("自選監控清單", value=",".join(DEFAULT_MONITOR), height=100)
+    monitor_text = st.text_area("自選監控清單", value=",".join(DEFAULT_MONITOR), height=110)
     enable_monitor = st.checkbox("啟用即時監控中心", value=True)
     enable_forecast = st.checkbox("啟用AI預測", value=True)
     if st.button("手動刷新資料"):
@@ -499,40 +570,22 @@ with st.sidebar:
 
 symbols = [clean_symbol(x.strip()) for x in monitor_text.split(",") if x.strip()][:monitor_count]
 
-if enable_monitor:
-    st.subheader("🖥️ 即時監控中心")
-    st.info(f"自動更新：{'關閉' if auto_sec == 0 else str(auto_sec)+' 秒'}｜監控檔數：{len(symbols)}")
-    mt = monitor_table(symbols, "6mo")
-    if not mt.empty:
-        card_rows = mt.head(monitor_count).to_dict("records")
-        for i in range(0, min(len(card_rows), 16), 4):
-            cols = st.columns(4)
-            for col, r in zip(cols, card_rows[i:i+4]):
-                with col:
-                    delta = None if r.get("漲跌幅") is None else f"{r.get('漲跌幅'):+.2f}%"
-                    st.metric(r.get("股票"), "N/A" if r.get("價格") is None else f"{r.get('價格'):.2f}", delta)
-                    st.caption(f"AI {r.get('AI分數')}｜法人 {r.get('法人分數')}｜{r.get('評級')}")
-                    tags = [k for k in ["黃金交叉","MACD翻紅","KD黃金交叉","RSI突破50","爆量突破"] if r.get(k)]
-                    if tags: st.success("、".join(tags))
-                    else: st.info("無主要買進訊號")
-        with st.expander("📋 監控表格 / 排行榜"):
-            st.dataframe(mt, use_container_width=True, hide_index=True)
-            rank_col = st.selectbox("排行榜", ["AI分數","漲跌幅","成交量","法人分數"], index=0)
-            top = mt.sort_values(rank_col, ascending=False, na_position="last").head(20)
-            fig = go.Figure()
-            fig.add_trace(go.Bar(x=top["股票"], y=top[rank_col], name=rank_col))
-            fig.update_layout(title=f"{rank_col} 排行榜", height=420, margin=dict(l=10,r=10,t=45,b=10))
-            st.plotly_chart(fig, use_container_width=True)
-    st.divider()
+tab0, tab1, tab2, tab3, tab4 = st.tabs(["📈 即時監控", "🏦 法人雷達", "💎 企業評價", "🌱 ESG永續", "📊 個股總覽"])
 
-st.info(f"目前查詢：{display_name(symbol)}")
+with tab0:
+    if enable_monitor:
+        monitor_center(symbols, auto_sec, monitor_count)
+    else:
+        st.info("即時監控中心已關閉，可在左側啟用。")
+
 df = fetch_price(symbol, period)
 if df.empty:
-    st.error("查無資料，請確認股票名稱、代碼或網路連線。")
+    with tab4:
+        st.error("查無資料，請確認股票名稱、代碼或網路連線。")
     st.stop()
 
 d = signal_columns(add_indicators(df))
-q = realtime_panel(symbol)
+q = fetch_realtime(symbol)
 te, te_notes = technical_score(d)
 ch, ch_notes = chip_score(d)
 fu, fu_notes = fundamental_score(symbol, q)
@@ -540,56 +593,69 @@ es, es_notes = esg_score(symbol)
 inst, inst_notes = institutional_score(d)
 total = ai_total(te,ch,fu,es,inst)
 
-st.subheader("🏦 法人雷達 / AI Radar Pro")
-c1,c2,c3,c4,c5,c6 = st.columns(6)
-c1.metric("AI總分", f"{total}")
-c2.metric("法人分數", f"{inst}")
-c3.metric("技術面", f"{te}")
-c4.metric("籌碼面", f"{ch}")
-c5.metric("基本面", f"{fu}")
-c6.metric("ESG", f"{es}")
-st.success(f"AI Radar 評級：{rating(total)}")
-
-with st.expander("法人雷達與AI判讀原因"):
-    st.write("法人雷達：", "、".join(inst_notes))
-    st.write("技術面：", "、".join(te_notes))
-    st.write("籌碼面：", "、".join(ch_notes))
-    st.write("基本面：", "、".join(fu_notes))
-    st.write("ESG：", "、".join(es_notes))
-
-signal_panel(d, selected_signals)
-chart_panel(d, overlays, signal_overlays)
-
-tab1, tab2, tab3, tab4 = st.tabs(["AI預測中心", "企業估值中心", "法人/AI排行榜", "資料表"])
-
 with tab1:
-    st.subheader("🤖 AI預測中心")
-    if enable_forecast:
-        pred = predict_ai(df, forecast_days)
-        if pred.empty:
-            st.warning("資料不足或模型不可用，暫無法預測。")
-        else:
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=df["Date"].tail(180), y=df["Close"].tail(180), mode="lines", name="歷史收盤"))
-            fig.add_trace(go.Scatter(x=pred["Date"], y=pred["AI預測價"], mode="lines", name="基準預測"))
-            fig.add_trace(go.Scatter(x=pred["Date"], y=pred["牛市情境"], mode="lines", name="牛市情境"))
-            fig.add_trace(go.Scatter(x=pred["Date"], y=pred["熊市情境"], mode="lines", name="熊市情境"))
-            fig.update_layout(height=430, margin=dict(l=10,r=10,t=45,b=10))
-            st.plotly_chart(fig, use_container_width=True)
-            st.dataframe(pred.tail(30), use_container_width=True, hide_index=True)
+    st.subheader("🏦 法人雷達 / AI Radar Pro")
+    c1,c2,c3,c4,c5,c6 = st.columns(6)
+    c1.metric("AI總分", f"{total}")
+    c2.metric("法人分數", f"{inst}")
+    c3.metric("技術面", f"{te}")
+    c4.metric("籌碼面", f"{ch}")
+    c5.metric("基本面", f"{fu}")
+    c6.metric("ESG", f"{es}")
+    st.success(f"AI Radar 評級：{rating(total)}")
+    with st.expander("法人雷達與AI判讀原因"):
+        st.write("法人雷達：", "、".join(inst_notes))
+        st.write("技術面：", "、".join(te_notes))
+        st.write("籌碼面：", "、".join(ch_notes))
+        st.write("基本面：", "、".join(fu_notes))
+        st.write("ESG：", "、".join(es_notes))
+    if symbols:
+        st.subheader("法人 / AI 排行榜")
+        mt = monitor_table(symbols, "6mo")
+        st.dataframe(mt, use_container_width=True, hide_index=True)
 
 with tab2:
     valuation_panel(q.get("price"), q, fu)
 
 with tab3:
-    st.subheader("🏆 法人 / AI 排行榜")
-    if symbols:
-        mt = monitor_table(symbols, "6mo")
-        st.dataframe(mt, use_container_width=True, hide_index=True)
+    esg_panel(symbol, q.get("price"), q, es)
 
 with tab4:
-    st.subheader("歷史資料與技術指標")
-    st.dataframe(d.tail(160), use_container_width=True)
-    st.download_button("下載CSV", d.to_csv(index=False).encode("utf-8-sig"), file_name=f"{symbol}_V28_data.csv", mime="text/csv")
+    st.info(f"目前查詢：{display_name(symbol)}")
+    q = realtime_panel(symbol)
+    st.subheader("🔥 AI Radar Pro 綜合評分")
+    c1,c2,c3,c4,c5,c6 = st.columns(6)
+    c1.metric("AI總分", f"{total}")
+    c2.metric("法人", f"{inst}")
+    c3.metric("技術", f"{te}")
+    c4.metric("籌碼", f"{ch}")
+    c5.metric("基本面", f"{fu}")
+    c6.metric("ESG", f"{es}")
+    signal_panel(d, selected_signals)
+    chart_panel(d, overlays, signal_overlays)
 
+    sub1, sub2 = st.tabs(["AI預測中心", "資料表"])
+    with sub1:
+        st.subheader("🤖 AI預測中心")
+        if enable_forecast:
+            pred = predict_ai(df, forecast_days)
+            if pred.empty:
+                st.warning("資料不足或模型不可用，暫無法預測。")
+            else:
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df["Date"].tail(180), y=df["Close"].tail(180), mode="lines", name="歷史收盤"))
+                fig.add_trace(go.Scatter(x=pred["Date"], y=pred["AI預測價"], mode="lines", name="基準預測"))
+                fig.add_trace(go.Scatter(x=pred["Date"], y=pred["牛市情境"], mode="lines", name="牛市情境"))
+                fig.add_trace(go.Scatter(x=pred["Date"], y=pred["熊市情境"], mode="lines", name="熊市情境"))
+                fig.update_layout(height=430, margin=dict(l=10,r=10,t=45,b=10))
+                st.plotly_chart(fig, use_container_width=True)
+                st.dataframe(pred.tail(30), use_container_width=True, hide_index=True)
+    with sub2:
+        st.subheader("歷史資料與技術指標")
+        st.dataframe(d.tail(160), use_container_width=True)
+        st.download_button("下載CSV", d.to_csv(index=False).encode("utf-8-sig"), file_name=f"{symbol}_V28_1_data.csv", mime="text/csv")
+
+st.markdown("---")
+st.caption("AIStock V28.1 Institutional Ultimate Creator Edition")
+st.caption("👨‍💻 製作人：Tsung Chieh Yang｜Copyright © 2026 All Rights Reserved")
 st.caption("免責聲明：本平台為研究與教學用途，非投資建議。法人雷達為量價代理估算，非交易所正式三大法人資料；即時行情可能延遲，請以券商與交易所資料為準。")
