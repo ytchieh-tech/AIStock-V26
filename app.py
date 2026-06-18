@@ -1,15 +1,14 @@
-# V27.5.1 Timezone Fix
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import yfinance as yf
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
-import time
 import re
 
 st.set_page_config(
-    page_title="AIStock V27.5 Cloud Ultimate",
+    page_title="AIStock V27.5.2 Cloud Ultimate",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -18,7 +17,7 @@ st.set_page_config(
 st.markdown("""
 <style>
 .block-container {padding-top: 1rem; padding-left: 1rem; padding-right: 1rem; max-width: 1500px;}
-[data-testid="stMetric"] {background: rgba(245,247,250,.85); border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px;}
+[data-testid="stMetric"] {background: rgba(245,247,250,.88); border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px;}
 .stButton > button {width: 100%; border-radius: 12px; font-weight: 700;}
 @media (max-width: 768px) {
     .block-container {padding-left: .55rem; padding-right: .55rem;}
@@ -38,7 +37,6 @@ TW_STOCKS = {
     "全新": "2455.TW", "凌陽": "2401.TW", "立隆電": "2472.TW", "國巨": "2327.TW",
     "華新科": "2492.TW", "日月光投控": "3711.TW", "矽力": "6415.TW", "創意": "3443.TW",
 }
-
 WATCHLIST = ["2330.TW", "2303.TW", "5347.TWO", "6215.TWO", "2383.TW", "3260.TWO", "2308.TW", "2317.TW", "2454.TW", "2382.TW"]
 
 def clean_symbol(text: str) -> str:
@@ -50,7 +48,6 @@ def clean_symbol(text: str) -> str:
     if s.upper() in ["TSM", "AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN", "AMD", "TSLA"]:
         return s.upper()
     if re.fullmatch(r"\d{4}", s):
-        # 常見上櫃代號
         if s in ["5347","6215","3260","3105","8086"]:
             return f"{s}.TWO"
         return f"{s}.TW"
@@ -73,6 +70,9 @@ def safe_float(x, default=np.nan):
     except Exception:
         return default
 
+def taiwan_now_str():
+    return (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S 台灣時間")
+
 @st.cache_data(show_spinner=False, ttl=60)
 def fetch_price(symbol: str, period: str = "2y"):
     try:
@@ -90,7 +90,7 @@ def fetch_price(symbol: str, period: str = "2y"):
 @st.cache_data(show_spinner=False, ttl=20)
 def fetch_realtime(symbol: str):
     result = {"price": np.nan, "prev": np.nan, "open": np.nan, "high": np.nan, "low": np.nan, "volume": np.nan,
-              "market_cap": np.nan, "pe": np.nan, "div_yield": np.nan, "time": (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S 台灣時間"),
+              "market_cap": np.nan, "pe": np.nan, "div_yield": np.nan, "time": taiwan_now_str(),
               "intraday": pd.DataFrame()}
     try:
         t = yf.Ticker(symbol)
@@ -118,9 +118,12 @@ def fetch_realtime(symbol: str):
             info = t.info or {}
             result["pe"] = safe_float(info.get("trailingPE", np.nan))
             result["div_yield"] = safe_float(info.get("dividendYield", np.nan))
-            if pd.isna(result["price"]): result["price"] = safe_float(info.get("currentPrice", info.get("regularMarketPrice")))
-            if pd.isna(result["prev"]): result["prev"] = safe_float(info.get("previousClose"))
-            if pd.isna(result["market_cap"]): result["market_cap"] = safe_float(info.get("marketCap"))
+            if pd.isna(result["price"]):
+                result["price"] = safe_float(info.get("currentPrice", info.get("regularMarketPrice")))
+            if pd.isna(result["prev"]):
+                result["prev"] = safe_float(info.get("previousClose"))
+            if pd.isna(result["market_cap"]):
+                result["market_cap"] = safe_float(info.get("marketCap"))
         except Exception:
             pass
         try:
@@ -131,6 +134,8 @@ def fetch_realtime(symbol: str):
                 intra[time_col] = pd.to_datetime(intra[time_col]).dt.tz_localize(None)
                 intra = intra.rename(columns={time_col: "Time"})
                 result["intraday"] = intra[["Time","Open","High","Low","Close","Volume"]].dropna(subset=["Close"])
+                if not result["intraday"].empty:
+                    result["time"] = taiwan_now_str()
                 if pd.isna(result["price"]):
                     result["price"] = safe_float(result["intraday"]["Close"].iloc[-1])
                 if pd.isna(result["high"]):
@@ -168,6 +173,29 @@ def add_indicators(df):
     d["RET20"] = d["Close"].pct_change(20)
     d["RET60"] = d["Close"].pct_change(60)
     return d
+
+def detect_technical_signals(d):
+    if d is None or d.empty or len(d) < 80:
+        return {k: False for k in ["黃金交叉","死亡交叉","MACD翻紅","KD黃金交叉","RSI突破50","布林突破上軌","均線多頭排列","爆量突破","創20日新高"]}
+    cur = d.iloc[-1]
+    prev = d.iloc[-2]
+    def val(row, col, default=np.nan):
+        try:
+            return float(row.get(col, default))
+        except Exception:
+            return default
+    close = val(cur, "Close")
+    return {
+        "黃金交叉": val(prev, "MA5") <= val(prev, "MA20") and val(cur, "MA5") > val(cur, "MA20"),
+        "死亡交叉": val(prev, "MA5") >= val(prev, "MA20") and val(cur, "MA5") < val(cur, "MA20"),
+        "MACD翻紅": val(prev, "MACD") <= val(prev, "MACD_SIGNAL") and val(cur, "MACD") > val(cur, "MACD_SIGNAL"),
+        "KD黃金交叉": val(prev, "K") <= val(prev, "D") and val(cur, "K") > val(cur, "D"),
+        "RSI突破50": val(prev, "RSI") < 50 and val(cur, "RSI") >= 50,
+        "布林突破上軌": close > val(cur, "BB_UP"),
+        "均線多頭排列": val(cur, "MA5") > val(cur, "MA20") > val(cur, "MA60"),
+        "爆量突破": close > val(cur, "MA20") and val(cur, "Volume") > val(cur, "VOL_MA20") * 1.5,
+        "創20日新高": close >= d["Close"].tail(20).max()
+    }
 
 def technical_score(d):
     if d.empty or len(d) < 80:
@@ -220,14 +248,12 @@ def chip_score(d):
     return int(np.clip(score,0,100)), notes
 
 def esg_score(symbol):
-    # 雲端版先採產業市場估分；後續可接永續報告書與外部ESG API
     base = 68
     if symbol in ["2330.TW","2308.TW","3711.TW"]:
         base = 78
     elif symbol.endswith(".TWO"):
         base = 64
-    notes = ["ESG採市場/產業估分，非正式評級"]
-    return base, notes
+    return base, ["ESG採市場/產業估分，非正式評級"]
 
 def ai_radar_score(tech, chip, fund, esg):
     total = tech*0.30 + chip*0.25 + fund*0.25 + esg*0.20
@@ -245,7 +271,7 @@ def ai_radar_score(tech, chip, fund, esg):
 
 def xgb_predict(df, days):
     try:
-        from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor
+        from sklearn.ensemble import ExtraTreesRegressor
         d = add_indicators(df).dropna().copy()
         if len(d) < 120:
             return None
@@ -253,17 +279,14 @@ def xgb_predict(df, days):
         X = d[features].values
         y = d["Close"].shift(-1).dropna().values
         X = X[:-1]
-        model = ExtraTreesRegressor(n_estimators=160, random_state=42, min_samples_leaf=3)
+        model = ExtraTreesRegressor(n_estimators=120, random_state=42, min_samples_leaf=3)
         model.fit(X, y)
         last = d[features].iloc[-1:].values
-        preds = []
-        cur = float(d["Close"].iloc[-1])
+        preds, cur = [], float(d["Close"].iloc[-1])
         for i in range(days):
             p = float(model.predict(last)[0])
-            p = max(p, cur*0.85)
-            p = min(p, cur*1.15)
-            preds.append(p)
-            cur = p
+            p = max(min(p, cur*1.15), cur*0.85)
+            preds.append(p); cur = p
         future_dates = pd.date_range(df["Date"].iloc[-1] + pd.Timedelta(days=1), periods=days, freq="B")
         return pd.DataFrame({"Date": future_dates, "AI預測價": preds})
     except Exception:
@@ -275,19 +298,13 @@ def valuation_panel(price, quote, fund_score):
         st.warning("缺少價格資料，無法估值。")
         return
     base_eps = price / pe if pd.notna(pe) and pe > 0 else price / 20
-    pe_bear, pe_base, pe_bull = 14, 20, 28
-    fair_bear = base_eps * pe_bear
-    fair_base = base_eps * pe_base
-    fair_bull = base_eps * pe_bull
-    # ESG/fundamental adjustment
-    adj = 1 + (fund_score - 60) / 500
-    fair_base *= adj
+    fair_bear, fair_base, fair_bull = base_eps*14, base_eps*20, base_eps*28
+    fair_base *= 1 + (fund_score - 60) / 500
     st.subheader("💎 企業估值中心")
     c1,c2,c3 = st.columns(3)
     c1.metric("保守價", f"{fair_bear:.2f}")
     c2.metric("合理價", f"{fair_base:.2f}")
     c3.metric("樂觀價", f"{fair_bull:.2f}")
-    st.caption("估值模型：雲端簡化版 PE/EPS + 基本面調整。後續可擴充 DCF、FCFF、FCFE、EVA、EBO。")
 
 def chart_panel(d, overlays):
     st.subheader("📊 K線與技術指標")
@@ -317,15 +334,35 @@ def realtime_panel(symbol):
     e.metric("今日開盤", "N/A" if pd.isna(q.get("open")) else f"{q['open']:.2f}")
     f.metric("昨收", "N/A" if pd.isna(prev) else f"{prev:.2f}")
     g.metric("成交量", "N/A" if pd.isna(q.get("volume")) else f"{q['volume']:,.0f}")
-    h.metric("資料時間", q.get("time", ""))
+    h.metric("資料時間", q.get("time", "").replace(" 台灣時間",""))
+    st.caption(f"🕒 資料更新時間：{q.get('time','')}")
     intra = q.get("intraday", pd.DataFrame())
     if isinstance(intra, pd.DataFrame) and not intra.empty:
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=intra["Time"], y=intra["Close"], mode="lines", name="1分鐘走勢"))
         fig.update_layout(title="今日 1分鐘走勢", height=320, margin=dict(l=10,r=10,t=45,b=10))
         st.plotly_chart(fig, use_container_width=True)
-    st.caption("資料來源：Yahoo Finance / yfinance，可能為延遲或近即時資料，投資決策請以券商即時報價為準。")
     return q
+
+def signal_badges_panel(d, selected_signals):
+    st.subheader("🎯 技術訊號雷達")
+    signals = detect_technical_signals(d)
+    cols = st.columns(3)
+    hit_count = 0
+    for i, name in enumerate(selected_signals):
+        hit = bool(signals.get(name, False))
+        hit_count += int(hit)
+        with cols[i % 3]:
+            if hit:
+                st.success(f"✅ {name}")
+            else:
+                st.info(f"— {name}")
+    if hit_count >= 3:
+        st.success(f"技術面訊號偏強：符合 {hit_count} 項條件")
+    elif hit_count >= 1:
+        st.warning(f"技術面有部分轉強訊號：符合 {hit_count} 項條件")
+    else:
+        st.info("目前尚未觸發主要技術買進訊號。")
 
 def radar_card(symbol, period="1y"):
     df = fetch_price(symbol, period)
@@ -338,11 +375,9 @@ def radar_card(symbol, period="1y"):
     fund, _ = fundamental_score(symbol, q)
     esg, _ = esg_score(symbol)
     total, rating = ai_radar_score(tech, chip, fund, esg)
-    return {
-        "股票": stock_display_name(symbol), "AI分數": total, "評級": rating,
-        "技術": tech, "籌碼": chip, "基本面": fund, "ESG": esg,
-        "價格": np.nan if pd.isna(q.get("price")) else round(q.get("price"),2)
-    }
+    return {"股票": stock_display_name(symbol), "AI分數": total, "評級": rating,
+            "技術": tech, "籌碼": chip, "基本面": fund, "ESG": esg,
+            "價格": np.nan if pd.isna(q.get("price")) else round(q.get("price"),2)}
 
 @st.cache_data(show_spinner=False, ttl=300)
 def radar_rank(symbols):
@@ -352,8 +387,8 @@ def radar_rank(symbols):
         df = df.sort_values("AI分數", ascending=False)
     return df
 
-st.title("📈 旗艦版 AI 股票平台 V27.5 Cloud Ultimate + AI Radar Pro")
-st.caption("V27.5：即時行情 + AI Radar 排行榜 + 技術/籌碼/基本面/ESG 綜合評分 + 企業估值 + AI預測 + 手機雲端版")
+st.title("📈 旗艦版 AI 股票平台 V27.5.2 Cloud Ultimate + AI Radar Pro")
+st.caption("V27.5.2：黃金交叉/死亡交叉/技術訊號 + 即時行情 + AI Radar 排行榜 + 企業估值 + AI預測 + 手機雲端版")
 
 with st.sidebar:
     st.header("查詢設定")
@@ -363,6 +398,11 @@ with st.sidebar:
     period = st.radio("歷史期間", ["6mo","1y","2y","5y","10y"], index=2, horizontal=True)
     forecast_days = st.slider("AI預測天數", 7, 180, 30)
     overlays = st.multiselect("K線疊圖指標", ["MA5","MA10","MA20","MA60","MA120","MA240","布林通道"], default=["MA20","MA60","布林通道"])
+    selected_signals = st.multiselect(
+        "技術訊號篩選",
+        ["黃金交叉","死亡交叉","MACD翻紅","KD黃金交叉","RSI突破50","布林突破上軌","均線多頭排列","爆量突破","創20日新高"],
+        default=["黃金交叉","MACD翻紅","KD黃金交叉","RSI突破50","均線多頭排列","爆量突破"]
+    )
     enable_forecast = st.checkbox("啟用AI預測", value=True)
     st.divider()
     st.subheader("AI Radar")
@@ -406,6 +446,7 @@ with st.expander("AI Radar 判讀原因"):
     st.write("基本面：", "、".join(fund_notes))
     st.write("ESG：", "、".join(esg_notes))
 
+signal_badges_panel(d, selected_signals)
 chart_panel(d, overlays)
 
 tab1, tab2, tab3, tab4 = st.tabs(["AI預測", "企業估值", "AI Radar排行榜", "資料表"])
@@ -423,8 +464,6 @@ with tab1:
             fig.update_layout(height=430, margin=dict(l=10,r=10,t=45,b=10))
             st.plotly_chart(fig, use_container_width=True)
             st.dataframe(pred.tail(20), use_container_width=True)
-    else:
-        st.info("AI預測未啟用。")
 
 with tab2:
     valuation_panel(quote.get("price", np.nan), quote, fund)
@@ -439,13 +478,11 @@ with tab3:
             fig.add_trace(go.Bar(x=rank_df["股票"], y=rank_df["AI分數"], name="AI分數"))
             fig.update_layout(title="AI Radar 排行榜", height=420, margin=dict(l=10,r=10,t=45,b=10))
             st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("AI Radar 排行榜未啟用。")
 
 with tab4:
     st.subheader("歷史資料與技術指標")
     st.dataframe(d.tail(120), use_container_width=True)
     csv = d.to_csv(index=False).encode("utf-8-sig")
-    st.download_button("下載CSV", csv, file_name=f"{symbol}_V27_5_data.csv", mime="text/csv")
+    st.download_button("下載CSV", csv, file_name=f"{symbol}_V27_5_2_data.csv", mime="text/csv")
 
 st.caption("免責聲明：本平台為研究與教學用途，非投資建議。即時行情可能延遲，請以券商與交易所資料為準。")
