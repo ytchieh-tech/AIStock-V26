@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import re
 
-st.set_page_config(page_title="AIStock V27.6 Full Ultimate", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="AIStock V27.7 Pro Max", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
 <style>
@@ -280,8 +280,9 @@ def radar_rank(symbols):
     df=pd.DataFrame([radar_row(s) for s in symbols])
     return df.sort_values("AI分數",ascending=False) if not df.empty else df
 
-st.title("📈 旗艦版 AI 股票平台 V27.6 Full Ultimate + AI Radar Pro")
-st.caption("V27.6：完整版｜即時行情 + 黃金交叉/死亡交叉 + 技術訊號雷達 + AI Radar + 企業估值 + AI預測 + 台灣時間 + 手機雲端版")
+st.title("📈 旗艦版 AI 股票平台 V27.7 Cloud Ultimate Pro Max + 16檔即時監控")
+st.success("✅ V27.7 強制版已載入：16檔即時監控 + 自動更新")
+st.caption("V27.7：16檔即時監控｜即時行情 + 黃金交叉/死亡交叉 + 技術訊號雷達 + AI Radar + 企業估值 + AI預測 + 台灣時間 + 手機雲端版")
 
 with st.sidebar:
     st.header("查詢設定")
