@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import re
 
 st.set_page_config(
-    page_title="AIStock V28.1 Institutional Ultimate",
+    page_title="AIStock V28.2 Institutional Professional",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -41,6 +41,72 @@ TW_STOCKS = {
 }
 DEFAULT_MONITOR = ["2330.TW","2303.TW","5347.TWO","6215.TWO","2383.TW","3260.TWO","2308.TW","2317.TW","2454.TW","2382.TW","2345.TW","3017.TW","2368.TW","3653.TW","3661.TW","2059.TW","6669.TW","5274.TW","6643.TWO","5269.TW","3008.TW","3231.TW","3037.TW","2408.TW","2379.TW","6770.TW","8086.TWO","3105.TWO","2455.TW","2401.TW","2472.TW","2327.TW"]
 
+
+SECTOR_WATCHLISTS = {
+    "⭐ Tsung Chieh Watchlist": [
+        "2330.TW","2303.TW","5347.TWO","6215.TWO","2383.TW","3260.TWO","2308.TW","2454.TW",
+        "3711.TW","3443.TW","3661.TW","3037.TW","3653.TW","3017.TW","2345.TW","6669.TW",
+        "2317.TW","2382.TW","3231.TW","2356.TW","2376.TW","2357.TW","2368.TW","2059.TW",
+        "2408.TW","2379.TW","6770.TW","8086.TWO","3105.TWO","2455.TW","2401.TW","2472.TW"
+    ],
+    "半導體": [
+        "2330.TW","2303.TW","5347.TWO","6770.TW","2454.TW","3711.TW","6415.TW","3035.TW",
+        "3443.TW","3661.TW","5269.TW","6643.TWO","6533.TW","2379.TW","2408.TW","3105.TWO",
+        "2455.TW","8086.TWO","5274.TW","3008.TW","4966.TW","6239.TW","2449.TW","6147.TWO"
+    ],
+    "AI伺服器": [
+        "2382.TW","3231.TW","6669.TW","2356.TW","2317.TW","3017.TW","3653.TW","2345.TW",
+        "2376.TW","2357.TW","2308.TW","2383.TW","2368.TW","2059.TW","3324.TW","6414.TW",
+        "2324.TW","4938.TW","2395.TW","2377.TW","3013.TW","3706.TW","2465.TW","2353.TW"
+    ],
+    "AI概念股": [
+        "2330.TW","2454.TW","2382.TW","3231.TW","6669.TW","3661.TW","3443.TW","3035.TW",
+        "6643.TWO","2345.TW","3017.TW","3653.TW","2383.TW","2368.TW","2059.TW","2308.TW",
+        "3711.TW","2376.TW","2357.TW","2317.TW","5274.TW","6415.TW","5269.TW","4966.TW"
+    ],
+    "PCB/CCL": [
+        "2383.TW","2368.TW","8046.TW","3037.TW","3189.TW","6274.TW","4958.TW","6278.TW",
+        "2313.TW","3044.TW","6191.TW","3321.TWO","5469.TWO","6213.TW","2367.TW","8358.TW"
+    ],
+    "光通訊": [
+        "4908.TWO","4979.TWO","3081.TWO","3363.TWO","3163.TWO","3450.TW","3234.TW","4977.TWO",
+        "6442.TW","3380.TWO","6546.TWO","6271.TW","3015.TW","3704.TW","2345.TW","3596.TW"
+    ],
+    "記憶體": [
+        "2408.TW","2344.TW","8299.TWO","3260.TWO","4967.TWO","2337.TW","6770.TW","3006.TW",
+        "2369.TW","8271.TWO","5351.TWO","8088.TWO","6189.TWO","6141.TWO","2451.TW","3034.TW"
+    ],
+    "IP矽智財": [
+        "3443.TW","3661.TW","3035.TW","6643.TWO","6533.TW","3529.TWO","5269.TW","6415.TW",
+        "5274.TW","6485.TWO","6732.TW","4952.TW","6684.TWO","3227.TWO"
+    ],
+    "封測": [
+        "3711.TW","2449.TW","6147.TWO","3264.TWO","6239.TW","8150.TW","2329.TW","3374.TWO",
+        "6257.TW","8110.TW","6510.TW","2441.TW","6451.TW","4991.TWO"
+    ],
+    "機器人/自動化": [
+        "6215.TWO","2049.TW","4583.TW","3019.TW","1536.TW","2359.TW","2464.TW","1590.TW",
+        "4566.TW","4540.TW","6605.TW","1513.TW","1522.TW","2308.TW","2371.TW","2395.TW"
+    ],
+    "電源管理": [
+        "2308.TW","6412.TW","3023.TW","6282.TW","2457.TW","3015.TW","6278.TW","6443.TW",
+        "6781.TW","6202.TW","3323.TWO","2421.TW","6121.TWO","4931.TW"
+    ],
+    "高殖利率": [
+        "0056.TW","00878.TW","00919.TW","00929.TW","00940.TW","2886.TW","2891.TW","2884.TW",
+        "5876.TW","3045.TW","2412.TW","4904.TW","2303.TW","2324.TW","2356.TW","2382.TW"
+    ],
+    "ETF": [
+        "0050.TW","0056.TW","006208.TW","00878.TW","00919.TW","00929.TW","00940.TW","00713.TW",
+        "00881.TW","00922.TW","00923.TW","00927.TW","00939.TW","00692.TW","00757.TW","00646.TW"
+    ],
+    "全市場精選": [
+        "2330.TW","2317.TW","2454.TW","2308.TW","2382.TW","3231.TW","6669.TW","3711.TW",
+        "2303.TW","2881.TW","2882.TW","2412.TW","1303.TW","1301.TW","2002.TW","2891.TW",
+        "5871.TW","1216.TW","3045.TW","4904.TW","2383.TW","2345.TW","3017.TW","3653.TW",
+        "2059.TW","3037.TW","2368.TW","3443.TW","3661.TW","2379.TW","2408.TW","6770.TW"
+    ]
+}
 def tw_now():
     return (datetime.utcnow() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S 台灣時間")
 
@@ -502,7 +568,7 @@ def esg_panel(symbol, price, q, esg):
     st.caption("ESG估值為模型化估算，實際永續報告書分數可於後續版本接入PDF解析。")
 
 def monitor_center(symbols, auto_sec, monitor_count):
-    st.subheader("🖥️ 即時監控中心")
+    st.subheader("🖥️ 即時監控中心 / 類股監控模式")
     st.info(f"自動更新：{'關閉' if auto_sec == 0 else str(auto_sec)+' 秒'}｜監控檔數：{len(symbols)}")
     mt = monitor_table(symbols, "6mo")
     if mt.empty:
@@ -528,11 +594,9 @@ def monitor_center(symbols, auto_sec, monitor_count):
         fig.update_layout(title=f"{rank_col} 排行榜", height=420, margin=dict(l=10,r=10,t=45,b=10))
         st.plotly_chart(fig, use_container_width=True)
 
-st.title("📈 AIStock V28.1 Institutional Ultimate 完整版")
-st.caption("👨‍💻 製作人：Tsung Chieh Yang｜AIStock Institutional Ultimate Series")
-st.success("✅ V28.1 已載入：完整監控 + 即時行情 + K線訊號疊圖 + 法人雷達 + 企業評價 + ESG + AI預測")
-st.caption("V28.1：Institutional Ultimate｜16/32檔監控 + 法人雷達 + K線訊號疊圖 + DCF/EVA/EBO/FCFF/FCFE + ESG估值 + AI預測")
-st.info("🏆 製作人：Tsung Chieh Yang｜版本：V28.1 Creator Edition｜雲端機構法人分析平台")
+st.title("📈 AIStock V28.2 Institutional Professional 完整版")
+st.success("✅ V28.2 已載入：類股監控模式 + 32檔監控 + K線訊號疊圖 + 法人雷達 + 企業評價 + ESG + AI預測")
+st.caption("V28.2：Institutional Professional｜類股監控模式 + 16/32檔監控 + 法人雷達 + K線訊號疊圖 + ESG/企業評價 + AI預測")
 
 with st.sidebar:
     st.header("查詢設定")
@@ -562,7 +626,17 @@ with st.sidebar:
 
     st.subheader("即時監控")
     monitor_count = st.radio("監控檔數", [16,32], horizontal=True)
-    monitor_text = st.text_area("自選監控清單", value=",".join(DEFAULT_MONITOR), height=110)
+    monitor_mode = st.selectbox(
+        "監控清單模式",
+        ["自選清單"] + list(SECTOR_WATCHLISTS.keys()),
+        index=1
+    )
+    if monitor_mode == "自選清單":
+        default_monitor_text = ",".join(DEFAULT_MONITOR)
+    else:
+        default_monitor_text = ",".join(SECTOR_WATCHLISTS.get(monitor_mode, DEFAULT_MONITOR))
+    monitor_text = st.text_area("自選/類股監控清單", value=default_monitor_text, height=130)
+    st.caption(f"目前模式：{monitor_mode}｜清單檔數：{len([x for x in monitor_text.split(',') if x.strip()])}")
     enable_monitor = st.checkbox("啟用即時監控中心", value=True)
     enable_forecast = st.checkbox("啟用AI預測", value=True)
     if st.button("手動刷新資料"):
@@ -655,7 +729,4 @@ with tab4:
         st.dataframe(d.tail(160), use_container_width=True)
         st.download_button("下載CSV", d.to_csv(index=False).encode("utf-8-sig"), file_name=f"{symbol}_V28_1_data.csv", mime="text/csv")
 
-st.markdown("---")
-st.caption("AIStock V28.1 Institutional Ultimate Creator Edition")
-st.caption("👨‍💻 製作人：Tsung Chieh Yang｜Copyright © 2026 All Rights Reserved")
 st.caption("免責聲明：本平台為研究與教學用途，非投資建議。法人雷達為量價代理估算，非交易所正式三大法人資料；即時行情可能延遲，請以券商與交易所資料為準。")
