@@ -6,4 +6,3 @@ yfinance
 requests
 scikit-learn
 xgboost
-pyinstaller
