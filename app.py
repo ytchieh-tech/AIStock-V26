@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import re
 
 st.set_page_config(
-    page_title="AIStock V28.2 Institutional Professional",
+    page_title="AIStock V28.2.1 Institutional Professional",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -18,13 +18,41 @@ st.set_page_config(
 st.markdown("""
 <style>
 .block-container{padding-top:1rem;padding-left:1rem;padding-right:1rem;max-width:1650px}
-[data-testid="stMetric"]{background:rgba(245,247,250,.92);border:1px solid #e5e7eb;border-radius:14px;padding:12px}
+[data-testid="stMetric"]{
+    background:#0f172a !important;
+    border:1px solid #334155 !important;
+    border-radius:14px !important;
+    padding:12px !important;
+    box-shadow:0 2px 10px rgba(15,23,42,.18);
+}
+[data-testid="stMetricLabel"] p{
+    color:#cbd5e1 !important;
+    font-weight:700 !important;
+}
+[data-testid="stMetricValue"]{
+    color:#ffffff !important;
+    font-weight:900 !important;
+    letter-spacing:.2px !important;
+}
+[data-testid="stMetricDelta"]{
+    color:#facc15 !important;
+    font-weight:800 !important;
+}
+[data-testid="stMetricDelta"] svg{
+    fill:#facc15 !important;
+}
+.stAlert{
+    border-radius:12px !important;
+}
 .stButton>button{width:100%;border-radius:12px;font-weight:700}
-.small-note{font-size:.88rem;color:#64748b}
+.small-note{font-size:.88rem;color:#334155}
 @media(max-width:768px){
 .block-container{padding-left:.55rem;padding-right:.55rem}
-h1{font-size:1.35rem!important} h2,h3{font-size:1.05rem!important}
-[data-testid="stMetricValue"]{font-size:1.05rem!important}
+h1{font-size:1.30rem!important} h2,h3{font-size:1.02rem!important}
+[data-testid="stMetric"]{padding:10px !important; margin-bottom:6px !important;}
+[data-testid="stMetricValue"]{font-size:1.22rem!important; color:#ffffff!important;}
+[data-testid="stMetricLabel"] p{font-size:.82rem!important; color:#e2e8f0!important;}
+[data-testid="stMetricDelta"]{font-size:.95rem!important;}
 }
 </style>
 """, unsafe_allow_html=True)
@@ -581,7 +609,7 @@ def monitor_center(symbols, auto_sec, monitor_count):
             with col:
                 delta = None if r.get("漲跌幅") is None else f"{r.get('漲跌幅'):+.2f}%"
                 st.metric(r.get("股票"), "N/A" if r.get("價格") is None else f"{r.get('價格'):.2f}", delta)
-                st.caption(f"AI {r.get('AI分數')}｜法人 {r.get('法人分數')}｜{r.get('評級')}")
+                st.caption(f"AI分數 {r.get('AI分數')}｜法人分數 {r.get('法人分數')}｜{r.get('評級')}")
                 tags = [k for k in ["黃金交叉","MACD翻紅","KD黃金交叉","RSI突破50","爆量突破"] if r.get(k)]
                 if tags: st.success("、".join(tags))
                 else: st.info("無主要買進訊號")
@@ -594,9 +622,10 @@ def monitor_center(symbols, auto_sec, monitor_count):
         fig.update_layout(title=f"{rank_col} 排行榜", height=420, margin=dict(l=10,r=10,t=45,b=10))
         st.plotly_chart(fig, use_container_width=True)
 
-st.title("📈 AIStock V28.2 Institutional Professional 完整版")
-st.success("✅ V28.2 已載入：類股監控模式 + 32檔監控 + K線訊號疊圖 + 法人雷達 + 企業評價 + ESG + AI預測")
-st.caption("V28.2：Institutional Professional｜類股監控模式 + 16/32檔監控 + 法人雷達 + K線訊號疊圖 + ESG/企業評價 + AI預測")
+st.title("📈 AIStock V28.2.1 Institutional Professional 完整版")
+st.success("✅ V28.2.1 已載入：手機價格顯示修正 + 類股監控模式 + 32檔監控 + K線訊號疊圖 + 法人雷達 + 企業評價 + ESG + AI預測")
+st.caption("📱 手機版監控卡片已改為深色高對比：價格、漲跌幅、AI分數更清楚。")
+st.caption("V28.2.1：手機對比修正｜類股監控模式 + 16/32檔監控 + 法人雷達 + K線訊號疊圖 + ESG/企業評價 + AI預測")
 
 with st.sidebar:
     st.header("查詢設定")
