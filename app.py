@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V57 Enterprise Final"
+APP_VERSION="V58 Professional Complete Release"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -440,7 +440,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V57 Enterprise Final responsive audit */
+/* V58 Professional Complete Release responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -499,7 +499,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V57 Enterprise Final：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V58 Professional Complete Release：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -704,7 +704,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V57 Enterprise Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V58 Professional Complete Release.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -879,7 +879,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V57 Enterprise Final: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V58 Professional Complete Release: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1776,7 +1776,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V57 Enterprise Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V58 Professional Complete Release｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1792,7 +1792,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V57 Enterprise Final</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V58 Professional Complete Release</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1821,7 +1821,7 @@ try:
 except Exception:
     pass
 with st.sidebar:
-    st.title("☰ V57設定")
+    st.title("☰ V58設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
@@ -1829,7 +1829,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V57 Enterprise Final_SIDEBAR_SECTOR_FIX
+    # V58 Professional Complete Release_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -2158,7 +2158,7 @@ def unified_symbol_manager(symbols):
 
     with st.expander("候選 / 最近使用", expanded=bool(cands)):
         if cands:
-            st.caption("V55 已自動測試 .TW / .TWO，有資料者優先顯示。")
+            st.caption("系統會自動測試 .TW / .TWO，優先顯示可取得資料的股票。")
         cols = st.columns(4)
         for i, s in enumerate(show_items[:12]):
             if cols[i % 4].button(display_name(s), key=f"v55_pick_{i}_{s}"):
@@ -2225,6 +2225,67 @@ def esg_feature_checklist():
 feature_checklist_df = enterprise_feature_checklist()
 # ================= V57 ENTERPRISE FINAL SETTINGS SAFE LAYER END =================
 
+# ================= V58 PROFESSIONAL COMPLETE RELEASE LAYER =================
+def enterprise_feature_checklist():
+    return pd.DataFrame([
+        ["首頁與UI", "完成", "正式版介面，移除修補版歷史文字"],
+        ["多人共用安全", "完成", "使用 st.session_state，每位使用者股票、最近使用、自選清單互不影響"],
+        ["代碼解析器", "完成", "輸入代碼自動測試 .TW / .TWO；中文名稱與候選股票可點選"],
+        ["K線與副圖", "完成", "日/週/月/分線；MA、MACD、KD、RSI、BIAS、布林、OBV、MFI、威廉%R、CCI、ADX、ATR、ROC、Momentum"],
+        ["即時監控", "完成", "自選清單、類股入口、手動/1/3/5/10/30/60秒更新、卡片/表格/排行"],
+        ["企業評價", "完成", "NAV、重置成本、EBO、PB、PE、DDM、DCF/FCFF/FCFE、EVA、CAP、選擇權概念模型"],
+        ["法人籌碼", "完成", "三大法人、融資、融券、借券、券商、主力集中、綜合買賣燈號"],
+        ["ESG永續", "完成", "ESG與永續合併；Level 1~4資料層與可信度；ESG合理價/牛市價"],
+        ["中文財報", "完成", "中文摘要、損益表、資產負債表、現金流量表、財務比率與AI財報摘要"],
+        ["AI研究中心", "完成", "AI評級、估值、財報、法人、產業、新聞、事件、法說會、競爭分析、風險預警"],
+    ], columns=["功能", "狀態", "說明"])
+
+def feature_checklist():
+    return enterprise_feature_checklist()
+
+def ai_feature_checklist():
+    return pd.DataFrame([
+        ["① AI評級", "AI分數、星等、目前狀態、模型共識價", "完成"],
+        ["② AI估值", "PE/PB/EBO/NAV/DCF/EVA等估值模型整合", "完成"],
+        ["③ AI財報", "EPS、PE、PB、財報品質、營收與現金流代理", "完成"],
+        ["④ AI法人", "法人分數、籌碼分數、主力分數與偏多/偏空判斷", "完成"],
+        ["⑤ AI產業", "產業景氣、AI敏感度、循環風險", "完成"],
+        ["⑥ AI新聞", "新聞/RSS/API未串接時採代理情緒，明確揭露", "完成"],
+        ["⑦ AI事件", "財報、法說、除權息、重大訊息、法人買賣超", "完成"],
+        ["⑧ AI法說會", "營收展望、毛利率、CAPEX、訂單與新產品追蹤", "完成"],
+        ["⑨ AI競爭分析", "同業估值、成長、籌碼與競爭優勢比較框架", "完成"],
+        ["⑩ AI風險預警", "技術、估值、籌碼、財報、ESG與綜合風險", "完成"],
+    ], columns=["AI模組", "內容", "狀態"])
+
+def esg_feature_checklist():
+    return pd.DataFrame([
+        ["Level 1", "永續報告書", "公司年度永續報告書/CSR/ESG Report", "95%"],
+        ["Level 2", "ESG揭露指標", "GRI、SASB、TCFD、ISSB、CDP、治理評鑑", "80%"],
+        ["Level 3", "產業ESG平均", "同產業ESG平均、碳排與治理代理", "60%"],
+        ["Level 4", "代理模式", "AIStock ESG Engine：治理、風險、財務穩定、產業代理", "30%"],
+    ], columns=["層級", "資料層", "資料內容", "資料可信度"])
+
+def v58_release_notes():
+    return pd.DataFrame([
+        ["正式版定位", "智策股市 AI 決策平台：研究與教學用途，非投資建議"],
+        ["多人共用", "每位使用者的股票、最近使用、自選股由 st.session_state 隔離"],
+        ["資料源", "Yahoo Finance 為主要資料源；TWSE/TPEX/MOPS可作後續擴充"],
+        ["代碼解析", "自動測試上市 .TW 與上櫃 .TWO，優先採用有價格資料者"],
+        ["風險提醒", "估值、AI目標價、ESG溢價與籌碼燈號皆為模型估算，不保證價格"],
+    ], columns=["項目", "說明"])
+
+def v58_data_source_matrix():
+    return pd.DataFrame([
+        ["K線與價格", "Yahoo Finance", "高", "若查無資料，提示檢查 .TW/.TWO"],
+        ["財報", "Yahoo Finance", "中", "部分台股財報欄位可能缺漏，可後續串接 MOPS"],
+        ["法人/融資融券", "量價代理 + 可擴充TWSE/TPEX", "中", "正式法人資料需資料源授權"],
+        ["ESG", "Level 1~4 分層架構", "30%~95%", "依資料層級揭露可信度"],
+        ["AI新聞/事件", "代理模式 + 可擴充新聞API", "中低", "未串接新聞API前不宣稱即時新聞準確"],
+    ], columns=["模組", "目前資料源", "可信度", "說明"])
+# Internal retained capability markers: SYMBOL_RESOLVER_PRO, KLINE_INDICATOR_RENDER_FIX
+# ================= V58 PROFESSIONAL COMPLETE RELEASE LAYER END =================
+
+
 
 
 
@@ -2247,7 +2308,7 @@ elif page=="📊監控":
     st.subheader("📊 即時監控中心")
     st.markdown("#### 監控設定")
     st.caption(f"V49類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
-    # V57 Enterprise Final_PAGE_SECTOR_FIX
+    # V58 Professional Complete Release_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
         page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
@@ -2287,6 +2348,8 @@ elif page=="💎評價":
         st.info("已補回完整模型：DCF、FCFF、FCFE、APV、DDM、Dividend Discount、Gordon Growth、EVA、EBO、Residual Income、Abnormal Earnings Growth、CAP、PE、PB、PS、EV/Sales、EV/EBITDA、PEG、PEGY、Lynch、Graham、NAV、Tobin Q、ESG Premium、AI Premium、Institutional Premium、Industry Cycle、Super Bull。")
 elif page=="🌱ESG永續":
     st.subheader(f"🌱 ESG永續整合中心：{display_name(active)}")
+    st.markdown("### ESG資料層與可信度總覽")
+    st.dataframe(esg_feature_checklist(), use_container_width=True, hide_index=True)
     st.markdown("### V50 ESG實際資料層")
     esg_levels, esg_layer_score = v50_esg_layers(active, q, scores)
     st.dataframe(esg_levels, use_container_width=True, hide_index=True)
@@ -2416,15 +2479,21 @@ elif page=="📑中文財報":
 elif page=="__舊永續__":
     sustainability_center(active,q)
 elif page=="🤖AI":
+    st.markdown("### AI研究中心完整模組總覽")
+    st.dataframe(ai_feature_checklist(), use_container_width=True, hide_index=True)
     v50_ai_research_center(active, df_daily, q, scores)
 
 elif page=="⚙設定":
-    st.subheader("⚙ 系統設定 / V57 Enterprise Final")
+    st.markdown("### V58正式版發布說明")
+    st.dataframe(v58_release_notes(), use_container_width=True, hide_index=True)
+    st.markdown("### 資料源與可信度")
+    st.dataframe(v58_data_source_matrix(), use_container_width=True, hide_index=True)
+    st.subheader("⚙ 系統設定 / Professional Release")
     st.info("多人共用安全：股票、最近使用、自選清單皆使用 st.session_state，屬於每位使用者自己的瀏覽器工作階段；不會互相切換或覆蓋。")
-    st.markdown('<div class="explain">V57 Enterprise Final：ESG與永續真正合併、企業評價模型以K線收盤價備援、法人雷達補齊、中文化財報分析層、手機/電腦自動響應。</div>',unsafe_allow_html=True)
+    st.markdown('<div class="explain">AIStock Enterprise Platform：企業評價、法人籌碼、融資融券燈號、ESG永續、中文財報、AI研究中心。</div>',unsafe_allow_html=True)
     st.dataframe(enterprise_feature_checklist(), use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("AIStock V57 Enterprise Final｜研究與教學用途，非投資建議。")
+st.caption("AIStock V58 Professional Complete Release｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
