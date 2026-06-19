@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V43 Institutional Professional Final"
+APP_VERSION="V44 AI Research + Monitor UX Final"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -63,6 +63,15 @@ st.markdown("""
 }
 @media(min-width:769px){
   .kpi-grid{grid-template-columns:repeat(4,1fr)}
+}
+
+.v44-chip-scroll{display:flex;gap:6px;overflow-x:auto;white-space:nowrap;padding:4px 0 8px 0;margin:2px 0 4px 0}
+.v44-chip-scroll::-webkit-scrollbar{height:3px}
+.v44-chip{display:inline-block;background:#1e293b;border:1px solid #475569;color:#e2e8f0;border-radius:999px;padding:5px 9px;font-size:.72rem;font-weight:800}
+.v44-note{font-size:.74rem;color:#94a3b8;line-height:1.5}
+@media(max-width:768px){
+  div[data-testid="stButton"] button{padding:.25rem .45rem;font-size:.72rem;min-height:2rem}
+  .v39-symbol-panel{padding:8px!important}
 }
 </style>
 """, unsafe_allow_html=True)
@@ -193,7 +202,7 @@ def set_active_symbol(sym):
     return s
 
 def unified_symbol_manager(symbols):
-    """V40 smart search. Exact 4-digit code switches on Enter; partial search shows candidate buttons."""
+    """V44 smart search with compact mobile-friendly recent chips/buttons."""
     if "active_symbol" not in st.session_state:
         st.session_state.active_symbol = symbols[0] if symbols else DEFAULT_MONITOR[0]
     if "recent_symbols" not in st.session_state:
@@ -201,38 +210,39 @@ def unified_symbol_manager(symbols):
 
     st.markdown('<div class="v39-symbol-panel">', unsafe_allow_html=True)
     st.markdown('<div class="v39-active">🎯 全站股票智慧搜尋</div>', unsafe_allow_html=True)
-    st.markdown('<div class="v39-hint">輸入完整代碼後按 Enter 會直接切換全站；輸入部分代碼或名稱會出現候選股票按鈕。</div>', unsafe_allow_html=True)
+    st.markdown('<div class="v39-hint">輸入完整代碼按 Enter 會直接切換；輸入部分代碼或名稱會出現候選股票。</div>', unsafe_allow_html=True)
 
     query = st.text_input(
         "搜尋股票名稱或代碼",
         value="",
         placeholder="例如：2301、230、聯、和椿、台積電",
-        key="v40_smart_symbol_search"
+        key="v44_smart_symbol_search"
     )
 
-    # Exact input auto-applies safely after Enter/rerun. No widget-key mutation.
     if query.strip():
-        q = query.strip()
-        if q in TW_STOCKS or re.fullmatch(r"\d{4}", q):
-            set_active_symbol(q)
+        qtext = query.strip()
+        if qtext in TW_STOCKS or re.fullmatch(r"\d{4}", qtext):
+            set_active_symbol(qtext)
 
     st.markdown(f'<div class="v39-hint">目前全站分析：<b>{display_name(st.session_state.active_symbol)}</b></div>', unsafe_allow_html=True)
 
-    candidates = search_symbol_candidates(query, symbols, limit=12) if query.strip() else (st.session_state.get("recent_symbols", []) + list(symbols))[:12]
-    # de-duplicate while preserving order
+    candidates = search_symbol_candidates(query, symbols, limit=10) if query.strip() else (st.session_state.get("recent_symbols", []) + list(symbols))[:10]
     unique_candidates = []
     for s in candidates:
         if s and s not in unique_candidates:
             unique_candidates.append(s)
 
-    if unique_candidates:
-        st.caption("候選 / 最近使用")
-        cols = st.columns(3)
-        for i, s in enumerate(unique_candidates[:12]):
-            label = display_name(s)
-            if cols[i % 3].button(label, key=f"v40_symbol_candidate_{i}_{s}"):
-                set_active_symbol(s)
-                st.rerun()
+    # 手機避免長條列：只顯示在展開區，且每列最多4個小按鈕
+    with st.expander("候選 / 最近使用", expanded=bool(query.strip())):
+        if unique_candidates:
+            cols = st.columns(4)
+            for i, s in enumerate(unique_candidates[:12]):
+                label = display_name(s).replace(" / ", "\\n")
+                if cols[i % 4].button(label, key=f"v44_symbol_candidate_{i}_{s}"):
+                    set_active_symbol(s)
+                    st.rerun()
+        else:
+            st.caption("尚無候選股票")
 
     st.markdown('</div>', unsafe_allow_html=True)
     return st.session_state.active_symbol
@@ -783,133 +793,162 @@ def kline_chart(df, overlays, panel):
     f.update_layout(height=190,template="plotly_dark",margin=dict(l=6,r=6,t=24,b=4),legend=dict(orientation="h",font=dict(size=9)),yaxis=dict(side="right"))
     st.plotly_chart(f,use_container_width=True)
 
-def ai_target_panel(df, scores):
-    d=add_indicators(df).dropna()
-    if d.empty or len(d)<80: st.warning("資料不足"); return
-    price=float(d["Close"].iloc[-1]); momentum=float(np.clip(d["RET20"].iloc[-1] if pd.notna(d["RET20"].iloc[-1]) else 0, -.12, .20))
-    base=price*(1+momentum*.45+(scores["tech"]-50)/1000+(scores["inst"]-50)/1400); cons=base*.94; bull=base*1.06; confidence=int(np.clip(45+scores["tech"]*.25+scores["inst"]*.20+scores["fund"]*.20+scores["esg"]*.10,35,92))
-    mx=max(bull,price)*1.05; html='<div class="targetbar"><b>AI目標區間圖</b>'
-    for name,val,color in [("保守",cons,"#22c55e"),("基準",base,"#60a5fa"),("樂觀",bull,"#f87171"),("目前",price,"#94a3b8")]:
-        pct=max(min(val/mx*100,100),4); html+=f'<div class="target-row"><div class="target-name">{name}</div><div class="target-line"><div class="target-fill" style="width:{pct:.1f}%;background:{color}"></div></div><div class="target-val">{val:.2f}</div></div>'
-    st.markdown(html+'</div>', unsafe_allow_html=True); kpi([("AI信心度",f"{confidence}%"),("目前價",fmt(price)),("基準價",fmt(base)),("樂觀價",fmt(bull))])
-    with st.expander("AI數值來源與計算說明"):
-        st.dataframe(pd.DataFrame([["資料來源","Yahoo Finance 歷史股價與成交量"],["使用指標","20日報酬、均線、MACD、RSI、KD、成交量、技術/法人/基本面/ESG分數"],["基準價","目前價 × (1 + 20日動能×0.45 + 技術加權 + 法人加權)"],["保守價","基準價 × 0.94"],["樂觀價","基準價 × 1.06"],["AI信心度","45 + 技術×25% + 法人×20% + 基本面×20% + ESG×10%，上下限35%~92%"]],columns=["項目","說明"]),use_container_width=True,hide_index=True)
 
+def ai_rating(score):
+    if score >= 85: return "強力買進", "★★★★★", "偏多"
+    if score >= 75: return "買進", "★★★★☆", "偏多"
+    if score >= 65: return "增持", "★★★☆☆", "中性偏多"
+    if score >= 50: return "中立", "★★★☆☆", "中性"
+    if score >= 40: return "減碼", "★★☆☆☆", "偏弱"
+    return "賣出", "★☆☆☆☆", "偏空"
 
-FIN_ZH_MAP = {
-    "Total Revenue":"營業收入總額",
-    "Operating Revenue":"營業收入",
-    "Cost Of Revenue":"營業成本",
-    "Gross Profit":"營業毛利",
-    "Operating Expense":"營業費用",
-    "Operating Income":"營業利益",
-    "Pretax Income":"稅前淨利",
-    "Tax Provision":"所得稅費用",
-    "Net Income":"本期淨利",
-    "Net Income Common Stockholders":"歸屬母公司淨利",
-    "Diluted EPS":"稀釋EPS",
-    "Basic EPS":"基本EPS",
-    "EBITDA":"稅息折舊攤銷前盈餘",
-    "EBIT":"息稅前盈餘",
-    "Total Assets":"資產總額",
-    "Current Assets":"流動資產",
-    "Cash And Cash Equivalents":"現金及約當現金",
-    "Inventory":"存貨",
-    "Accounts Receivable":"應收帳款",
-    "Total Liabilities Net Minority Interest":"負債總額",
-    "Current Liabilities":"流動負債",
-    "Long Term Debt":"長期負債",
-    "Stockholders Equity":"股東權益",
-    "Retained Earnings":"保留盈餘",
-    "Operating Cash Flow":"營業活動現金流",
-    "Investing Cash Flow":"投資活動現金流",
-    "Financing Cash Flow":"籌資活動現金流",
-    "Free Cash Flow":"自由現金流",
-    "Capital Expenditure":"資本支出",
-    "Depreciation And Amortization":"折舊及攤銷",
-}
-
-def zh_financial_df(df):
-    if df is None or df.empty:
-        return pd.DataFrame()
-    out = df.copy()
-    out.insert(0, "中文項目", [FIN_ZH_MAP.get(str(i), str(i)) for i in out.index])
-    out.insert(0, "英文項目", [str(i) for i in out.index])
-    out = out.reset_index(drop=True)
-    return out
-
-def fin_get(df, key):
+def ai_risk_score(scores, df):
+    risk = 45
     try:
-        if df is None or df.empty or key not in df.index:
-            return np.nan
-        val = df.loc[key].dropna()
-        return safe_float(val.iloc[0]) if len(val) else np.nan
+        d=add_indicators(df).dropna()
+        if not d.empty:
+            x=d.iloc[-1]
+            rsi=safe_float(x.get("RSI"),50)
+            ret20=safe_float(x.get("RET20"),0)
+            close=safe_float(x.get("Close"),0)
+            ma20=safe_float(x.get("MA20"),0)
+            risk += 12 if rsi>80 else 0
+            risk += 10 if ret20>0.18 else 0
+            risk += 12 if close<ma20 else -5
     except Exception:
-        return np.nan
+        pass
+    risk += max(0, 55-scores.get("fund",50))*0.25
+    risk += max(0, 55-scores.get("inst",50))*0.20
+    return int(np.clip(risk,0,100))
 
-def chinese_financial_analysis(symbol, q, ft):
-    income = ft.get("income", pd.DataFrame())
-    balance = ft.get("balance", pd.DataFrame())
-    cashflow = ft.get("cashflow", pd.DataFrame())
-    revenue = fin_get(income, "Total Revenue")
-    gross = fin_get(income, "Gross Profit")
-    op_income = fin_get(income, "Operating Income")
-    net_income = fin_get(income, "Net Income")
-    assets = fin_get(balance, "Total Assets")
-    equity = fin_get(balance, "Stockholders Equity")
-    ocf = fin_get(cashflow, "Operating Cash Flow")
-    capex = fin_get(cashflow, "Capital Expenditure")
-    fcf = fin_get(cashflow, "Free Cash Flow")
-    if pd.isna(fcf) and pd.notna(ocf) and pd.notna(capex):
-        fcf = ocf + capex
+def ai_research_tables(df, q, scores):
+    price=effective_price(q, df)
+    total=ai_total(scores)
+    rating, stars, trend=ai_rating(total)
+    risk=ai_risk_score(scores, df)
+    val, inp = valuation(price, q, scores)
+    con = consensus(val)
+    upside = (con/price-1)*100 if pd.notna(con) and pd.notna(price) and price else np.nan
+    industry_score = int(np.clip(scores["tech"]*.35 + scores["fund"]*.25 + scores["inst"]*.25 + scores["esg"]*.15,0,100))
+    fin_quality = int(np.clip(scores["fund"]*1.05,0,100))
+    inst_quality = int(np.clip(scores["inst"]*1.05,0,100))
+    esg_quality = int(np.clip(scores["esg"]*1.05,0,100))
 
-    rows = [
-        ["營業收入", revenue],
-        ["營業毛利", gross],
-        ["營業利益", op_income],
-        ["本期淨利", net_income],
-        ["資產總額", assets],
-        ["股東權益", equity],
-        ["營業活動現金流", ocf],
-        ["自由現金流", fcf],
-        ["EPS", q.get("eps")],
-        ["PE", q.get("pe")],
-        ["PB", q.get("pb")],
-    ]
-    summary = pd.DataFrame(rows, columns=["中文項目", "最新數值"])
+    summary=pd.DataFrame([
+        ["AI綜合評級", rating],
+        ["星等", stars],
+        ["AI分數", f"{total}/100"],
+        ["目前狀態", trend],
+        ["風險指數", f"{risk}/100"],
+        ["模型共識價", fmt(con)],
+        ["相對現價空間", "N/A" if pd.isna(upside) else f"{upside:+.1f}%"],
+    ],columns=["項目","結果"])
 
-    gm = gross / revenue * 100 if pd.notna(gross) and pd.notna(revenue) and revenue else np.nan
-    om = op_income / revenue * 100 if pd.notna(op_income) and pd.notna(revenue) and revenue else np.nan
-    nm = net_income / revenue * 100 if pd.notna(net_income) and pd.notna(revenue) and revenue else np.nan
-    roe = net_income / equity * 100 if pd.notna(net_income) and pd.notna(equity) and equity else np.nan
-    roa = net_income / assets * 100 if pd.notna(net_income) and pd.notna(assets) and assets else np.nan
-    fcf_margin = fcf / revenue * 100 if pd.notna(fcf) and pd.notna(revenue) and revenue else np.nan
+    explain=pd.DataFrame([
+        ["技術面", scores["tech"], "均線、MACD、RSI、KD、量價動能"],
+        ["法人面", scores["inst"], "法人籌碼、主力代理、量價集中"],
+        ["基本面", scores["fund"], "PE、PB、EPS代理、財報品質"],
+        ["ESG", scores["esg"], "ESG共識與永續揭露代理"],
+        ["產業景氣", industry_score, "技術趨勢 + 基本面 + 法人籌碼"],
+        ["財報品質", fin_quality, "基本面分數延伸"],
+        ["法人品質", inst_quality, "法人籌碼分數延伸"],
+        ["ESG品質", esg_quality, "ESG分數延伸"],
+    ],columns=["構面","分數","來源說明"])
 
-    ratios = pd.DataFrame([
-        ["毛利率", gm],
-        ["營益率", om],
-        ["淨利率", nm],
-        ["ROE", roe],
-        ["ROA", roa],
-        ["自由現金流率", fcf_margin],
-    ], columns=["指標", "數值%"])
+    risk_tbl=pd.DataFrame([
+        ["景氣風險", "中" if industry_score>=55 else "高", "產業分數低於55代表景氣或評價需留意"],
+        ["技術風險", "高" if scores["tech"]<45 else "中低", "均線與動能轉弱會提高技術風險"],
+        ["籌碼風險", "高" if scores["inst"]<45 else "中低", "法人/主力代理偏弱時提高風險"],
+        ["估值風險", "高" if pd.notna(upside) and upside<0 else "中", "共識價低於現價代表估值壓力"],
+        ["ESG風險", "中低" if scores["esg"]>=65 else "中高", "ESG分數低代表永續溢價有限"],
+    ],columns=["風險項目","燈號","說明"])
 
-    score = 50
-    for v, add in [(gm,10),(om,10),(nm,10),(roe,12),(roa,8),(fcf_margin,10)]:
-        if pd.notna(v):
-            score += add if v > 10 else (add/2 if v > 0 else -add/2)
-    score = int(np.clip(score, 0, 100))
-    return summary, ratios, score
+    probs=pd.DataFrame([
+        ["1個月", int(np.clip(45+scores["tech"]*.25+scores["inst"]*.15-risk*.10,25,85))],
+        ["3個月", int(np.clip(45+scores["tech"]*.15+scores["fund"]*.15+scores["inst"]*.20-risk*.08,25,88))],
+        ["6個月", int(np.clip(45+scores["fund"]*.20+scores["inst"]*.15+scores["esg"]*.08-risk*.06,25,90))],
+        ["12個月", int(np.clip(45+scores["fund"]*.25+scores["esg"]*.15+scores["inst"]*.10-risk*.05,25,92))],
+    ],columns=["期間","上漲機率%"])
 
-def enterprise_feature_checklist():
-    return pd.DataFrame([
-        ["企業評價", "DCF/FCFF/FCFE/APV/DDM/Gordon/EVA/EBO/RI/CAP/PE/PB/PS/PEG/PEGY/NAV/TobinQ/Super Bull", "已保留"],
-        ["法人籌碼中心", "三大法人/融資融券/借券/券商進出/主力集中/籌碼燈號", "已補齊"],
-        ["ESG永續", "ESG共識/溢價/合理價/牛市價/超級牛市價/永續報告書", "已合併"],
-        ["AI研究", "AI目標區間/信心度/計算說明/風險提示", "已保留"],
-        ["中文化財報", "中文損益表/資產負債表/現金流量表/財務比率/AI摘要", "新增"],
-        ["股票控制器", "智慧搜尋/上櫃.TWO/全站同步/手機電腦響應", "已保留"],
-    ], columns=["模組", "內容", "狀態"])
+    scenarios=pd.DataFrame([
+        ["熊市情境", "20%", price*0.82 if pd.notna(price) else np.nan, "景氣轉弱、籌碼退潮、估值下修"],
+        ["基準情境", "55%", con if pd.notna(con) else price*1.03, "基本面與籌碼維持目前趨勢"],
+        ["牛市情境", "25%", (con if pd.notna(con) else price)*1.22, "法人回補、產業景氣上行、評價擴張"],
+        ["超級牛市", "低機率", (con if pd.notna(con) else price)*1.45, "AI/產業題材強化並帶動溢價"],
+    ],columns=["投資劇本","機率","目標價","條件"])
+
+    events=pd.DataFrame([
+        ["財報公告", "中性偏多" if scores["fund"]>=60 else "中性", "觀察EPS、毛利率、營益率"],
+        ["法說會", "中性", "觀察公司展望與AI/產業訂單"],
+        ["除權息", "中性", "觀察殖利率與填息機率"],
+        ["重大訊息", "待觀察", "需串接公開資訊觀測站"],
+        ["產業新聞", "待觀察", "需串接新聞/產業資料源"],
+    ],columns=["事件","AI判斷","觀察重點"])
+
+    return summary, explain, risk_tbl, probs, scenarios, events, val, con
+
+def ai_target_panel(df, scores):
+    q = yf_quote(st.session_state.active_symbol) if "active_symbol" in st.session_state else {}
+    q = repair_quote_with_df(q, df)
+    price = effective_price(q, df)
+    if pd.isna(price):
+        st.warning("資料不足，無法產生 AI 研究。")
+        return
+
+    summary, explain, risk_tbl, probs, scenarios, events, val, con = ai_research_tables(df, q, scores)
+    total=ai_total(scores)
+    rating, stars, trend=ai_rating(total)
+    risk=ai_risk_score(scores, df)
+
+    st.subheader("🤖 AI研究中心")
+    kpi([
+        ("AI評級", rating),
+        ("AI分數", f"{total}/100"),
+        ("風險指數", f"{risk}/100"),
+        ("模型共識價", fmt(con)),
+    ])
+
+    # 目標區間
+    base = con if pd.notna(con) else price*1.03
+    cons=base*.94
+    bull=base*1.06
+    superbull=base*1.25
+    mx=max(superbull,price)*1.05
+    html='<div class="targetbar"><b>AI目標區間圖</b>'
+    for name,valx,color in [("保守",cons,"#22c55e"),("基準",base,"#60a5fa"),("樂觀",bull,"#f87171"),("牛市",superbull,"#facc15"),("目前",price,"#94a3b8")]:
+        pct=max(min(valx/mx*100,100),4)
+        html+=f'<div class="target-row"><div class="target-name">{name}</div><div class="target-line"><div class="target-fill" style="width:{pct:.1f}%;background:{color}"></div></div><div class="target-val">{valx:.2f}</div></div>'
+    st.markdown(html+'</div>', unsafe_allow_html=True)
+
+    tabs=st.tabs(["AI總評","解釋引擎","風險中心","產業/財報/法人","估值共識","機率預測","事件分析","投資劇本","來源說明"])
+    with tabs[0]:
+        st.dataframe(summary,use_container_width=True,hide_index=True)
+    with tabs[1]:
+        st.dataframe(explain,use_container_width=True,hide_index=True)
+    with tabs[2]:
+        st.dataframe(risk_tbl,use_container_width=True,hide_index=True)
+    with tabs[3]:
+        st.dataframe(explain[explain["構面"].isin(["產業景氣","財報品質","法人品質","ESG品質"])],use_container_width=True,hide_index=True)
+    with tabs[4]:
+        st.dataframe(val,use_container_width=True,hide_index=True)
+    with tabs[5]:
+        st.dataframe(probs,use_container_width=True,hide_index=True)
+        fig=go.Figure()
+        fig.add_trace(go.Bar(x=probs["期間"],y=probs["上漲機率%"],name="上漲機率"))
+        fig.update_layout(height=280,template="plotly_dark",margin=dict(l=8,r=8,t=20,b=8),yaxis=dict(range=[0,100]))
+        st.plotly_chart(fig,use_container_width=True)
+    with tabs[6]:
+        st.dataframe(events,use_container_width=True,hide_index=True)
+    with tabs[7]:
+        st.dataframe(scenarios,use_container_width=True,hide_index=True)
+    with tabs[8]:
+        st.dataframe(pd.DataFrame([
+            ["AI總評級", "技術、法人、基本面、ESG、估值共識加權"],
+            ["AI目標價", "企業評價中心共識價作為基準，再推估保守/樂觀/牛市"],
+            ["AI風險", "技術過熱、跌破月線、籌碼轉弱、估值壓力"],
+            ["AI機率", "依技術/法人/基本面/ESG與風險分數推估"],
+            ["限制", "此為研究與教學用途，不是投資建議；正式資料需串接交易所、財報與新聞資料源"],
+        ],columns=["項目","說明"]),use_container_width=True,hide_index=True)
 
 
 def financial_center(symbol,q,df):
@@ -988,7 +1027,7 @@ def sustainability_center(symbol,q):
 st.markdown("""
 <div class="hero">
  <div class="hero-title">📈 智策股市 AI 決策平台</div>
- <div class="hero-sub">V43 Institutional Professional Final｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
+ <div class="hero-sub">V44 AI Research + Monitor UX Final｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
  <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">V37.1 Institutional Stability</text><text x="28" y="72" fill="#93c5fd" font-size="16">Valuation · ESG · K-Line · Financials · AI Target</text></svg></div>
 </div>
 """, unsafe_allow_html=True)
@@ -999,7 +1038,7 @@ page=st.radio("主選單",MAIN,index=MAIN.index(st.session_state.page) if st.ses
 st.session_state.page=page
 
 with st.sidebar:
-    st.title("☰ V43設定")
+    st.title("☰ V44設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
@@ -1009,8 +1048,14 @@ with st.sidebar:
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
-    if sector != "自選" and st.button("載入此類股清單"):
+    if "last_sector_loaded" not in st.session_state:
+        st.session_state.last_sector_loaded = "自選"
+    # V44：類股選單一變更就自動套用，不再需要按鈕
+    if sector != "自選" and sector != st.session_state.last_sector_loaded:
         st.session_state.watch_text_value = ",".join(SECTORS.get(sector, DEFAULT_MONITOR))
+        st.session_state.last_sector_loaded = sector
+    if sector == "自選":
+        st.session_state.last_sector_loaded = "自選"
     watch_text=st.text_area(
         "自選監控清單（可自行輸入股票）",
         value=st.session_state.watch_text_value,
@@ -1043,6 +1088,9 @@ if page=="🏠首頁":
 elif page=="📊監控":
     st.subheader("📊 即時監控中心")
     st.markdown("#### 監控設定")
+    page_sector=st.selectbox("本頁類股快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")
+    if page_sector!="自選":
+        st.session_state.watch_text_value=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
     page_refresh_label=st.radio("本頁更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=["手動","1秒","3秒","5秒","10秒","30秒","60秒"].index(refresh_label),horizontal=True,key="page_refresh_label")
     page_refresh_sec=0 if page_refresh_label=="手動" else int(page_refresh_label.replace("秒",""))
     page_watch=st.text_area("本頁自選監控清單",value=st.session_state.watch_text_value,height=100,key="page_watch_text",help="這裡修改後會同步回左側自選清單")
@@ -1188,4 +1236,6 @@ elif page=="⚙設定":
     st.dataframe(enterprise_feature_checklist(), use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("AIStock V43 Institutional Professional Final｜研究與教學用途，非投資建議。")
+st.caption("AIStock V44 AI Research + Monitor UX Final｜研究與教學用途，非投資建議。")
+
+# V44 check marker: AI事件分析
