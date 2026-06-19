@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V40 Smart Search Responsive Final"
+APP_VERSION="V41 Enterprise Rebuild 中文化財報版"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -65,13 +65,32 @@ def safe_float(x, default=np.nan):
     except Exception:
         return default
 
+OTC_CODES = {
+    "5347","6215","3260","3105","8086","6643","6147","3264","8299",
+    "5274","6533","4967","6274","8069","3324","5483","6187","6488"
+}
+ALIASES = {
+    "和椿科技":"6215.TWO",
+    "和椿":"6215.TWO",
+    "世界先進":"5347.TWO",
+    "威剛":"3260.TWO",
+}
+
 def clean_symbol(x):
     s=str(x).strip()
-    if not s: return ""
-    if s in TW_STOCKS: return TW_STOCKS[s]
-    if re.fullmatch(r"\d{4}", s):
-        return f"{s}.TWO" if s in ["5347","6215","3260","3105","8086","6643","6147","3264","8299"] else f"{s}.TW"
-    return s.upper()
+    if not s:
+        return ""
+    if s in ALIASES:
+        return ALIASES[s]
+    if s in TW_STOCKS:
+        return TW_STOCKS[s]
+    su=s.upper()
+    if re.fullmatch(r"\d{4}", su):
+        return f"{su}.TWO" if su in OTC_CODES else f"{su}.TW"
+    # 若使用者已輸入 6215.TWO / 2330.TW，直接保留
+    if re.fullmatch(r"\d{4}\.(TW|TWO)", su):
+        return su
+    return su
 
 def display_name(symbol):
     for k,v in TW_STOCKS.items():
@@ -189,50 +208,109 @@ def maybe_reload(sec):
 
 @st.cache_data(show_spinner=False, ttl=30)
 def yf_quote(symbol):
-    q={"price":np.nan,"prev":np.nan,"open":np.nan,"high":np.nan,"low":np.nan,"volume":np.nan,"pe":np.nan,"pb":np.nan,"eps":np.nan,"book_value":np.nan,"revenue_per_share":np.nan,"market_cap":np.nan,"div_yield":np.nan,"source":"Yahoo Finance","time":now_tw()}
-    try:
-        t=yf.Ticker(symbol)
-        try: fast=t.fast_info
-        except Exception: fast={}
-        def gf(*ks):
-            for k in ks:
-                try:
-                    v=fast.get(k) if hasattr(fast,"get") else getattr(fast,k)
-                    if v is not None: return safe_float(v)
-                except Exception: pass
-            return np.nan
-        q["price"]=gf("last_price","lastPrice"); q["prev"]=gf("previous_close","previousClose"); q["open"]=gf("open"); q["high"]=gf("day_high","dayHigh"); q["low"]=gf("day_low","dayLow"); q["volume"]=gf("last_volume","lastVolume","volume"); q["market_cap"]=gf("market_cap","marketCap")
+    def empty_quote(src_symbol):
+        return {"price":np.nan,"prev":np.nan,"open":np.nan,"high":np.nan,"low":np.nan,"volume":np.nan,"pe":np.nan,"pb":np.nan,"eps":np.nan,"book_value":np.nan,"revenue_per_share":np.nan,"market_cap":np.nan,"div_yield":np.nan,"source":f"Yahoo Finance / {src_symbol}","time":now_tw()}
+
+    # V40.1：若 .TWO 查不到，嘗試 .TW；若 .TW 查不到，嘗試 .TWO
+    candidates=[symbol]
+    if symbol.endswith(".TWO"):
+        candidates.append(symbol.replace(".TWO",".TW"))
+    elif symbol.endswith(".TW"):
+        candidates.append(symbol.replace(".TW",".TWO"))
+
+    best=None
+    for sym in candidates:
+        q=empty_quote(sym)
         try:
-            info=t.info or {}
-            for k,ik in {"pe":"trailingPE","pb":"priceToBook","eps":"trailingEps","book_value":"bookValue","revenue_per_share":"revenuePerShare","div_yield":"dividendYield"}.items():
-                q[k]=safe_float(info.get(ik))
-            if pd.isna(q["price"]): q["price"]=safe_float(info.get("currentPrice",info.get("regularMarketPrice")))
-            if pd.isna(q["prev"]): q["prev"]=safe_float(info.get("previousClose"))
-        except Exception: pass
-    except Exception: pass
-    return q
+            t=yf.Ticker(sym)
+            try:
+                fast=t.fast_info
+            except Exception:
+                fast={}
+            def gf(*ks):
+                for k in ks:
+                    try:
+                        v=fast.get(k) if hasattr(fast,"get") else getattr(fast,k)
+                        if v is not None:
+                            return safe_float(v)
+                    except Exception:
+                        pass
+                return np.nan
+            q["price"]=gf("last_price","lastPrice")
+            q["prev"]=gf("previous_close","previousClose")
+            q["open"]=gf("open")
+            q["high"]=gf("day_high","dayHigh")
+            q["low"]=gf("day_low","dayLow")
+            q["volume"]=gf("last_volume","lastVolume","volume")
+            q["market_cap"]=gf("market_cap","marketCap")
+            try:
+                info=t.info or {}
+                for k,ik in {"pe":"trailingPE","pb":"priceToBook","eps":"trailingEps","book_value":"bookValue","revenue_per_share":"revenuePerShare","div_yield":"dividendYield"}.items():
+                    q[k]=safe_float(info.get(ik))
+                if pd.isna(q["price"]):
+                    q["price"]=safe_float(info.get("currentPrice",info.get("regularMarketPrice")))
+                if pd.isna(q["prev"]):
+                    q["prev"]=safe_float(info.get("previousClose"))
+            except Exception:
+                pass
+            if pd.notna(q.get("price")):
+                return q
+            best=q
+        except Exception:
+            best=q
+    return best if best is not None else empty_quote(symbol)
+
 
 @st.cache_data(show_spinner=False, ttl=60)
 def fetch_daily(symbol, period="2y"):
-    try:
-        df=yf.download(symbol, period=period, interval="1d", auto_adjust=False, progress=False)
-        if df is None or df.empty: return pd.DataFrame()
-        if isinstance(df.columns,pd.MultiIndex): df.columns=[c[0] for c in df.columns]
-        df=df.reset_index(); df["Date"]=pd.to_datetime(df["Date"])
-        return df.dropna(subset=["Close"])
-    except Exception: return pd.DataFrame()
+    candidates=[symbol]
+    if symbol.endswith(".TWO"):
+        candidates.append(symbol.replace(".TWO",".TW"))
+    elif symbol.endswith(".TW"):
+        candidates.append(symbol.replace(".TW",".TWO"))
+    for sym in candidates:
+        try:
+            df=yf.download(sym, period=period, interval="1d", auto_adjust=False, progress=False)
+            if df is None or df.empty:
+                continue
+            if isinstance(df.columns,pd.MultiIndex):
+                df.columns=[c[0] for c in df.columns]
+            df=df.reset_index()
+            df["Date"]=pd.to_datetime(df["Date"])
+            out=df.dropna(subset=["Close"])
+            if not out.empty:
+                return out
+        except Exception:
+            pass
+    return pd.DataFrame()
+
 
 @st.cache_data(show_spinner=False, ttl=60)
 def fetch_intraday(symbol, interval="60m"):
     period={"60m":"60d","30m":"30d","15m":"30d","5m":"7d"}.get(interval,"30d")
-    try:
-        df=yf.download(symbol, period=period, interval=interval, auto_adjust=False, progress=False)
-        if df is None or df.empty: return pd.DataFrame()
-        if isinstance(df.columns,pd.MultiIndex): df.columns=[c[0] for c in df.columns]
-        df=df.reset_index(); dc="Datetime" if "Datetime" in df.columns else "Date"; df=df.rename(columns={dc:"Date"})
-        df["Date"]=pd.to_datetime(df["Date"]).dt.tz_localize(None)
-        return df.dropna(subset=["Close"])
-    except Exception: return pd.DataFrame()
+    candidates=[symbol]
+    if symbol.endswith(".TWO"):
+        candidates.append(symbol.replace(".TWO",".TW"))
+    elif symbol.endswith(".TW"):
+        candidates.append(symbol.replace(".TW",".TWO"))
+    for sym in candidates:
+        try:
+            df=yf.download(sym, period=period, interval=interval, auto_adjust=False, progress=False)
+            if df is None or df.empty:
+                continue
+            if isinstance(df.columns,pd.MultiIndex):
+                df.columns=[c[0] for c in df.columns]
+            df=df.reset_index()
+            dc="Datetime" if "Datetime" in df.columns else "Date"
+            df=df.rename(columns={dc:"Date"})
+            df["Date"]=pd.to_datetime(df["Date"]).dt.tz_localize(None)
+            out=df.dropna(subset=["Close"])
+            if not out.empty:
+                return out
+        except Exception:
+            pass
+    return pd.DataFrame()
+
 
 def resample_ohlcv(df, rule):
     if df.empty: return df
@@ -475,15 +553,184 @@ def ai_target_panel(df, scores):
     with st.expander("AI數值來源與計算說明"):
         st.dataframe(pd.DataFrame([["資料來源","Yahoo Finance 歷史股價與成交量"],["使用指標","20日報酬、均線、MACD、RSI、KD、成交量、技術/法人/基本面/ESG分數"],["基準價","目前價 × (1 + 20日動能×0.45 + 技術加權 + 法人加權)"],["保守價","基準價 × 0.94"],["樂觀價","基準價 × 1.06"],["AI信心度","45 + 技術×25% + 法人×20% + 基本面×20% + ESG×10%，上下限35%~92%"]],columns=["項目","說明"]),use_container_width=True,hide_index=True)
 
+
+FIN_ZH_MAP = {
+    "Total Revenue":"營業收入總額",
+    "Operating Revenue":"營業收入",
+    "Cost Of Revenue":"營業成本",
+    "Gross Profit":"營業毛利",
+    "Operating Expense":"營業費用",
+    "Operating Income":"營業利益",
+    "Pretax Income":"稅前淨利",
+    "Tax Provision":"所得稅費用",
+    "Net Income":"本期淨利",
+    "Net Income Common Stockholders":"歸屬母公司淨利",
+    "Diluted EPS":"稀釋EPS",
+    "Basic EPS":"基本EPS",
+    "EBITDA":"稅息折舊攤銷前盈餘",
+    "EBIT":"息稅前盈餘",
+    "Total Assets":"資產總額",
+    "Current Assets":"流動資產",
+    "Cash And Cash Equivalents":"現金及約當現金",
+    "Inventory":"存貨",
+    "Accounts Receivable":"應收帳款",
+    "Total Liabilities Net Minority Interest":"負債總額",
+    "Current Liabilities":"流動負債",
+    "Long Term Debt":"長期負債",
+    "Stockholders Equity":"股東權益",
+    "Retained Earnings":"保留盈餘",
+    "Operating Cash Flow":"營業活動現金流",
+    "Investing Cash Flow":"投資活動現金流",
+    "Financing Cash Flow":"籌資活動現金流",
+    "Free Cash Flow":"自由現金流",
+    "Capital Expenditure":"資本支出",
+    "Depreciation And Amortization":"折舊及攤銷",
+}
+
+def zh_financial_df(df):
+    if df is None or df.empty:
+        return pd.DataFrame()
+    out = df.copy()
+    out.insert(0, "中文項目", [FIN_ZH_MAP.get(str(i), str(i)) for i in out.index])
+    out.insert(0, "英文項目", [str(i) for i in out.index])
+    out = out.reset_index(drop=True)
+    return out
+
+def fin_get(df, key):
+    try:
+        if df is None or df.empty or key not in df.index:
+            return np.nan
+        val = df.loc[key].dropna()
+        return safe_float(val.iloc[0]) if len(val) else np.nan
+    except Exception:
+        return np.nan
+
+def chinese_financial_analysis(symbol, q, ft):
+    income = ft.get("income", pd.DataFrame())
+    balance = ft.get("balance", pd.DataFrame())
+    cashflow = ft.get("cashflow", pd.DataFrame())
+    revenue = fin_get(income, "Total Revenue")
+    gross = fin_get(income, "Gross Profit")
+    op_income = fin_get(income, "Operating Income")
+    net_income = fin_get(income, "Net Income")
+    assets = fin_get(balance, "Total Assets")
+    equity = fin_get(balance, "Stockholders Equity")
+    ocf = fin_get(cashflow, "Operating Cash Flow")
+    capex = fin_get(cashflow, "Capital Expenditure")
+    fcf = fin_get(cashflow, "Free Cash Flow")
+    if pd.isna(fcf) and pd.notna(ocf) and pd.notna(capex):
+        fcf = ocf + capex
+
+    rows = [
+        ["營業收入", revenue],
+        ["營業毛利", gross],
+        ["營業利益", op_income],
+        ["本期淨利", net_income],
+        ["資產總額", assets],
+        ["股東權益", equity],
+        ["營業活動現金流", ocf],
+        ["自由現金流", fcf],
+        ["EPS", q.get("eps")],
+        ["PE", q.get("pe")],
+        ["PB", q.get("pb")],
+    ]
+    summary = pd.DataFrame(rows, columns=["中文項目", "最新數值"])
+
+    gm = gross / revenue * 100 if pd.notna(gross) and pd.notna(revenue) and revenue else np.nan
+    om = op_income / revenue * 100 if pd.notna(op_income) and pd.notna(revenue) and revenue else np.nan
+    nm = net_income / revenue * 100 if pd.notna(net_income) and pd.notna(revenue) and revenue else np.nan
+    roe = net_income / equity * 100 if pd.notna(net_income) and pd.notna(equity) and equity else np.nan
+    roa = net_income / assets * 100 if pd.notna(net_income) and pd.notna(assets) and assets else np.nan
+    fcf_margin = fcf / revenue * 100 if pd.notna(fcf) and pd.notna(revenue) and revenue else np.nan
+
+    ratios = pd.DataFrame([
+        ["毛利率", gm],
+        ["營益率", om],
+        ["淨利率", nm],
+        ["ROE", roe],
+        ["ROA", roa],
+        ["自由現金流率", fcf_margin],
+    ], columns=["指標", "數值%"])
+
+    score = 50
+    for v, add in [(gm,10),(om,10),(nm,10),(roe,12),(roa,8),(fcf_margin,10)]:
+        if pd.notna(v):
+            score += add if v > 10 else (add/2 if v > 0 else -add/2)
+    score = int(np.clip(score, 0, 100))
+    return summary, ratios, score
+
+def enterprise_feature_checklist():
+    return pd.DataFrame([
+        ["企業評價", "DCF/FCFF/FCFE/APV/DDM/Gordon/EVA/EBO/RI/CAP/PE/PB/PS/PEG/PEGY/NAV/TobinQ/Super Bull", "已保留"],
+        ["法人雷達", "法人分數/籌碼分數/主力分數/外資/投信/自營商買賣代理", "已保留"],
+        ["ESG永續", "ESG共識/溢價/合理價/牛市價/超級牛市價/永續報告書", "已合併"],
+        ["AI研究", "AI目標區間/信心度/計算說明/風險提示", "已保留"],
+        ["中文化財報", "中文損益表/資產負債表/現金流量表/財務比率/AI摘要", "新增"],
+        ["股票控制器", "智慧搜尋/上櫃.TWO/全站同步/手機電腦響應", "已保留"],
+    ], columns=["模組", "內容", "狀態"])
+
+
 def financial_center(symbol,q,df):
-    st.subheader(f"📑 財報中心：{display_name(symbol)}"); kpi([("EPS",fmt(q.get("eps"))),("PE",fmt(q.get("pe"))),("PB",fmt(q.get("pb"))),("市值","N/A" if pd.isna(q.get("market_cap")) else f"{q.get('market_cap'):,.0f}")])
-    ft=financial_tables(symbol); tabs=st.tabs(["財報摘要","損益表","資產負債表","現金流量表","AI摘要","更新說明"])
-    with tabs[0]: st.dataframe(pd.DataFrame([["EPS",q.get("eps")],["PE",q.get("pe")],["PB",q.get("pb")],["每股淨值",q.get("book_value")],["每股營收",q.get("revenue_per_share")],["資料來源","Yahoo Finance 自動抓取"]],columns=["項目","數值"]),use_container_width=True,hide_index=True)
-    with tabs[1]: st.dataframe(ft.get("income",pd.DataFrame()),use_container_width=True)
-    with tabs[2]: st.dataframe(ft.get("balance",pd.DataFrame()),use_container_width=True)
-    with tabs[3]: st.dataframe(ft.get("cashflow",pd.DataFrame()),use_container_width=True)
-    with tabs[4]: st.info("財報AI摘要會依Yahoo Finance財報欄位與量價趨勢產出；正式公告仍以公開資訊觀測站為準。")
-    with tabs[5]: st.markdown('<div class="explain">財報資料可隨Yahoo Finance更新；永續報告書為PDF，V37.1採半自動管理與ESG估價。</div>',unsafe_allow_html=True)
+    st.subheader(f"📑 中文化財報中心：{display_name(symbol)}")
+    ft = financial_tables(symbol)
+    summary, ratios, fin_score = chinese_financial_analysis(symbol, q, ft)
+
+    kpi([
+        ("EPS", fmt(q.get("eps"))),
+        ("PE", fmt(q.get("pe"))),
+        ("PB", fmt(q.get("pb"))),
+        ("財報品質分數", f"{fin_score}/100"),
+    ])
+
+    tabs = st.tabs(["中文財報摘要","中文損益表","中文資產負債表","中文現金流量表","財務比率","AI財報摘要","資料來源與更新"])
+
+    with tabs[0]:
+        st.dataframe(summary, use_container_width=True, hide_index=True)
+
+    with tabs[1]:
+        income_zh = zh_financial_df(ft.get("income", pd.DataFrame()))
+        if income_zh.empty:
+            st.warning("Yahoo Finance 暫無損益表資料。")
+        else:
+            st.dataframe(income_zh, use_container_width=True, hide_index=True)
+
+    with tabs[2]:
+        balance_zh = zh_financial_df(ft.get("balance", pd.DataFrame()))
+        if balance_zh.empty:
+            st.warning("Yahoo Finance 暫無資產負債表資料。")
+        else:
+            st.dataframe(balance_zh, use_container_width=True, hide_index=True)
+
+    with tabs[3]:
+        cashflow_zh = zh_financial_df(ft.get("cashflow", pd.DataFrame()))
+        if cashflow_zh.empty:
+            st.warning("Yahoo Finance 暫無現金流量表資料。")
+        else:
+            st.dataframe(cashflow_zh, use_container_width=True, hide_index=True)
+
+    with tabs[4]:
+        st.dataframe(ratios, use_container_width=True, hide_index=True)
+
+    with tabs[5]:
+        strength = "佳" if fin_score >= 75 else ("中性" if fin_score >= 55 else "偏弱")
+        st.markdown(f"""
+        <div class="explain">
+        <b>AI財報摘要</b><br>
+        財報品質分數：{fin_score}/100，整體判斷：{strength}。<br>
+        本分數以毛利率、營益率、淨利率、ROE、ROA、自由現金流率作為代理評估。<br>
+        若 Yahoo Finance 缺少財報欄位，部分比率會顯示 N/A；正式財報仍應以公開資訊觀測站與公司公告為準。
+        </div>
+        """, unsafe_allow_html=True)
+
+    with tabs[6]:
+        st.dataframe(pd.DataFrame([
+            ["資料來源", "Yahoo Finance 自動抓取"],
+            ["更新方式", "Yahoo Finance 財報欄位更新後會自動反映；正式公告以公開資訊觀測站為準"],
+            ["中文化方式", "將 Yahoo Finance 英文財報科目對照為中文科目"],
+            ["限制", "不同公司財報科目可能略有差異；若欄位缺漏會顯示 N/A"],
+            ["建議", "未來可串接 MOPS 公開資訊觀測站，取得台股正式中文財報"],
+        ], columns=["項目", "說明"]), use_container_width=True, hide_index=True)
+
 
 def sustainability_center(symbol,q):
     st.subheader(f"🌏 永續報告書與ESG估價：{display_name(symbol)}")
@@ -499,18 +746,18 @@ def sustainability_center(symbol,q):
 st.markdown("""
 <div class="hero">
  <div class="hero-title">📈 智策股市 AI 決策平台</div>
- <div class="hero-sub">V40 Smart Search Responsive Final｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
+ <div class="hero-sub">V41 Enterprise Rebuild 中文化財報版｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
  <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">V37.1 Institutional Stability</text><text x="28" y="72" fill="#93c5fd" font-size="16">Valuation · ESG · K-Line · Financials · AI Target</text></svg></div>
 </div>
 """, unsafe_allow_html=True)
 
-MAIN=["🏠首頁","📊監控","📈K線","💎評價","🌱ESG","🏦法人","📑財報","🌏永續","🤖AI","⚙設定"]
+MAIN=["🏠首頁","📊監控","📈K線","💎評價","🌱ESG","🏦法人","📑中文財報","🌏永續","🤖AI","⚙設定"]
 if "page" not in st.session_state: st.session_state.page="🏠首頁"
 page=st.radio("主選單",MAIN,index=MAIN.index(st.session_state.page) if st.session_state.page in MAIN else 0,horizontal=True,key="stable_page_menu")
 st.session_state.page=page
 
 with st.sidebar:
-    st.title("☰ V40設定")
+    st.title("☰ V41設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
@@ -543,6 +790,8 @@ if "layout_mode" not in locals():
     layout_mode = "自動"
 display_cols = 4 if layout_mode == "電腦" else 2
 df_daily=fetch_daily(active,period); q=yf_quote(active); d_daily=signal_cols(add_indicators(df_daily)); scores=score_blocks(d_daily,q); total=ai_total(scores)
+if pd.isna(q.get("price")) and df_daily.empty:
+    st.warning(f"目前 {display_name(active)} 查無 Yahoo Finance 資料。若是上櫃股請確認代碼為 .TWO，例如和椿 = 6215.TWO。")
 
 if page=="🏠首頁":
     st.subheader("🏠 市場總覽")
@@ -589,13 +838,23 @@ elif page=="🌱ESG":
     kpi([("ESG共識",f"{score:.1f}"),("ESG溢價",f"{ev['ESG溢價']*100:.1f}%"),("ESG合理價",fmt(ev["ESG合理價"])),("ESG牛市價",fmt(ev["ESG牛市價"]))])
     kpi([("ESG超級牛市價",fmt(ev["ESG超級牛市價"])),("使用EPS",fmt(ev["EPS"])),("基礎PE","18"),("資料模式","代理模型")])
     st.dataframe(ag,use_container_width=True,hide_index=True)
+    with st.expander("永續揭露與ESG資料來源"):
+        st.dataframe(pd.DataFrame([
+            ["永續報告書", "公司年度永續報告書 / ESG Report"],
+            ["GRI", "全球永續性報告準則"],
+            ["SASB", "產業別永續揭露準則"],
+            ["TCFD", "氣候相關財務揭露"],
+            ["ISSB", "國際永續準則"],
+            ["CDP", "碳揭露與氣候問卷"],
+            ["ESG估值", "EPS × 基礎PE 18 × (1 + ESG溢價)"],
+        ], columns=["項目", "說明"]), use_container_width=True, hide_index=True)
 elif page=="🏦法人":
     st.subheader(f"🏦 法人雷達：{display_name(active)}")
     kpi([("法人分數",scores["inst"]),("籌碼分數",scores["chip"]),("主力分數",scores["main"]),("主力狀態","偏多" if scores["main"]>=65 else "偏空" if scores["main"]<45 else "中性")])
     st.dataframe(institutional_proxy(df_daily),use_container_width=True,hide_index=True)
     with st.expander("法人分數來源與計算"):
         st.info("法人/籌碼/主力為量價代理：成交量、量比、20日報酬、60日報酬、MA20/MA60趨勢。非交易所正式三大法人資料。")
-elif page=="📑財報":
+elif page=="📑中文財報":
     financial_center(active,q,df_daily)
 elif page=="🌏永續":
     sustainability_center(active,q)
@@ -607,4 +866,4 @@ elif page=="⚙設定":
     st.markdown('<div class="explain">V37.2 已修正：不跳首頁、全站選股同步、補齊評價模型、法人分數顯示、永續ESG估價。</div>',unsafe_allow_html=True)
 
 st.markdown("---")
-st.caption("AIStock V40 Smart Search Responsive Final｜研究與教學用途，非投資建議。")
+st.caption("AIStock V41 Enterprise Rebuild 中文化財報版｜研究與教學用途，非投資建議。")
