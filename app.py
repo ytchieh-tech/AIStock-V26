@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V52 Ultimate Professional Final"
+APP_VERSION="V53 NameError Hotfix Final"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -347,6 +347,64 @@ def kline_chart(df, overlays, panel):
     st.plotly_chart(f,use_container_width=True)
 # ================= V52 穩定修復層 END =================
 
+
+def clean_symbol(x):
+    s=str(x).strip()
+    name_map = globals().get("TW_STOCKS", {})
+    if s in name_map:
+        return name_map[s]
+    if "." in s:
+        return s.upper()
+    if s.isdigit():
+        otc = globals().get("OTC_CODES", set())
+        return f"{s}.TWO" if s in otc else f"{s}.TW"
+    return s
+
+# ================= V53 EARLY HOTFIX：必定先定義單一股票控制器 =================
+def unified_symbol_manager(symbols):
+    """V53 early hotfix single controller. Must exist before active = unified_symbol_manager(symbols)."""
+    if "active_symbol" not in st.session_state:
+        st.session_state.active_symbol = symbols[0] if symbols else "2330.TW"
+    if "recent_symbols" not in st.session_state:
+        st.session_state.recent_symbols = [st.session_state.active_symbol]
+
+    st.markdown("🎯")
+    qtext = st.text_input(
+        "搜尋股票名稱或代碼",
+        value="",
+        placeholder="例如：2330、聯電、和椿、6415、6830",
+        key="v53_symbol_search"
+    )
+    if qtext.strip():
+        try:
+            target = clean_symbol(qtext.strip())
+            st.session_state.active_symbol = target
+            if target not in st.session_state.recent_symbols:
+                st.session_state.recent_symbols.insert(0, target)
+                st.session_state.recent_symbols = st.session_state.recent_symbols[:12]
+        except Exception:
+            pass
+
+    # display_name 可能在後面才定義；函式執行時通常已存在。若尚未存在，退回代碼。
+    try:
+        current_label = display_name(st.session_state.active_symbol)
+    except Exception:
+        current_label = st.session_state.active_symbol
+
+    st.caption(f"目前全站分析：{current_label}")
+    with st.expander("候選 / 最近使用", expanded=False):
+        cols = st.columns(4)
+        for i, s in enumerate(st.session_state.get("recent_symbols", [])[:12]):
+            try:
+                label = display_name(s)
+            except Exception:
+                label = s
+            if cols[i % 4].button(label, key=f"v53_recent_{i}_{s}"):
+                st.session_state.active_symbol = s
+                st.rerun()
+    return st.session_state.active_symbol
+# ================= V53 EARLY HOTFIX END =================
+
 st.markdown("""
 <style>
 .block-container{padding-top:.45rem;padding-left:.42rem;padding-right:.42rem;max-width:1600px}
@@ -646,7 +704,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V52 Ultimate Professional Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V53 NameError Hotfix Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -1718,7 +1776,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V52 Ultimate Professional Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V53 NameError Hotfix Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1734,7 +1792,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V52 Ultimate Professional Final</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V53 NameError Hotfix Final</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1745,7 +1803,7 @@ st.markdown("""
       <rect x="635" y="55" width="24" height="42" fill="#22c55e"/>
       <rect x="915" y="58" width="24" height="36" fill="#ef4444"/>
     </g>
-    <text x="40" y="158" fill="#dbeafe" font-size="13">No V52 Ultimate Professional Final legacy banner · V48 clean release</text>
+    <text x="40" y="158" fill="#dbeafe" font-size="13">V53 clean banner</text>
   </svg>
 </div>
 
@@ -1763,7 +1821,7 @@ try:
 except Exception:
     pass
 with st.sidebar:
-    st.title("☰ V52設定")
+    st.title("☰ V53設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
@@ -1995,6 +2053,6 @@ elif page=="⚙設定":
     st.dataframe(enterprise_feature_checklist(), use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("AIStock V52 Ultimate Professional Final｜研究與教學用途，非投資建議。")
+st.caption("AIStock V53 NameError Hotfix Final｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
