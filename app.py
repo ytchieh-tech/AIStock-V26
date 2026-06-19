@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V39.1 Single Controller Hotfix"
+APP_VERSION="V40 Smart Search Responsive Final"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -80,8 +80,43 @@ def display_name(symbol):
 
 
 
+
+
+def search_symbol_candidates(query, symbols=None, limit=12):
+    """V40 smart search: supports code, name, partial code, and existing watchlist."""
+    q = str(query).strip().upper()
+    pool = []
+    symbols = symbols or []
+    for s in list(symbols) + DEFAULT_MONITOR + list(TW_STOCKS.values()):
+        if s and s not in pool:
+            pool.append(s)
+
+    results = []
+    if not q:
+        return pool[:limit]
+
+    # Exact company name or full code first
+    if query in TW_STOCKS:
+        results.append(TW_STOCKS[query])
+    if re.fullmatch(r"\d{4}", q):
+        exact = clean_symbol(q)
+        results.append(exact)
+
+    for name, sym in TW_STOCKS.items():
+        plain = sym.replace(".TW", "").replace(".TWO", "")
+        text = f"{name} {sym} {plain}".upper()
+        if q in text and sym not in results:
+            results.append(sym)
+
+    for sym in pool:
+        plain = sym.replace(".TW", "").replace(".TWO", "")
+        if (q in sym.upper() or q in plain) and sym not in results:
+            results.append(sym)
+
+    return results[:limit]
+
 def set_active_symbol(sym):
-    """V39.1: single source of truth. No selectbox can overwrite it."""
+    """V40: single source of truth for the whole app."""
     s = clean_symbol(sym)
     if not s:
         return st.session_state.get("active_symbol", DEFAULT_MONITOR[0])
@@ -94,43 +129,44 @@ def set_active_symbol(sym):
     return s
 
 def unified_symbol_manager(symbols):
-    """One global stock controller. Text input applies immediately; quick buttons switch safely."""
+    """V40 smart search. Exact 4-digit code switches on Enter; partial search shows candidate buttons."""
     if "active_symbol" not in st.session_state:
         st.session_state.active_symbol = symbols[0] if symbols else DEFAULT_MONITOR[0]
     if "recent_symbols" not in st.session_state:
         st.session_state.recent_symbols = [st.session_state.active_symbol]
 
     st.markdown('<div class="v39-symbol-panel">', unsafe_allow_html=True)
-    st.markdown('<div class="v39-active">🎯 全站股票管理中心</div>', unsafe_allow_html=True)
-    st.markdown('<div class="v39-hint">只保留一個股票控制器：輸入股票後，全站立即同步到首頁、K線、評價、ESG永續、法人、財報、AI。</div>', unsafe_allow_html=True)
+    st.markdown('<div class="v39-active">🎯 全站股票智慧搜尋</div>', unsafe_allow_html=True)
+    st.markdown('<div class="v39-hint">輸入完整代碼後按 Enter 會直接切換全站；輸入部分代碼或名稱會出現候選股票按鈕。</div>', unsafe_allow_html=True)
 
-    typed = st.text_input(
-        "輸入股票名稱或代碼後按 Enter",
+    query = st.text_input(
+        "搜尋股票名稱或代碼",
         value="",
-        placeholder="例如：2301、台積電、聯電、6215、和椿",
-        key="v391_single_symbol_input"
+        placeholder="例如：2301、230、聯、和椿、台積電",
+        key="v40_smart_symbol_search"
     )
-    if typed.strip():
-        new_symbol = set_active_symbol(typed.strip())
-        # 清空輸入框，避免每次rerun反覆套用；同時立即重跑讓所有模組改用新股票
-        st.session_state["v391_single_symbol_input"] = ""
-        st.rerun()
+
+    # Exact input auto-applies safely after Enter/rerun. No widget-key mutation.
+    if query.strip():
+        q = query.strip()
+        if q in TW_STOCKS or re.fullmatch(r"\d{4}", q):
+            set_active_symbol(q)
 
     st.markdown(f'<div class="v39-hint">目前全站分析：<b>{display_name(st.session_state.active_symbol)}</b></div>', unsafe_allow_html=True)
 
-    # 最近使用與監控清單：用按鈕，不用 selectbox，避免 selectbox session_state 把股票切回舊值
-    quick_pool = []
-    for s in st.session_state.get("recent_symbols", []) + list(symbols) + DEFAULT_MONITOR:
-        if s and s not in quick_pool:
-            quick_pool.append(s)
-    quick_pool = quick_pool[:12]
+    candidates = search_symbol_candidates(query, symbols, limit=12) if query.strip() else (st.session_state.get("recent_symbols", []) + list(symbols))[:12]
+    # de-duplicate while preserving order
+    unique_candidates = []
+    for s in candidates:
+        if s and s not in unique_candidates:
+            unique_candidates.append(s)
 
-    if quick_pool:
-        st.caption("快速切換")
+    if unique_candidates:
+        st.caption("候選 / 最近使用")
         cols = st.columns(3)
-        for i, s in enumerate(quick_pool):
+        for i, s in enumerate(unique_candidates[:12]):
             label = display_name(s)
-            if cols[i % 3].button(label, key=f"quick_symbol_btn_{i}_{s}"):
+            if cols[i % 3].button(label, key=f"v40_symbol_candidate_{i}_{s}"):
                 set_active_symbol(s)
                 st.rerun()
 
@@ -463,7 +499,7 @@ def sustainability_center(symbol,q):
 st.markdown("""
 <div class="hero">
  <div class="hero-title">📈 智策股市 AI 決策平台</div>
- <div class="hero-sub">V39.1 Single Controller Hotfix｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
+ <div class="hero-sub">V40 Smart Search Responsive Final｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
  <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">V37.1 Institutional Stability</text><text x="28" y="72" fill="#93c5fd" font-size="16">Valuation · ESG · K-Line · Financials · AI Target</text></svg></div>
 </div>
 """, unsafe_allow_html=True)
@@ -474,7 +510,7 @@ page=st.radio("主選單",MAIN,index=MAIN.index(st.session_state.page) if st.ses
 st.session_state.page=page
 
 with st.sidebar:
-    st.title("☰ V39設定")
+    st.title("☰ V40設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
@@ -571,4 +607,4 @@ elif page=="⚙設定":
     st.markdown('<div class="explain">V37.2 已修正：不跳首頁、全站選股同步、補齊評價模型、法人分數顯示、永續ESG估價。</div>',unsafe_allow_html=True)
 
 st.markdown("---")
-st.caption("AIStock V39.1 Single Controller Hotfix｜研究與教學用途，非投資建議。")
+st.caption("AIStock V40 Smart Search Responsive Final｜研究與教學用途，非投資建議。")
