@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V47 Ultimate Trading Signals + K線指標版"
+APP_VERSION="V48 Home Banner Fix Final"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -320,7 +320,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V37.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V48 Home Banner Fix Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -1385,11 +1385,44 @@ def indicator_source_table():
 # ================= V47 K線副圖與籌碼燈號增強 END =================
 
 st.markdown("""
+
 <div class="hero">
- <div class="hero-title">📈 智策股市 AI 決策平台</div>
- <div class="hero-sub">V47 Ultimate Trading Signals + K線指標版｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
- <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">V37.1 Institutional Stability</text><text x="28" y="72" fill="#93c5fd" font-size="16">Valuation · ESG · K-Line · Financials · AI Target</text></svg></div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="font-size:1.5rem;">📈</div>
+    <div>
+      <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
+      <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
+        V48 Home Banner Fix Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+      </div>
+    </div>
+  </div>
+  <svg viewBox="0 0 1200 180" width="100%" height="140" style="margin-top:10px;border-radius:14px;border:1px solid rgba(148,163,184,.35);background:linear-gradient(135deg,#0f172a,#1e3a8a);">
+    <defs>
+      <linearGradient id="v48line" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0%" stop-color="#22d3ee"/>
+        <stop offset="55%" stop-color="#60a5fa"/>
+        <stop offset="100%" stop-color="#f87171"/>
+      </linearGradient>
+    </defs>
+    <g opacity=".35" stroke="#94a3b8" stroke-width="1">
+      <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
+      <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
+    </g>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V48 Institutional Professional</text>
+    <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
+    <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
+      fill="none" stroke="url(#v48line)" stroke-width="4"/>
+    <g>
+      <rect x="140" y="86" width="24" height="46" fill="#22c55e"/>
+      <rect x="300" y="108" width="24" height="32" fill="#ef4444"/>
+      <rect x="450" y="72" width="24" height="56" fill="#22c55e"/>
+      <rect x="635" y="55" width="24" height="42" fill="#22c55e"/>
+      <rect x="915" y="58" width="24" height="36" fill="#ef4444"/>
+    </g>
+    <text x="40" y="158" fill="#dbeafe" font-size="13">No V37.1 legacy banner · V48 clean release</text>
+  </svg>
 </div>
+
 """, unsafe_allow_html=True)
 
 MAIN=["🏠首頁","📊監控","📈K線","💎評價","🌱ESG永續","🏦法人","📑中文財報","🤖AI","⚙設定"]
@@ -1607,6 +1640,6 @@ elif page=="⚙設定":
     st.dataframe(enterprise_feature_checklist(), use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("AIStock V47 Ultimate Trading Signals + K線指標版｜研究與教學用途，非投資建議。")
+st.caption("AIStock V48 Home Banner Fix Final｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
