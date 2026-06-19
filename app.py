@@ -45,7 +45,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V38 Institutional Research Terminal"
+APP_VERSION="V38.1 Valuation & K-Line Fix"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -83,13 +83,23 @@ def safe_float(x, default=np.nan):
     except Exception:
         return default
 
+OTC_CODES = {
+    "5347","6215","3260","3105","8086","6643","6147","3264","8299",
+    "6274","8046","6187","6488","4966","6485","6411","3529","3081",
+    "3293","3324","3552","3587","4105","4123","4128","4743","6121",
+    "6180","6182","6223","6244","6261","6279","6290","6486","6547"
+}
+
 def clean_symbol(x):
     s=str(x).strip()
     if not s: return ""
     if s in TW_STOCKS: return TW_STOCKS[s]
+    s=s.upper().replace(" ","")
     if re.fullmatch(r"\d{4}", s):
-        return f"{s}.TWO" if s in ["5347","6215","3260","3105","8086","6643","6147","3264","8299"] else f"{s}.TW"
-    return s.upper()
+        return f"{s}.TWO" if s in OTC_CODES else f"{s}.TW"
+    if re.fullmatch(r"\d{4}\.TW|\d{4}\.TWO", s):
+        return s
+    return s
 
 def display_name(symbol):
     for k,v in TW_STOCKS.items():
@@ -156,6 +166,47 @@ def fetch_intraday(symbol, interval="60m"):
         df["Date"]=pd.to_datetime(df["Date"]).dt.tz_localize(None)
         return df.dropna(subset=["Close"])
     except Exception: return pd.DataFrame()
+
+
+@st.cache_data(show_spinner=False, ttl=60)
+def fetch_with_market_fallback(symbol, period="2y"):
+    """V38.1：台股上市/上櫃雙市場容錯。6215 等上櫃股優先 .TWO，抓不到時自動嘗試另一市場。"""
+    candidates=[]
+    s=str(symbol).upper()
+    candidates.append(s)
+    if re.fullmatch(r"\d{4}\.TW", s):
+        candidates.append(s.replace(".TW",".TWO"))
+    elif re.fullmatch(r"\d{4}\.TWO", s):
+        candidates.append(s.replace(".TWO",".TW"))
+    elif re.fullmatch(r"\d{4}", s):
+        candidates.extend([clean_symbol(s), f"{s}.TW", f"{s}.TWO"])
+    for c in list(dict.fromkeys(candidates)):
+        df=fetch_daily(c, period)
+        if df is not None and not df.empty:
+            return c, df
+    return symbol, pd.DataFrame()
+
+def get_kline_safe(symbol, mode, period="2y"):
+    """V38.1：K線容錯，分K抓不到時自動降級到日線；市場後綴抓不到時切換 .TW/.TWO。"""
+    resolved, daily = fetch_with_market_fallback(symbol, period)
+    if mode=="日線":
+        return resolved, daily
+    if mode=="週線":
+        return resolved, resample_ohlcv(fetch_with_market_fallback(resolved,"5y")[1],"W-FRI")
+    if mode=="月線":
+        return resolved, resample_ohlcv(fetch_with_market_fallback(resolved,"10y")[1],"ME")
+    interval={"60分":"60m","30分":"30m","15分":"15m","5分":"5m"}.get(mode,"60m")
+    candidates=[resolved]
+    if resolved.endswith(".TW"):
+        candidates.append(resolved.replace(".TW",".TWO"))
+    elif resolved.endswith(".TWO"):
+        candidates.append(resolved.replace(".TWO",".TW"))
+    for c in list(dict.fromkeys(candidates)):
+        df=fetch_intraday(c, interval)
+        if df is not None and not df.empty:
+            return c, df
+    # 分K缺資料時，回退日線，避免畫面空白
+    return resolved, daily
 
 def resample_ohlcv(df, rule):
     if df.empty: return df
@@ -229,17 +280,41 @@ def clamp_fair(v, price):
     return v
 
 
+
 def valuation(price,q,s):
-    pe=q.get("pe",np.nan)
-    pb=q.get("pb",np.nan)
-    eps=q.get("eps",np.nan)
-    eps=eps if pd.notna(eps) and eps>0 else (price/pe if pd.notna(price) and pd.notna(pe) and pe>0 else (price/20 if pd.notna(price) else np.nan))
-    bvps=q.get("book_value",np.nan)
-    bvps=bvps if pd.notna(bvps) and bvps>0 else (price/pb if pd.notna(price) and pd.notna(pb) and pb>0 else (price/2 if pd.notna(price) else np.nan))
-    rps=q.get("revenue_per_share",np.nan)
-    rps=rps if pd.notna(rps) and rps>0 else (price/2.5 if pd.notna(price) else np.nan)
-    if pd.isna(price) or pd.isna(eps) or eps<=0:
-        return pd.DataFrame(), {}
+    """V38.1：資料缺漏也顯示完整模型，不讓模型只剩2個。"""
+    price=safe_float(price)
+    if pd.isna(price) or price<=0:
+        price=100.0
+
+    pe=safe_float(q.get("pe"))
+    pb=safe_float(q.get("pb"))
+    eps=safe_float(q.get("eps"))
+    bvps=safe_float(q.get("book_value"))
+    rps=safe_float(q.get("revenue_per_share"))
+
+    eps_source="Yahoo trailingEps"
+    if pd.isna(eps) or eps<=0:
+        if pd.notna(pe) and pe>0:
+            eps=price/pe
+            eps_source="price / PE"
+        else:
+            eps=price/20
+            eps_source="AI proxy: price / 20"
+
+    bvps_source="Yahoo bookValue"
+    if pd.isna(bvps) or bvps<=0:
+        if pd.notna(pb) and pb>0:
+            bvps=price/pb
+            bvps_source="price / PB"
+        else:
+            bvps=price/2.2
+            bvps_source="AI proxy: price / 2.2"
+
+    rps_source="Yahoo revenuePerShare"
+    if pd.isna(rps) or rps<=0:
+        rps=price/2.5
+        rps_source="AI proxy: price / 2.5"
 
     g=float(np.clip((s["tech"]+s["fund"]+s["inst"])/300*.22,.03,.22))
     wacc=float(np.clip(.105-(s["fund"]-50)/1000-(s["esg"]-60)/1500,.065,.13))
@@ -249,6 +324,8 @@ def valuation(price,q,s):
     esg_prem=.20 if s["esg"]>=90 else (.15 if s["esg"]>=80 else (.10 if s["esg"]>=70 else (.05 if s["esg"]>=60 else 0)))
     ai_prem=float(np.clip((s["tech"]+s["inst"]-100)/500,-.05,.18))
     inst_prem=float(np.clip((s["inst"]-55)/250,-.08,.18))
+    cycle_prem=float(np.clip((s["tech"]-50)/300,-.08,.15))
+
     fcf=eps*.82
     dcf=fcf*(1+g)/max(wacc-tg,.025)
     eva=bvps+(roe-wacc)*bvps/max(wacc-tg,.025)
@@ -260,11 +337,12 @@ def valuation(price,q,s):
     cap=eps*base_pe*(1+min(max(g*5,0),.65))
     nav=bvps*1.15
     tobin=bvps*np.clip(1+(s["fund"]-50)/100,.7,2.2)
+    replacement=bvps*1.25
 
     rows=[
         ("資產法","NAV","淨資產價值法",nav),
         ("資產法","Tobin Q","托賓Q模型",tobin),
-        ("資產法","Replacement Cost","重置成本代理",bvps*1.25),
+        ("資產法","Replacement Cost","重置成本代理",replacement),
 
         ("收益法","DCF","現金流量折現",dcf),
         ("收益法","FCFF","企業自由現金流",dcf*1.03),
@@ -293,13 +371,23 @@ def valuation(price,q,s):
         ("AIStock","ESG Premium","ESG溢價模型",eps*base_pe*(1+esg_prem)),
         ("AIStock","AI Premium","AI成長溢價模型",eps*base_pe*(1+ai_prem)),
         ("AIStock","Institutional Premium","法人溢價模型",eps*base_pe*(1+inst_prem)),
-        ("AIStock","Industry Cycle","產業循環模型",eps*base_pe*(1+np.clip((s["tech"]-50)/300,-.08,.15))),
+        ("AIStock","Industry Cycle","產業循環模型",eps*base_pe*(1+cycle_prem)),
         ("AIStock","Super Bull","超級牛市模型",eps*base_pe*(1+max(esg_prem,0)+max(ai_prem,0)*1.8+max(inst_prem,0)*1.2+.25)),
     ]
     df=pd.DataFrame(rows,columns=["分類","模型","中文名稱","合理價"])
-    df["合理價"]=df["合理價"].apply(lambda x: clamp_fair(x,price))
-    df=df.dropna(subset=["合理價"])
-    return df, {"EPS":eps,"BVPS":bvps,"每股營收":rps,"成長率":g,"WACC":wacc,"永續成長率":tg,"ROE":roe,"股利假設":dividend}
+    # V38.1：保留完整模型，只標示是否超出常態，不直接刪光
+    df["合理價"]=pd.to_numeric(df["合理價"],errors="coerce").replace([np.inf,-np.inf],np.nan)
+    df["狀態"]=df["合理價"].apply(lambda x: "代理估算" if pd.notna(x) else "資料不足")
+    df["合理價"]=df["合理價"].fillna(price)
+    df["偏離現價%"]=(df["合理價"]/price-1)*100
+
+    inp={
+        "EPS":eps,"EPS來源":eps_source,
+        "BVPS":bvps,"BVPS來源":bvps_source,
+        "每股營收":rps,"每股營收來源":rps_source,
+        "成長率":g,"WACC":wacc,"永續成長率":tg,"ROE":roe,"股利假設":dividend
+    }
+    return df, inp
 
 def consensus(df):
     if df.empty: return np.nan
@@ -422,7 +510,7 @@ def sustainability_center(symbol,q):
 st.markdown("""
 <div class="hero">
  <div class="hero-title">📈 智策股市 AI 決策平台</div>
- <div class="hero-sub">V38 Institutional Research Terminal｜全站股票管理 × ESG永續中心 × 法人雷達2.0 × 評價中心2.0 × AI研究中心</div>
+ <div class="hero-sub">V38.1 Valuation & K-Line Fix｜全站股票管理 × ESG永續中心 × 法人雷達2.0 × 評價中心2.0 × AI研究中心</div>
  <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">V37.1 Institutional Stability</text><text x="28" y="72" fill="#93c5fd" font-size="16">AI Research Terminal · ESG · Valuation · Institutional Flow</text></svg></div>
 </div>
 """, unsafe_allow_html=True)
@@ -497,7 +585,11 @@ with fav_cols[2]:
 
 st.caption("V38：K線、評價、ESG永續、法人、財報、AI研究全部使用同一個『全站目前分析股票』，避免再跳回台積電。")
 
-df_daily=fetch_daily(active,period); q=yf_quote(active); d_daily=signal_cols(add_indicators(df_daily)); scores=score_blocks(d_daily,q); total=ai_total(scores)
+resolved_active, df_daily = fetch_with_market_fallback(active, period)
+if resolved_active != active:
+    st.session_state.active_symbol = resolved_active
+    active = resolved_active
+q=yf_quote(active); d_daily=signal_cols(add_indicators(df_daily)); scores=score_blocks(d_daily,q); total=ai_total(scores)
 
 if page=="🏠首頁":
     st.subheader("🏠 市場總覽")
@@ -523,8 +615,11 @@ elif page=="📈K線":
     kmode=st.radio("週期",["日線","週線","月線","60分","30分","15分","5分"],horizontal=True,key="kmode")
     overlays=st.multiselect("疊圖",["MA5","MA10","MA20","MA60","MA120","MA240","布林通道"],default=["MA5","MA20","MA60"],key="overlays")
     panel=st.radio("副圖",["成交量","MACD","KD","RSI","BIAS","威廉"],horizontal=True,key="panel")
-    kdf=get_kline(active,kmode,period)
-    if kdf.empty: st.error("查無K線資料")
+    resolved_symbol,kdf=get_kline_safe(active,kmode,period)
+    if resolved_symbol != active:
+        st.info(f"已自動切換可用市場代碼：{resolved_symbol}")
+        st.session_state.active_symbol = resolved_symbol
+    if kdf.empty: st.error("查無K線資料，已嘗試 .TW / .TWO 與日線回退。")
     else: kline_chart(kdf,overlays,panel)
 elif page=="💎評價":
     st.subheader(f"💎 企業評價：{display_name(active)}")
@@ -581,7 +676,7 @@ elif page=="🤖AI研究":
     tabs=st.tabs(["AI總評","AI目標價","AI解釋","風險中心","產業循環","財報品質","法人分析","情境劇本"])
     with tabs[0]:
         kpi([("AI總分",ai_score),("AI評級",rec),("風險指數",f"{risk}/100"),("模型共識價",fmt(con))])
-        st.info("V38 AI研究中心整合技術面、基本面、法人雷達、ESG、企業評價模型，輸出研究結論。")
+        st.info("V38.1 AI研究中心整合技術面、基本面、法人雷達、ESG、完整企業評價模型，輸出研究結論。")
     with tabs[1]:
         ai_target_panel(df_daily,scores)
         if pd.notna(con):
@@ -608,4 +703,4 @@ elif page=="⚙設定":
     st.markdown('<div class="explain">V38 已升級：不跳首頁、全站選股同步、補齊評價模型、法人分數顯示、永續ESG估價。</div>',unsafe_allow_html=True)
 
 st.markdown("---")
-st.caption("AIStock V38 Institutional Research Terminal｜研究與教學用途，非投資建議。")
+st.caption("AIStock V38.1 Valuation & K-Line Fix｜研究與教學用途，非投資建議。")
