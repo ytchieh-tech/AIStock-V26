@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import requests, re, math
 
-APP_VERSION = "V33.1 Final Hotfix"
+APP_VERSION = "V34 Mobile Ultimate"
 APP_NAME = "智策股市 AI 決策平台"
 
 st.set_page_config(
@@ -81,6 +81,22 @@ div[data-testid="stDataFrame"]{font-size:.75rem}
 .stock-grid .card-price{font-size:1.02rem}
 .stock-grid .card-small{font-size:.63rem;line-height:1.35}
 .stock-grid .badge{font-size:.58rem;padding:1px 5px}
+
+
+.mobile-main-nav{
+    position:sticky;
+    top:0;
+    z-index:999;
+    background:#020617;
+    border-bottom:1px solid #334155;
+    padding:4px 0 6px 0;
+    margin-bottom:6px;
+}
+.nav-hint{font-size:.72rem;color:#94a3b8;margin-bottom:2px}
+div[role="radiogroup"] label{
+    white-space:nowrap!important;
+}
+.more-panel{background:#0f172a;border:1px solid #334155;border-radius:14px;padding:10px;color:#e5e7eb;margin:6px 0}
 
 </style>
 """, unsafe_allow_html=True)
@@ -743,11 +759,43 @@ st.markdown(f"""
   <div class="hero-title">📈 {APP_NAME}</div>
   <div class="hero-sub">Institutional Mobile Pro｜{APP_VERSION}｜製作人：Tsung Chieh Yang</div>
 </div>
+
 """, unsafe_allow_html=True)
 
+# V34 Mobile visible navigation: no dependency on sidebar page menu.
+st.markdown('<div class="nav-hint">V34 手機主選單：不再依賴側邊欄，避免手機上選單消失</div>', unsafe_allow_html=True)
+main_nav = st.radio(
+    "主選單",
+    ["🏠首頁","📊監控","📈K線","💎評價","☰更多"],
+    horizontal=True,
+    label_visibility="collapsed",
+    key="v34_main_nav"
+)
+
+more_page = None
+if main_nav == "☰更多":
+    more_page = st.selectbox(
+        "更多功能",
+        ["💹即時報價","🏦法人雷達","🌱ESG中心","📑財報中心","🤖AI預測","⚙️系統設定"],
+        index=0,
+        key="v34_more_page"
+    )
+
+# Map mobile navigation to internal page names
+if main_nav == "🏠首頁":
+    page = "🏠市場總覽"
+elif main_nav == "📊監控":
+    page = "📊即時監控"
+elif main_nav == "📈K線":
+    page = "📈專業K線"
+elif main_nav == "💎評價":
+    page = "💎企業評價"
+else:
+    page = more_page
+
 with st.sidebar:
-    st.title("☰ 功能選單")
-    page=st.radio("頁面",["🏠市場總覽","📊即時監控","📈專業K線","💹即時報價","🏦法人雷達","💎企業評價","🌱ESG中心","📑財報中心","🤖AI預測","⚙️系統設定"],index=0,key="page")
+    st.title("⚙️ 設定")
+    st.caption("V34：頁面切換改到手機主選單，避免側邊選單消失。")
     st.markdown("---")
     source=st.selectbox("資料來源",["Yahoo Finance","Fugle + Yahoo","Fugle API"],index=0)
     key=st.text_input("Fugle API Key（可空白）",type="password")
@@ -856,9 +904,10 @@ elif page=="🤖AI預測":
 
 elif page=="⚙️系統設定":
     st.subheader("⚙️ 系統設定")
+    st.success("V34 已改用手機主選單：首頁 / 監控 / K線 / 評價 / 更多，不再依賴側邊欄切頁。")
     st.markdown("""
     <div class="pro-panel">
-    <b>V33.1 Final Hotfix 手機版設定</b><br>
+    <b>V34 Mobile Ultimate 手機版設定</b><br>
     建議手機保持「手機穩定模式」開啟，避免黑屏。<br>
     電腦版可關閉手機穩定模式，使用 10 / 30 / 60 秒自動更新。<br>
     ESG、企業評價、法人雷達、財報、AI預測全部保留；手機卡片每排顯示與估值異常值已修正。
@@ -869,5 +918,5 @@ elif page=="⚙️系統設定":
     st.write("監控檔數：", mcount)
 
 st.markdown("---")
-st.caption("AIStock V33.1 Final Hotfix｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
+st.caption("AIStock V34 Mobile Ultimate｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
 st.caption("免責聲明：本平台為研究與教學用途，非投資建議。Yahoo Finance 可能為延遲或近即時資料；Fugle API 功能需自行申請 Key。")
