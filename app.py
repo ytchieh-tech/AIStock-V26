@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V50 AI ESG Institutional Complete Final"
+APP_VERSION="V51 Stability Repair Final"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -167,6 +167,226 @@ def v50_institutional_upgrade_tables(df, scores):
     ], columns=["券商中心","狀態","說明"])
     return margin, lending, broker, signal, margin_center, short_center, lending_center, broker_center
 # ================= V50 AI / ESG / 法人完整補齊 END =================
+
+
+# ================= V51 修復：K線副圖、中文財報None、名稱顯示 =================
+def safe_show(x):
+    try:
+        if x is None:
+            return "N/A"
+        if isinstance(x, str) and x.lower() in ["none","nan","nat",""]:
+            return "N/A"
+        if pd.isna(x):
+            return "N/A"
+    except Exception:
+        pass
+    return x
+
+def normalize_fin_key(s):
+    return re.sub(r"[^a-z0-9]", "", str(s).lower())
+
+def fin_get_any(df, keys):
+    try:
+        if df is None or df.empty:
+            return np.nan
+        norm_index = {normalize_fin_key(i): i for i in df.index}
+        for key in keys:
+            nk = normalize_fin_key(key)
+            if nk in norm_index:
+                vals = pd.to_numeric(df.loc[norm_index[nk]], errors="coerce").dropna()
+                if len(vals):
+                    return safe_float(vals.iloc[0])
+        # fuzzy contains fallback
+        for key in keys:
+            nk = normalize_fin_key(key)
+            for ni, original in norm_index.items():
+                if nk in ni or ni in nk:
+                    vals = pd.to_numeric(df.loc[original], errors="coerce").dropna()
+                    if len(vals):
+                        return safe_float(vals.iloc[0])
+    except Exception:
+        pass
+    return np.nan
+
+def chinese_financial_analysis(symbol, q, ft):
+    income = ft.get("income", pd.DataFrame()) if isinstance(ft, dict) else pd.DataFrame()
+    balance = ft.get("balance", pd.DataFrame()) if isinstance(ft, dict) else pd.DataFrame()
+    cashflow = ft.get("cashflow", pd.DataFrame()) if isinstance(ft, dict) else pd.DataFrame()
+
+    revenue = fin_get_any(income, ["Total Revenue","Operating Revenue","TotalRevenue","Revenue"])
+    gross = fin_get_any(income, ["Gross Profit","GrossProfit"])
+    op_income = fin_get_any(income, ["Operating Income","OperatingIncome","Total Operating Income As Reported"])
+    net_income = fin_get_any(income, ["Net Income","NetIncome","Net Income Common Stockholders","Normalized Income"])
+    assets = fin_get_any(balance, ["Total Assets","TotalAssets"])
+    equity = fin_get_any(balance, ["Stockholders Equity","Common Stock Equity","Total Equity Gross Minority Interest"])
+    ocf = fin_get_any(cashflow, ["Operating Cash Flow","Cash Flow From Continuing Operating Activities"])
+    capex = fin_get_any(cashflow, ["Capital Expenditure","Purchase Of PPE"])
+    fcf = fin_get_any(cashflow, ["Free Cash Flow"])
+    if pd.isna(fcf) and pd.notna(ocf) and pd.notna(capex):
+        fcf = ocf + capex
+
+    eps = q.get("eps", np.nan) if isinstance(q, dict) else np.nan
+    pe = q.get("pe", np.nan) if isinstance(q, dict) else np.nan
+    pb = q.get("pb", np.nan) if isinstance(q, dict) else np.nan
+
+    summary = pd.DataFrame([
+        ["營業收入", safe_show(revenue)],
+        ["營業毛利", safe_show(gross)],
+        ["營業利益", safe_show(op_income)],
+        ["本期淨利", safe_show(net_income)],
+        ["資產總額", safe_show(assets)],
+        ["股東權益", safe_show(equity)],
+        ["營業活動現金流", safe_show(ocf)],
+        ["自由現金流", safe_show(fcf)],
+        ["EPS", safe_show(eps)],
+        ["PE", safe_show(pe)],
+        ["PB", safe_show(pb)]
+    ], columns=["中文項目","最新數值"])
+
+    gm = gross/revenue*100 if pd.notna(gross) and pd.notna(revenue) and revenue else np.nan
+    om = op_income/revenue*100 if pd.notna(op_income) and pd.notna(revenue) and revenue else np.nan
+    nm = net_income/revenue*100 if pd.notna(net_income) and pd.notna(revenue) and revenue else np.nan
+    roe = net_income/equity*100 if pd.notna(net_income) and pd.notna(equity) and equity else np.nan
+    roa = net_income/assets*100 if pd.notna(net_income) and pd.notna(assets) and assets else np.nan
+    fcf_margin = fcf/revenue*100 if pd.notna(fcf) and pd.notna(revenue) and revenue else np.nan
+    ratios = pd.DataFrame([
+        ["毛利率", safe_show(gm)],
+        ["營益率", safe_show(om)],
+        ["淨利率", safe_show(nm)],
+        ["ROE", safe_show(roe)],
+        ["ROA", safe_show(roa)],
+        ["自由現金流率", safe_show(fcf_margin)]
+    ], columns=["指標","數值%"])
+
+    score=50
+    for v, add in [(gm,10),(om,10),(nm,10),(roe,12),(roa,8),(fcf_margin,10)]:
+        if pd.notna(v):
+            score += add if v > 10 else (add/2 if v > 0 else -add/2)
+    return summary, ratios, int(np.clip(score,0,100))
+
+def add_more_indicators(df):
+    if df is None or df.empty:
+        return pd.DataFrame()
+    d = df.copy()
+    for c in ["Open","High","Low","Close","Volume"]:
+        if c in d.columns:
+            d[c] = pd.to_numeric(d[c], errors="coerce")
+    close=d["Close"]; high=d["High"]; low=d["Low"]; vol=d["Volume"]
+    for n in [5,10,20,60,120,240]:
+        if f"MA{n}" not in d.columns:
+            d[f"MA{n}"]=close.rolling(n).mean()
+    delta=close.diff()
+    gain=delta.clip(lower=0).rolling(14).mean()
+    loss=(-delta.clip(upper=0)).rolling(14).mean()
+    rs=gain/(loss.replace(0,np.nan))
+    d["RSI"]=100-(100/(1+rs))
+    ema12=close.ewm(span=12, adjust=False).mean()
+    ema26=close.ewm(span=26, adjust=False).mean()
+    d["DIF"]=ema12-ema26
+    d["MACD"]=d["DIF"].ewm(span=9, adjust=False).mean()
+    d["OSC"]=d["DIF"]-d["MACD"]
+    d["MACD_SIGNAL"]=d["MACD"]
+    d["MACD_HIST"]=d["OSC"]
+    ll=low.rolling(9).min(); hh=high.rolling(9).max()
+    rsv=(close-ll)/(hh-ll).replace(0,np.nan)*100
+    d["K"]=rsv.ewm(alpha=1/3, adjust=False).mean()
+    d["D"]=d["K"].ewm(alpha=1/3, adjust=False).mean()
+    d["J"]=3*d["K"]-2*d["D"]
+    for n in [5,10,20,60]:
+        ma=close.rolling(n).mean()
+        d[f"BIAS{n}"]=(close-ma)/ma.replace(0,np.nan)*100
+    mid=close.rolling(20).mean(); std=close.rolling(20).std()
+    d["BB_MID"]=mid; d["BB_UP"]=mid+2*std; d["BB_LOW"]=mid-2*std; d["BB_DN"]=d["BB_LOW"]
+    tr=pd.concat([(high-low).abs(),(high-close.shift()).abs(),(low-close.shift()).abs()],axis=1).max(axis=1)
+    d["ATR"]=tr.rolling(14).mean(); d["ATR_PCT"]=d["ATR"]/close.replace(0,np.nan)*100
+    d["OBV"]=(np.sign(close.diff()).fillna(0)*vol.fillna(0)).cumsum()
+    d["OBV_MA20"]=d["OBV"].rolling(20).mean()
+    tp=(high+low+close)/3; money=tp*vol
+    pos=money.where(tp>tp.shift(),0).rolling(14).sum()
+    neg=money.where(tp<tp.shift(),0).rolling(14).sum()
+    d["MFI"]=100-100/(1+(pos/neg.replace(0,np.nan)))
+    d["WILLR"]=(hh-close)/(hh-ll).replace(0,np.nan)*-100
+    sma_tp=tp.rolling(20).mean(); mad=(tp-sma_tp).abs().rolling(20).mean()
+    d["CCI"]=(tp-sma_tp)/(0.015*mad.replace(0,np.nan))
+    plus_dm=(high.diff()).where((high.diff()>-low.diff()) & (high.diff()>0),0)
+    minus_dm=(-low.diff()).where((-low.diff()>high.diff()) & (-low.diff()>0),0)
+    atr=tr.rolling(14).mean()
+    plus_di=100*(plus_dm.rolling(14).mean()/atr.replace(0,np.nan))
+    minus_di=100*(minus_dm.rolling(14).mean()/atr.replace(0,np.nan))
+    dx=(abs(plus_di-minus_di)/(plus_di+minus_di).replace(0,np.nan))*100
+    d["PLUS_DI"]=plus_di; d["MINUS_DI"]=minus_di; d["ADX"]=dx.rolling(14).mean()
+    d["ROC12"]=close.pct_change(12)*100
+    d["MOM10"]=close-close.shift(10)
+    d["VOL_MA20"]=vol.rolling(20).mean()
+    return d
+
+def kline_chart(df, overlays, panel):
+    d=add_more_indicators(add_indicators(df))
+    dd=d.tail(160)
+    fig=go.Figure()
+    fig.add_trace(go.Candlestick(x=dd["Date"],open=dd["Open"],high=dd["High"],low=dd["Low"],close=dd["Close"],name="K線",increasing_line_color="#ff3333",decreasing_line_color="#00d26a",increasing_fillcolor="#ff3333",decreasing_fillcolor="#00d26a"))
+    cmap={"MA5":"#ffff00","MA10":"#00e5ff","MA20":"#c000ff","MA60":"#ff9900","MA120":"#94a3b8","MA240":"#64748b"}
+    for ma in overlays:
+        if ma in dd.columns:
+            fig.add_trace(go.Scatter(x=dd["Date"],y=dd[ma],name=ma,line=dict(color=cmap.get(ma),width=1.5)))
+    if "布林通道" in overlays:
+        fig.add_trace(go.Scatter(x=dd["Date"],y=dd["BB_UP"],name="BB上軌",line=dict(width=1,dash="dot")))
+        fig.add_trace(go.Scatter(x=dd["Date"],y=dd["BB_MID"],name="BB中軌",line=dict(width=1,dash="dot")))
+        fig.add_trace(go.Scatter(x=dd["Date"],y=dd["BB_LOW"],name="BB下軌",line=dict(width=1,dash="dot")))
+    fig.update_layout(height=520,template="plotly_dark",xaxis_rangeslider_visible=False,margin=dict(l=6,r=6,t=20,b=4),legend=dict(orientation="h",font=dict(size=9)),yaxis=dict(side="right"))
+    st.plotly_chart(fig,use_container_width=True)
+
+    f=go.Figure()
+    if panel=="成交量":
+        f.add_trace(go.Bar(x=dd["Date"],y=dd["Volume"],name="VOL"))
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["VOL_MA20"],name="20日均量"))
+    elif panel=="MACD":
+        f.add_trace(go.Bar(x=dd["Date"],y=dd["OSC"],name="OSC"))
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["DIF"],name="DIF"))
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["MACD"],name="MACD"))
+    elif panel=="KD":
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["K"],name="K"))
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["D"],name="D"))
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["J"],name="J"))
+        f.add_hline(y=80,line_dash="dot"); f.add_hline(y=20,line_dash="dot")
+    elif panel=="RSI":
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["RSI"],name="RSI"))
+        f.add_hline(y=70,line_dash="dot"); f.add_hline(y=30,line_dash="dot")
+    elif panel=="BIAS":
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["BIAS20"],name="BIAS20"))
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["BIAS60"],name="BIAS60"))
+        f.add_hline(y=0,line_dash="dot")
+    elif panel=="布林通道":
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["BB_WIDTH"],name="BB寬度%"))
+    elif panel=="OBV":
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["OBV"],name="OBV"))
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["OBV_MA20"],name="OBV_MA20"))
+    elif panel=="MFI":
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["MFI"],name="MFI"))
+        f.add_hline(y=80,line_dash="dot"); f.add_hline(y=20,line_dash="dot")
+    elif panel=="威廉%R":
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["WILLR"],name="Williams %R"))
+        f.add_hline(y=-20,line_dash="dot"); f.add_hline(y=-80,line_dash="dot")
+    elif panel=="CCI":
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["CCI"],name="CCI"))
+        f.add_hline(y=100,line_dash="dot"); f.add_hline(y=-100,line_dash="dot")
+    elif panel=="ADX":
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["ADX"],name="ADX"))
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["PLUS_DI"],name="+DI"))
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["MINUS_DI"],name="-DI"))
+    elif panel=="ATR":
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["ATR_PCT"],name="ATR%"))
+    elif panel=="ROC":
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["ROC12"],name="ROC12"))
+        f.add_hline(y=0,line_dash="dot")
+    elif panel=="Momentum":
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["MOM10"],name="MOM10"))
+        f.add_hline(y=0,line_dash="dot")
+    else:
+        f.add_trace(go.Bar(x=dd["Date"],y=dd["Volume"],name="VOL"))
+    f.update_layout(height=260,template="plotly_dark",margin=dict(l=6,r=6,t=24,b=4),legend=dict(orientation="h",font=dict(size=9)),yaxis=dict(side="right"))
+    st.plotly_chart(f,use_container_width=True)
+# ================= V51 修復 END =================
 
 st.markdown("""
 <style>
@@ -376,6 +596,34 @@ SECTOR_EXTRA = {
     "ESG高治理": ["2330.TW","2308.TW","2412.TW","2881.TW","2882.TW","1216.TW","1303.TW"],
     "全市場精選": ["2330.TW","2303.TW","2308.TW","2454.TW","2383.TW","3017.TW","3443.TW","3661.TW","6669.TW","5347.TWO","6215.TWO","6830.TW","6415.TW"],
 }
+
+# V51：最後中文名稱覆蓋表。注意：6308.TW目前常見資料源查不到，先標示為「代碼待確認」避免空白。
+TW_STOCKS.update({
+    "汎銓":"6830.TW",
+    "矽力-KY":"6415.TW",
+    "矽力*-KY":"6415.TW",
+    "和椿科技":"6215.TWO",
+    "和椿":"6215.TWO",
+    "金寶":"2312.TW",
+    "台表科":"6278.TW",
+    "代碼待確認6308":"6308.TW",
+    "台灣精銳":"4583.TW",
+    "上銀":"2049.TW",
+    "亞光":"3019.TW",
+    "和大":"1536.TW",
+})
+CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
+CODE_NAME_MAP.update({
+    "6308.TW":"代碼待確認",
+    "6830.TW":"汎銓",
+    "6415.TW":"矽力-KY",
+    "6215.TWO":"和椿科技",
+    "2312.TW":"金寶",
+    "4583.TW":"台灣精銳",
+    "2049.TW":"上銀",
+    "3019.TW":"亞光",
+    "1536.TW":"和大",
+})
 DEFAULT_MONITOR=["2330.TW","2303.TW","5347.TWO","6215.TWO","2383.TW","3260.TWO","2308.TW","2317.TW","2454.TW","2382.TW","2345.TW","3017.TW","2368.TW","3653.TW","3661.TW","2059.TW"]
 SECTORS={"半導體":["2330.TW","2303.TW","5347.TWO","2454.TW","3711.TW","6415.TW","3443.TW","3661.TW","2379.TW","2408.TW"],"AI伺服器":["2382.TW","3231.TW","6669.TW","2356.TW","2317.TW","3017.TW","3653.TW","2345.TW","2376.TW","2357.TW"],"機器人/自動化":["6215.TWO","2049.TW","4583.TW","3019.TW","1536.TW","2308.TW"],"全市場精選":DEFAULT_MONITOR}
 
@@ -418,115 +666,19 @@ def yahoo_name_lookup(symbol):
     try:
         info = yf.Ticker(symbol).info or {}
         nm = info.get("shortName") or info.get("longName") or ""
-        if nm:
-            # 清掉常見尾字，保留公司名
-            nm = str(nm).replace(" Corporation","").replace(" Co., Ltd.","").replace(" Co Ltd","").strip()
-            return nm[:18]
+        nm = str(nm).replace(" Corporation","").replace(" Co., Ltd.","").replace(" Co Ltd","").strip()
+        return nm[:20] if nm and nm.lower() != "none" else ""
     except Exception:
-        pass
-    return ""
+        return ""
 
 def display_name(symbol):
+    # V51：先用最後覆蓋表，再用本地字典，再用Yahoo名稱；都沒有就明確標示代碼未確認。
     name = CODE_NAME_MAP.get(symbol)
     if not name:
         name = yahoo_name_lookup(symbol)
+    if not name and str(symbol).startswith("6308"):
+        name = "代碼待確認"
     return f"{name} / {symbol}" if name else symbol
-
-
-
-
-
-def search_symbol_candidates(query, symbols=None, limit=12):
-    """V40 smart search: supports code, name, partial code, and existing watchlist."""
-    q = str(query).strip().upper()
-    pool = []
-    symbols = symbols or []
-    for s in list(symbols) + DEFAULT_MONITOR + list(TW_STOCKS.values()):
-        if s and s not in pool:
-            pool.append(s)
-
-    results = []
-    if not q:
-        return pool[:limit]
-
-    # Exact company name or full code first
-    if query in TW_STOCKS:
-        results.append(TW_STOCKS[query])
-    if re.fullmatch(r"\d{4}", q):
-        exact = clean_symbol(q)
-        results.append(exact)
-
-    for name, sym in TW_STOCKS.items():
-        plain = sym.replace(".TW", "").replace(".TWO", "")
-        text = f"{name} {sym} {plain}".upper()
-        if q in text and sym not in results:
-            results.append(sym)
-
-    for sym in pool:
-        plain = sym.replace(".TW", "").replace(".TWO", "")
-        if (q in sym.upper() or q in plain) and sym not in results:
-            results.append(sym)
-
-    return results[:limit]
-
-def set_active_symbol(sym):
-    """V40: single source of truth for the whole app."""
-    s = clean_symbol(sym)
-    if not s:
-        return st.session_state.get("active_symbol", DEFAULT_MONITOR[0])
-    st.session_state.active_symbol = s
-    hist = st.session_state.get("recent_symbols", [])
-    if s in hist:
-        hist.remove(s)
-    hist.insert(0, s)
-    st.session_state.recent_symbols = hist[:12]
-    return s
-
-def unified_symbol_manager(symbols):
-    """V44 smart search with compact mobile-friendly recent chips/buttons."""
-    if "active_symbol" not in st.session_state:
-        st.session_state.active_symbol = symbols[0] if symbols else DEFAULT_MONITOR[0]
-    if "recent_symbols" not in st.session_state:
-        st.session_state.recent_symbols = [st.session_state.active_symbol]
-
-    st.markdown('<div class="v39-symbol-panel">', unsafe_allow_html=True)
-    st.markdown('<div class="v39-active">🎯 全站股票智慧搜尋</div>', unsafe_allow_html=True)
-    st.markdown('<div class="v39-hint">輸入完整代碼按 Enter 會直接切換；輸入部分代碼或名稱會出現候選股票。</div>', unsafe_allow_html=True)
-
-    query = st.text_input(
-        "搜尋股票名稱或代碼",
-        value="",
-        placeholder="例如：2301、230、聯、和椿、台積電",
-        key="v44_smart_symbol_search"
-    )
-
-    if query.strip():
-        qtext = query.strip()
-        if qtext in TW_STOCKS or re.fullmatch(r"\d{4}", qtext):
-            set_active_symbol(qtext)
-
-    st.markdown(f'<div class="v39-hint">目前全站分析：<b>{display_name(st.session_state.active_symbol)}</b></div>', unsafe_allow_html=True)
-
-    candidates = search_symbol_candidates(query, symbols, limit=10) if query.strip() else (st.session_state.get("recent_symbols", []) + list(symbols))[:10]
-    unique_candidates = []
-    for s in candidates:
-        if s and s not in unique_candidates:
-            unique_candidates.append(s)
-
-    # 手機避免長條列：只顯示在展開區，且每列最多4個小按鈕
-    with st.expander("候選 / 最近使用", expanded=False):
-        if unique_candidates:
-            cols = st.columns(4)
-            for i, s in enumerate(unique_candidates[:12]):
-                label = display_name(s).replace(" / ", " / ")
-                if cols[i % 4].button(label, key=f"v44_symbol_candidate_{i}_{s}"):
-                    set_active_symbol(s)
-                    st.rerun()
-        else:
-            st.caption("尚無候選股票")
-
-    st.markdown('</div>', unsafe_allow_html=True)
-    return st.session_state.active_symbol
 
 def fmt(x):
     return "N/A" if x is None or pd.isna(x) else f"{float(x):.2f}"
@@ -535,7 +687,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V50 AI ESG Institutional Complete Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V51 Stability Repair Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -1607,7 +1759,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V50 AI ESG Institutional Complete Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V51 Stability Repair Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1623,8 +1775,8 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V48 Institutional Professional</text>
-    <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V51 Stability Repair Final</text>
+    <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Stable K-Line · Chinese Financials · Name Resolver · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
     <g>
@@ -1634,7 +1786,7 @@ st.markdown("""
       <rect x="635" y="55" width="24" height="42" fill="#22c55e"/>
       <rect x="915" y="58" width="24" height="36" fill="#ef4444"/>
     </g>
-    <text x="40" y="158" fill="#dbeafe" font-size="13">No V37.1 legacy banner · V48 clean release</text>
+    <text x="40" y="158" fill="#dbeafe" font-size="13">V51 clean banner · no legacy V37/V51 text</text>
   </svg>
 </div>
 
@@ -1652,7 +1804,7 @@ try:
 except Exception:
     pass
 with st.sidebar:
-    st.title("☰ V50設定")
+    st.title("☰ V51設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
@@ -1884,6 +2036,6 @@ elif page=="⚙設定":
     st.dataframe(enterprise_feature_checklist(), use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("AIStock V50 AI ESG Institutional Complete Final｜研究與教學用途，非投資建議。")
+st.caption("AIStock V51 Stability Repair Final｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
