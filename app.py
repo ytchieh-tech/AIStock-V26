@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import requests, re, math
 
-APP_VERSION = "V33.3 Kline Indicator Select"
+APP_VERSION = "V33.1 Final Hotfix"
 APP_NAME = "智策股市 AI 決策平台"
 
 st.set_page_config(
@@ -69,35 +69,18 @@ div[data-testid="stDataFrame"]{font-size:.75rem}
     .card-price{font-size:1.12rem}
 }
 
-.top-menu-wrap{
-    background:#020617;
-    border:1px solid #334155;
-    border-radius:14px;
-    padding:8px;
-    margin:6px 0 10px 0;
-}
-.top-menu-title{
-    color:#e5e7eb;
-    font-size:.78rem;
-    font-weight:900;
-    margin-bottom:5px;
-}
-div[data-testid="stRadio"] label{
-    font-weight:800!important;
-}
-@media(max-width:768px){
-    [data-testid="stSidebar"]{display:none!important}
-    .top-menu-wrap{padding:7px;border-radius:12px}
-}
-
-
-@media(max-width:768px){
-    .card{padding:7px!important;border-radius:11px!important}
-    .card-title{font-size:.68rem!important}
-    .card-price{font-size:.98rem!important}
-    .card-small{font-size:.61rem!important}
-    .badge{font-size:.58rem!important;padding:1px 4px!important}
-}
+.stock-grid{display:grid;gap:8px;margin-top:6px}
+.stock-grid.cols-1{grid-template-columns:1fr}
+.stock-grid.cols-2{grid-template-columns:1fr 1fr}
+.stock-grid.cols-3{grid-template-columns:1fr 1fr 1fr}
+.stock-grid.cols-4{grid-template-columns:1fr 1fr 1fr 1fr}
+@media(max-width:480px){.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr 1fr}}
+@media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr}}
+.stock-grid .card{margin:0}
+.stock-grid .card-title{font-size:.72rem;line-height:1.15}
+.stock-grid .card-price{font-size:1.02rem}
+.stock-grid .card-small{font-size:.63rem;line-height:1.35}
+.stock-grid .badge{font-size:.58rem;padding:1px 5px}
 
 </style>
 """, unsafe_allow_html=True)
@@ -405,6 +388,31 @@ def ai_total(s):
 def rating(t):
     return "★★★★★ 強力買進觀察" if t>=85 else "★★★★ 買進觀察" if t>=75 else "★★★ 中立觀察" if t>=60 else "★★ 減碼觀察" if t>=45 else "★ 避開觀察"
 
+
+def clamp_fair_value(value, price, low_mult=0.35, high_mult=3.5):
+    """Prevent obviously broken valuation values from appearing in cards."""
+    v = safe_float(value)
+    p = safe_float(price)
+    if pd.isna(v) or v <= 0:
+        return np.nan
+    if pd.notna(p) and p > 0:
+        if v < p * low_mult or v > p * high_mult:
+            return np.nan
+    return v
+
+def fair_value_quality_filter(df, price):
+    if df is None or df.empty:
+        return pd.DataFrame()
+    d = df.copy()
+    d["合理價"] = d["合理價"].apply(lambda x: clamp_fair_value(x, price))
+    d = d.dropna(subset=["合理價"])
+    if d.empty:
+        return d
+    med = d["合理價"].median()
+    if pd.notna(med) and med > 0:
+        d = d[(d["合理價"] >= med * 0.45) & (d["合理價"] <= med * 2.2)]
+    return d
+
 def compute_inputs(price,q,s):
     pe=q.get("pe",np.nan)
     pb=q.get("pb",np.nan)
@@ -441,10 +449,11 @@ def valuation_models(price,q,s):
     ("特色估值","ESG Premium","ESG溢價估值法",eps*base_pe*(1+esg_prem)),("特色估值","AI Premium","AI成長溢價模型",eps*base_pe*(1+ai_prem)),("特色估值","Institutional Premium","法人溢價模型",eps*base_pe*(1+inst_prem)),("特色估值","Industry Cycle","產業循環估值模型",eps*base_pe*(1+cyc)),("特色估值","Super Bull","超級牛市模型",eps*base_pe*(1+max(esg_prem,0)+max(ai_prem,0)*1.8+max(inst_prem,0)*1.2+.25))]
     df=pd.DataFrame(rows,columns=["分類","模型","中文名稱","合理價"])
     df["合理價"]=df["合理價"].replace([np.inf,-np.inf],np.nan)
-    return df.dropna().query("合理價>0"), inp
+    return fair_value_quality_filter(df.dropna().query("合理價>0"), price), inp
 
 def consensus(df, price):
-    if df.empty:
+    df = fair_value_quality_filter(df, price)
+    if df is None or df.empty:
         return {}
     inst=df[df["分類"]=="機構估值"]["合理價"].median()
     market=df[df["分類"]=="市場估值"]["合理價"].median()
@@ -480,7 +489,11 @@ def row_symbol(symbol, source, key):
     val,_=valuation_models(price,q,s)
     vc=consensus(val,price) if not val.empty else {}
     sig=latest_signals(d)
-    return {"股票":display_name(symbol),"價格":None if pd.isna(price) else round(price,2),"漲跌幅":None if pd.isna(pct) else round(pct,2),"成交量":None if pd.isna(q.get("volume")) else int(q.get("volume")),"AI分數":total,"評級":rating(total),"法人分數":s["inst"],"共識價":None if not vc or pd.isna(vc.get("consensus",np.nan)) else round(vc["consensus"],2),"低估%":None if not vc or pd.isna(vc.get("margin",np.nan)) else round(vc["margin"],1),**sig}
+    cons_val = None if not vc or pd.isna(vc.get("consensus",np.nan)) else clamp_fair_value(vc.get("consensus"), price)
+    margin_val = None
+    if cons_val is not None and pd.notna(cons_val) and pd.notna(price) and price > 0:
+        margin_val = round((cons_val / price - 1) * 100, 1)
+    return {"股票":display_name(symbol),"價格":None if pd.isna(price) else round(price,2),"漲跌幅":None if pd.isna(pct) else round(pct,2),"成交量":None if pd.isna(q.get("volume")) else int(q.get("volume")),"AI分數":total,"評級":rating(total),"法人分數":s["inst"],"共識價":None if cons_val is None or pd.isna(cons_val) else round(cons_val,2),"低估%":margin_val,**sig}
 
 @st.cache_data(show_spinner=False, ttl=20)
 def monitor_table(symbols,source,key):
@@ -502,24 +515,41 @@ def mobile_kpi_grid(items):
     st.markdown(html, unsafe_allow_html=True)
 
 
-def cards(mt, n, per_row=2):
-    if mt.empty:
+def cards(mt, n, cols_per_row=2):
+    """Render real CSS grid cards. Fixes mobile issue where each card occupied a full row."""
+    if mt is None or mt.empty:
         st.warning("監控清單暫無資料")
         return
-    per_row = int(per_row) if per_row in [2,3] else 2
-    rec=mt.head(n).to_dict("records")
-    for i in range(0,len(rec),per_row):
-        cols=st.columns(per_row)
-        for col,r in zip(cols,rec[i:i+per_row]):
-            pct=r.get("漲跌幅")
-            cls="good" if pct is not None and pct>0 else "bad" if pct is not None and pct<0 else "neutral"
-            tags="".join([f'<span class="badge">{k}</span>' for k in ["黃金交叉","MACD翻紅","KD黃金交叉","RSI突破50","爆量突破"] if r.get(k)]) or '<span class="badge">觀察中</span>'
-            price_txt='N/A' if r.get('價格') is None else f"{r.get('價格'):.2f}"
-            pct_txt='N/A' if pct is None else f"{pct:+.2f}%"
-            col.markdown(f"""<div class="card"><div class="card-title">{r.get('股票')}</div><div class="card-price">{price_txt}</div><div class="{cls}">{pct_txt}</div><div class="card-small">AI {r.get('AI分數')}｜法人 {r.get('法人分數')}｜共識價 {r.get('共識價','N/A')}</div><div>{tags}</div></div>""",unsafe_allow_html=True)
 
+    try:
+        cols_per_row = int(cols_per_row)
+    except Exception:
+        cols_per_row = 2
+    cols_per_row = max(1, min(cols_per_row, 4))
 
-def market_overview(symbols, source, key, mcount, sec):
+    html = f'<div class="stock-grid cols-{cols_per_row}">'
+    for r in mt.head(n).to_dict("records"):
+        pct = r.get("漲跌幅")
+        cls = "good" if pct is not None and pd.notna(pct) and pct > 0 else ("bad" if pct is not None and pd.notna(pct) and pct < 0 else "neutral")
+        tags = "".join([f'<span class="badge">{k}</span>' for k in ["黃金交叉","MACD翻紅","KD黃金交叉","RSI突破50","爆量突破"] if r.get(k)]) or '<span class="badge">觀察中</span>'
+        price_txt = "N/A" if r.get("價格") is None or pd.isna(r.get("價格")) else f"{float(r.get('價格')):.2f}"
+        pct_txt = "N/A" if pct is None or pd.isna(pct) else f"{float(pct):+.2f}%"
+        consensus_txt = r.get("共識價", "N/A")
+        if consensus_txt is None or (isinstance(consensus_txt, float) and pd.isna(consensus_txt)):
+            consensus_txt = "N/A"
+        html += (
+            '<div class="card">'
+            f'<div class="card-title">{r.get("股票","")}</div>'
+            f'<div class="card-price">{price_txt}</div>'
+            f'<div class="{cls}">{pct_txt}</div>'
+            f'<div class="card-small">AI {r.get("AI分數","N/A")}｜法人 {r.get("法人分數","N/A")}｜共識價 {consensus_txt}</div>'
+            f'<div>{tags}</div>'
+            '</div>'
+        )
+    html += '</div>'
+    st.markdown(html, unsafe_allow_html=True)
+
+def market_overview(symbols, source, key, mcount, sec, cols_per_row=2):
     st.subheader("🏠 市場總覽")
     mt = monitor_table(symbols, source, key)
     temp = market_temp_score(mt)
@@ -540,14 +570,14 @@ def market_overview(symbols, source, key, mcount, sec):
     if mt.empty:
         return
     st.markdown("#### 🔥 AI熱門股")
-    cards(mt.sort_values("AI分數", ascending=False, na_position="last"), min(6, mcount))
+    cards(mt.sort_values("AI分數", ascending=False, na_position="last"), min(6, mcount), cols_per_row)
     st.markdown("#### 📊 類股快速預覽")
     modes = ["半導體","AI伺服器","PCB/CCL","記憶體","機器人/自動化","金融","ETF","CoWoS/先進封裝"]
     st.markdown('<div class="mobile-chipbar">' + ''.join([f'<span class="mobile-chip">{m}</span>' for m in modes]) + '</div>', unsafe_allow_html=True)
     selected_sector = st.selectbox("選擇類股", modes, index=0, key="home_sector_select")
     sector_symbols = SECTOR_WATCHLISTS.get(selected_sector, [])[:6]
     if sector_symbols:
-        cards(monitor_table(sector_symbols, source, key), min(6, len(sector_symbols)))
+        cards(monitor_table(sector_symbols, source, key), min(6, len(sector_symbols)), cols_per_row)
     with st.expander("🏦 法人排行 / 💎 低估值觀察"):
         r1, r2 = st.columns(2)
         with r1:
@@ -577,120 +607,66 @@ def quote_panel(q):
     c[3].metric("資料源",q.get("source",""))
     st.caption("🕒 "+str(q.get("time","")))
 
-
 def kline(d, overlays, sigs):
-    st.markdown('<div class="compact-note">K線指標可在本頁自行勾選，不用到側邊欄。</div>', unsafe_allow_html=True)
+    st.markdown('<div class="compact-note">券商式壓縮K線：主圖較小，副圖分層顯示，手機更清楚。</div>', unsafe_allow_html=True)
     d=signal_columns(d.copy())
-
-    with st.expander("⚙️ K線指標設定", expanded=True):
-        mode = st.radio("K線模式", ["券商模式","技術模式","極簡模式"], index=0, horizontal=True)
-        rng = st.radio("K線範圍", ["1個月","3個月","6個月","1年"], index=1, horizontal=True)
-
-        main_ind = st.multiselect(
-            "主圖指標",
-            ["MA5","MA10","MA20","MA60","MA120","MA240","布林通道"],
-            default=overlays if overlays else ["MA5","MA20","MA60"]
-        )
-
-        sub_ind = st.multiselect(
-            "副圖指標",
-            ["VOL 成交量","MACD","KD","RSI","BIAS","OBV"],
-            default=["VOL 成交量","MACD","KD"] if mode=="券商模式" else ["VOL 成交量","MACD"]
-        )
-
-        signal_ind = st.multiselect(
-            "訊號標記",
-            ["黃金交叉","死亡交叉","MACD翻紅","KD黃金交叉","RSI突破50","爆量突破"],
-            default=sigs if sigs else ["黃金交叉","MACD翻紅","KD黃金交叉","爆量突破"]
-        )
-
+    mode = st.radio("K線模式", ["券商模式","技術模式","極簡模式"], index=0, horizontal=True)
+    rng=st.radio("K線範圍",["1個月","3個月","6個月","1年"],index=1,horizontal=True)
     dd=d.tail({"1個月":24,"3個月":66,"6個月":132,"1年":260}.get(rng,66))
     main_height = 430 if mode=="券商模式" else (540 if mode=="技術模式" else 500)
-
     fig=go.Figure()
-    fig.add_trace(go.Candlestick(
-        x=dd["Date"],open=dd["Open"],high=dd["High"],low=dd["Low"],close=dd["Close"],
-        name="K線", increasing_line_color="#ff3333", decreasing_line_color="#00d26a",
-        increasing_fillcolor="#ff3333", decreasing_fillcolor="#00d26a"
-    ))
-
+    fig.add_trace(go.Candlestick(x=dd["Date"],open=dd["Open"],high=dd["High"],low=dd["Low"],close=dd["Close"],name="K線", increasing_line_color="#ff3333", decreasing_line_color="#00d26a", increasing_fillcolor="#ff3333", decreasing_fillcolor="#00d26a"))
     color_map={"MA5":"#ffff00","MA10":"#00e5ff","MA20":"#c000ff","MA60":"#ff9900","MA120":"#94a3b8","MA240":"#ffffff"}
-    for ma in main_ind:
+    for ma in overlays:
         if ma in dd.columns:
             fig.add_trace(go.Scatter(x=dd["Date"],y=dd[ma],mode="lines",name=ma,line=dict(width=1.6,color=color_map.get(ma))))
-    if "布林通道" in main_ind:
+    if "布林通道" in overlays:
         fig.add_trace(go.Scatter(x=dd["Date"],y=dd["BB_UP"],name="BB上軌",line=dict(width=1,dash="dot")))
         fig.add_trace(go.Scatter(x=dd["Date"],y=dd["BB_DN"],name="BB下軌",line=dict(width=1,dash="dot")))
-
     mp={"黃金交叉":("triangle-up","GC"),"死亡交叉":("triangle-down","DC"),"MACD翻紅":("circle","M"),"KD黃金交叉":("diamond","KD"),"RSI突破50":("square","50"),"爆量突破":("star","V")}
     for s,(mk,txt) in mp.items():
-        if s in signal_ind and s in dd.columns:
+        if s in sigs and s in dd.columns:
             pts=dd[dd[s].fillna(False)]
             if not pts.empty:
                 fig.add_trace(go.Scatter(x=pts["Date"],y=pts["Low"]*.985,mode="markers+text",marker=dict(symbol=mk,size=10),text=[txt]*len(pts),textposition="bottom center",name=s))
-
-    fig.update_layout(
-        height=main_height,template="plotly_dark",xaxis_rangeslider_visible=False,
-        hovermode="x unified",showlegend=True,
-        legend=dict(orientation="h",yanchor="bottom",y=1.02,xanchor="left",x=0,font=dict(size=10)),
-        margin=dict(l=6,r=6,t=20,b=4),
-        xaxis=dict(showgrid=True,gridcolor="rgba(255,255,255,.08)",tickfont=dict(size=10)),
-        yaxis=dict(showgrid=True,gridcolor="rgba(255,255,255,.10)",tickfont=dict(size=10),side="right")
-    )
+    fig.update_layout(height=main_height,template="plotly_dark",xaxis_rangeslider_visible=False,hovermode="x unified",showlegend=True,legend=dict(orientation="h",yanchor="bottom",y=1.02,xanchor="left",x=0,font=dict(size=10)),margin=dict(l=6,r=6,t=20,b=4),xaxis=dict(showgrid=True,gridcolor="rgba(255,255,255,.08)",tickfont=dict(size=10)),yaxis=dict(showgrid=True,gridcolor="rgba(255,255,255,.10)",tickfont=dict(size=10),side="right"))
     st.plotly_chart(fig,use_container_width=True)
-
-    def render_panel(title, cols, height):
-        f=go.Figure()
-        for c in cols:
-            if c in dd.columns:
-                if c in ["Volume","MACD_HIST"]:
-                    f.add_trace(go.Bar(x=dd["Date"],y=dd[c],name=c))
-                else:
-                    f.add_trace(go.Scatter(x=dd["Date"],y=dd[c],name=c,line=dict(width=1.4)))
-        if title=="KD":
-            f.add_hline(y=80,line_dash="dot")
-            f.add_hline(y=20,line_dash="dot")
-        if title=="RSI":
-            f.add_hline(y=70,line_dash="dot")
-            f.add_hline(y=50,line_dash="dash")
-            f.add_hline(y=30,line_dash="dot")
-        f.update_layout(
-            height=height,template="plotly_dark",title=dict(text=title,font=dict(size=12)),
-            margin=dict(l=6,r=6,t=24,b=4),showlegend=True,legend=dict(orientation="h",font=dict(size=9)),
-            yaxis=dict(side="right",tickfont=dict(size=10)),
-            xaxis=dict(tickfont=dict(size=10),showgrid=True,gridcolor="rgba(255,255,255,.08)")
-        )
-        st.plotly_chart(f,use_container_width=True)
-
-    panel_map = {
-        "VOL 成交量": ("VOL 成交量", ["Volume","VOL_MA20"], 155),
-        "MACD": ("MACD", ["MACD_HIST","MACD","MACD_SIGNAL"], 170),
-        "KD": ("KD", ["K","D"], 150),
-        "RSI": ("RSI", ["RSI"], 150),
-        "BIAS": ("BIAS", ["BIAS20"], 140),
-        "OBV": ("OBV", ["OBV"], 140),
-    }
-
     if mode=="極簡模式":
-        for key in sub_ind[:1]:
-            if key in panel_map:
-                render_panel(*panel_map[key])
+        f=go.Figure()
+        f.add_trace(go.Bar(x=dd["Date"],y=dd["Volume"],name="VOL"))
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["VOL_MA20"],name="20日均量"))
+        f.update_layout(height=160,template="plotly_dark",margin=dict(l=6,r=6,t=18,b=4),yaxis=dict(side="right",tickfont=dict(size=10)),xaxis=dict(tickfont=dict(size=10)))
+        st.plotly_chart(f,use_container_width=True)
         return
-
     if mode=="券商模式":
-        for key in sub_ind:
-            if key in panel_map:
-                render_panel(*panel_map[key])
+        panels=[("VOL 成交量",["Volume","VOL_MA20"],155),("MACD",["MACD_HIST","MACD","MACD_SIGNAL"],170),("KD",["K","D"],150)]
+        for title,cols,height in panels:
+            f=go.Figure()
+            for c in cols:
+                if c in dd.columns:
+                    if c in ["Volume","MACD_HIST"]:
+                        f.add_trace(go.Bar(x=dd["Date"],y=dd[c],name=c))
+                    else:
+                        f.add_trace(go.Scatter(x=dd["Date"],y=dd[c],name=c,line=dict(width=1.4)))
+            if title=="KD":
+                f.add_hline(y=80,line_dash="dot")
+                f.add_hline(y=20,line_dash="dot")
+            f.update_layout(height=height,template="plotly_dark",title=dict(text=title,font=dict(size=12)),margin=dict(l=6,r=6,t=24,b=4),showlegend=True,legend=dict(orientation="h",font=dict(size=9)),yaxis=dict(side="right",tickfont=dict(size=10)),xaxis=dict(tickfont=dict(size=10),showgrid=True,gridcolor="rgba(255,255,255,.08)"))
+            st.plotly_chart(f,use_container_width=True)
     else:
-        if not sub_ind:
-            st.info("尚未選擇副圖指標。")
-        else:
-            tabs=st.tabs(sub_ind)
-            for tab,key in zip(tabs,sub_ind):
-                with tab:
-                    if key in panel_map:
-                        title, cols, height = panel_map[key]
-                        render_panel(title, cols, 230)
+        tabs=st.tabs(["成交量","MACD","KD","RSI","BIAS","OBV"])
+        charts=[("成交量",["Volume","VOL_MA20"]),("MACD",["MACD_HIST","MACD","MACD_SIGNAL"]),("KD",["K","D"]),("RSI",["RSI"]),("BIAS",["BIAS20"]),("OBV",["OBV"])]
+        for tab,(title,cols) in zip(tabs,charts):
+            with tab:
+                f=go.Figure()
+                for c in cols:
+                    if c in dd.columns:
+                        if c in ["Volume","MACD_HIST"]:
+                            f.add_trace(go.Bar(x=dd["Date"],y=dd[c],name=c))
+                        else:
+                            f.add_trace(go.Scatter(x=dd["Date"],y=dd[c],name=c,line=dict(width=1.5)))
+                f.update_layout(height=230,template="plotly_dark",title=title,margin=dict(l=6,r=6,t=28,b=4),yaxis=dict(side="right",tickfont=dict(size=10)),xaxis=dict(tickfont=dict(size=10)))
+                st.plotly_chart(f,use_container_width=True)
 
 def val_panel(price,q,s):
     val,inp=valuation_models(price,q,s)
@@ -698,6 +674,9 @@ def val_panel(price,q,s):
         st.warning("估值資料不足")
         return
     vc=consensus(val,price)
+    if not vc:
+        st.warning("估值資料異常或不足，已隱藏不合理結果。")
+        return
     mobile_kpi_grid([
         ("現價", fmt(price)),
         ("共識價", fmt(vc.get("consensus"))),
@@ -766,19 +745,10 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-
-PAGES=["🏠市場總覽","📊即時監控","📈專業K線","💹即時報價","🏦法人雷達","💎企業評價","🌱ESG中心","📑財報中心","🤖AI預測","⚙️系統設定"]
-st.markdown('<div class="top-menu-wrap"><div class="top-menu-title">☰ 手機功能選單</div></div>', unsafe_allow_html=True)
-page=st.radio(
-    "選擇功能",
-    PAGES,
-    index=PAGES.index(st.session_state.get("page","🏠市場總覽")) if st.session_state.get("page","🏠市場總覽") in PAGES else 0,
-    key="page",
-    horizontal=True
-)
-
 with st.sidebar:
-    st.title("⚙️ 系統設定")
+    st.title("☰ 功能選單")
+    page=st.radio("頁面",["🏠市場總覽","📊即時監控","📈專業K線","💹即時報價","🏦法人雷達","💎企業評價","🌱ESG中心","📑財報中心","🤖AI預測","⚙️系統設定"],index=0,key="page")
+    st.markdown("---")
     source=st.selectbox("資料來源",["Yahoo Finance","Fugle + Yahoo","Fugle API"],index=0)
     key=st.text_input("Fugle API Key（可空白）",type="password")
     mobile_stable=st.checkbox("手機穩定模式",value=True,help="手機建議開啟，避免黑屏。")
@@ -801,6 +771,7 @@ with st.sidebar:
 
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True)
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True)
+    cols_per_row=st.radio("每排顯示",[1,2,3,4],index=1,horizontal=True)
     mode=st.selectbox("監控清單模式",["自選清單"]+list(SECTOR_WATCHLISTS.keys()),index=1)
     default=",".join(DEFAULT_MONITOR if mode=="自選清單" else SECTOR_WATCHLISTS.get(mode,DEFAULT_MONITOR))
     monitor_text=st.text_area("監控清單",value=default,height=95)
@@ -819,7 +790,7 @@ scores=score_blocks(d,q) if not d.empty else {"tech":50,"chip":50,"fund":50,"esg
 total=ai_total(scores)
 
 if page=="🏠市場總覽":
-    market_overview(symbols,source,key,mcount,sec)
+    market_overview(symbols,source,key,mcount,sec,cols_per_row)
     if symbol:
         st.markdown("---")
         st.subheader(f"個股快覽：{display_name(active_symbol)}")
@@ -827,33 +798,11 @@ if page=="🏠市場總覽":
         mobile_kpi_grid([("AI總分",f"{total}"),("法人",scores["inst"]),("技術",scores["tech"]),("ESG",scores["esg"])])
 
 elif page=="📊即時監控":
-    st.subheader("📊 即時監控 / 自選股")
-    st.caption("可直接在此頁自設股票，不必到側邊欄。支援中文名稱、代碼、完整 Yahoo 代碼。")
-
-    if "watch_custom_text" not in st.session_state:
-        st.session_state.watch_custom_text = ",".join(symbols)
-
-    with st.expander("⚙️ 自設股票清單 / 顯示設定", expanded=True):
-        custom_text = st.text_area(
-            "自選股票清單",
-            key="watch_custom_text",
-            height=85,
-            help="用逗號分隔，例如：台積電,聯電,世界先進,和椿,2330,2303,5347,6215"
-        )
-        grid_cols = st.radio("每排顯示", [2,3], index=0, horizontal=True)
-        max_cards = st.radio("顯示檔數", [8,16,32], index=1, horizontal=True)
-        if st.button("套用自選股"):
-            st.cache_data.clear()
-            st.rerun()
-
-    page_symbols = [clean_symbol(x.strip()) for x in st.session_state.watch_custom_text.split(",") if x.strip()]
-    if not page_symbols:
-        page_symbols = symbols
-
-    mt=monitor_table(page_symbols[:max_cards],source,key)
+    st.subheader("📊 即時監控")
+    mt=monitor_table(symbols,source,key)
     view=st.radio("顯示",["手機卡片","專業表格","排行榜"],horizontal=True)
     if view=="手機卡片":
-        cards(mt,max_cards,grid_cols)
+        cards(mt,mcount,cols_per_row)
     elif view=="專業表格":
         st.dataframe(mt,use_container_width=True,hide_index=True)
     else:
@@ -909,10 +858,10 @@ elif page=="⚙️系統設定":
     st.subheader("⚙️ 系統設定")
     st.markdown("""
     <div class="pro-panel">
-    <b>V33 Final 手機版設定</b><br>
+    <b>V33.1 Final Hotfix 手機版設定</b><br>
     建議手機保持「手機穩定模式」開啟，避免黑屏。<br>
     電腦版可關閉手機穩定模式，使用 10 / 30 / 60 秒自動更新。<br>
-    ESG、企業評價、法人雷達、財報、AI預測全部保留。
+    ESG、企業評價、法人雷達、財報、AI預測全部保留；手機卡片每排顯示與估值異常值已修正。
     </div>
     """, unsafe_allow_html=True)
     st.write("目前版本：", APP_VERSION)
@@ -920,5 +869,5 @@ elif page=="⚙️系統設定":
     st.write("監控檔數：", mcount)
 
 st.markdown("---")
-st.caption("AIStock V33.3 Kline Indicator Select｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
+st.caption("AIStock V33.1 Final Hotfix｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
 st.caption("免責聲明：本平台為研究與教學用途，非投資建議。Yahoo Finance 可能為延遲或近即時資料；Fugle API 功能需自行申請 Key。")
