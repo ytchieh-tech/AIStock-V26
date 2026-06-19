@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V55 Symbol Resolver Pro Final"
+APP_VERSION="V56 Settings NameError Fix Final"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -440,7 +440,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V42 responsive audit */
+/* V56 Settings NameError Fix Final responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -499,7 +499,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V45：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V56 Settings NameError Fix Final：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -704,7 +704,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V55 Symbol Resolver Pro Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V56 Settings NameError Fix Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -879,7 +879,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V42: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V56 Settings NameError Fix Final: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1776,7 +1776,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V55 Symbol Resolver Pro Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V56 Settings NameError Fix Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1792,7 +1792,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V55 Symbol Resolver Pro Final</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V56 Settings NameError Fix Final</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1821,7 +1821,7 @@ try:
 except Exception:
     pass
 with st.sidebar:
-    st.title("☰ V55設定")
+    st.title("☰ V56設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
@@ -1829,7 +1829,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V45_SIDEBAR_SECTOR_FIX
+    # V56 Settings NameError Fix Final_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -2170,6 +2170,24 @@ def unified_symbol_manager(symbols):
     return st.session_state.active_symbol
 # ================= V55 SYMBOL RESOLVER PRO END =================
 
+# ================= V56 SETTINGS NAMEERROR FIX =================
+feature_checklist = pd.DataFrame([
+    ["首頁 Banner", "V56", "已更新，避免殘留舊版文字"],
+    ["代碼解析器", "V55/V56", "輸入純數字會自動測試 .TW / .TWO"],
+    ["中文名稱", "V56", "本地字典 + Yahoo shortName/longName 備援"],
+    ["K線副圖", "V54/V56", "MACD、KD、RSI、BIAS、布林、OBV、MFI、威廉%R、CCI、ADX、ATR、ROC、Momentum"],
+    ["AI研究中心", "V50/V56", "AI評級、估值、財報、法人、產業、新聞、事件、法說會、競爭分析、風險預警"],
+    ["ESG永續", "V50/V56", "Level 1~4 資料層與可信度"],
+    ["法人籌碼", "V50/V56", "融資、融券、借券、券商、綜合燈號"],
+    ["中文財報", "V52/V56", "摘要、損益表、資產負債表、現金流、財務比率"],
+    ["多人共用", "V56", "使用 st.session_state，互不覆蓋"],
+], columns=["功能", "版本", "狀態"])
+
+def show_feature_checklist():
+    st.dataframe(feature_checklist, use_container_width=True, hide_index=True)
+# ================= V56 SETTINGS NAMEERROR FIX END =================
+
+
 
 active = unified_symbol_manager(symbols)
 
@@ -2190,7 +2208,7 @@ elif page=="📊監控":
     st.subheader("📊 即時監控中心")
     st.markdown("#### 監控設定")
     st.caption(f"V49類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
-    # V45_PAGE_SECTOR_FIX
+    # V56 Settings NameError Fix Final_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
         page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
@@ -2362,12 +2380,12 @@ elif page=="🤖AI":
     v50_ai_research_center(active, df_daily, q, scores)
 
 elif page=="⚙設定":
-    st.subheader("⚙ 系統設定 / V45多人共用安全")
+    st.subheader("⚙ 系統設定 / V56 Settings NameError Fix Final")
     st.info("多人共用安全：股票、最近使用、自選清單皆使用 st.session_state，屬於每位使用者自己的瀏覽器工作階段；不會互相切換或覆蓋。")
-    st.markdown('<div class="explain">V42 已完成：ESG與永續真正合併、企業評價模型以K線收盤價備援、法人雷達補齊、中文化財報分析層、手機/電腦自動響應。</div>',unsafe_allow_html=True)
+    st.markdown('<div class="explain">V56 Settings NameError Fix Final：ESG與永續真正合併、企業評價模型以K線收盤價備援、法人雷達補齊、中文化財報分析層、手機/電腦自動響應。</div>',unsafe_allow_html=True)
     st.dataframe(enterprise_feature_checklist(), use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("AIStock V55 Symbol Resolver Pro Final｜研究與教學用途，非投資建議。")
+st.caption("AIStock V56 Settings NameError Fix Final｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
