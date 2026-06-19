@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import requests, re, math
 
-APP_VERSION = "V34.4 全模組選股同步版"
+APP_VERSION = "V35 Institutional Ultimate Final"
 APP_NAME = "智策股市 AI 決策平台"
 
 st.set_page_config(
@@ -82,8 +82,82 @@ div[data-testid="stDataFrame"]{font-size:.75rem}
 .stock-grid .card-small{font-size:.63rem;line-height:1.35}
 .stock-grid .badge{font-size:.58rem;padding:1px 5px}
 
+
+/* V35 fixed mobile nav + professional cover */
+.v35-banner{
+    position:relative;
+    overflow:hidden;
+    background:linear-gradient(135deg,#020617 0%,#0f172a 42%,#172554 70%,#1e3a8a 100%);
+    border:1px solid #334155;
+    border-radius:18px;
+    padding:14px;
+    color:#fff;
+    margin-bottom:10px;
+    box-shadow:0 8px 22px rgba(0,0,0,.24);
+}
+.v35-banner:before{
+    content:"";
+    position:absolute;
+    inset:-40px -20px auto auto;
+    width:210px;
+    height:210px;
+    background:radial-gradient(circle,rgba(56,189,248,.30),rgba(30,64,175,0) 60%);
+}
+.v35-title{font-size:1.18rem;font-weight:950;letter-spacing:.3px;position:relative}
+.v35-sub{font-size:.74rem;color:#cbd5e1;margin-top:4px;line-height:1.45;position:relative}
+.v35-visual{
+    margin-top:10px;
+    height:92px;
+    border-radius:14px;
+    background:
+      linear-gradient(180deg,rgba(15,23,42,.15),rgba(15,23,42,.65)),
+      repeating-linear-gradient(90deg,rgba(255,255,255,.08) 0 1px, transparent 1px 22px),
+      repeating-linear-gradient(0deg,rgba(255,255,255,.06) 0 1px, transparent 1px 22px);
+    position:relative;
+    border:1px solid rgba(148,163,184,.35);
+    overflow:hidden;
+}
+.v35-visual svg{position:absolute;inset:0;width:100%;height:100%}
+.v35-pillrow{display:flex;gap:6px;overflow-x:auto;margin-top:8px;position:relative}
+.v35-pill{white-space:nowrap;border-radius:999px;padding:4px 8px;font-size:.68rem;font-weight:800;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);color:#e2e8f0}
+.v35-nav-note{font-size:.72rem;color:#94a3b8;margin:2px 0 4px 0}
+div[role="radiogroup"] label{white-space:nowrap}
+@media(max-width:768px){
+    .v35-banner{padding:11px;border-radius:16px;margin-bottom:8px}
+    .v35-title{font-size:1.02rem}
+    .v35-sub{font-size:.67rem}
+    .v35-visual{height:76px}
+    .v35-pill{font-size:.62rem;padding:3px 7px}
+}
+
 </style>
 """, unsafe_allow_html=True)
+
+# V35：手機首頁固定主選單，不再依賴側邊欄
+MAIN_PAGES = ["🏠首頁","📊監控","📈K線","💎評價","🌱ESG","🏦法人","🤖AI","⚙設定"]
+PAGE_MAP = {
+    "🏠首頁":"🏠市場總覽",
+    "📊監控":"📊即時監控",
+    "📈K線":"📈專業K線",
+    "💎評價":"💎企業評價",
+    "🌱ESG":"🌱ESG中心",
+    "🏦法人":"🏦法人雷達",
+    "🤖AI":"🤖AI預測",
+    "⚙設定":"⚙️系統設定",
+}
+if "v35_mobile_page" not in st.session_state:
+    st.session_state.v35_mobile_page = "🏠首頁"
+st.markdown('<div class="v35-nav-note">V35 手機固定主選單：不再依賴側邊欄，避免手機上選單消失。</div>', unsafe_allow_html=True)
+_mobile_choice = st.radio(
+    "主選單",
+    MAIN_PAGES,
+    index=MAIN_PAGES.index(st.session_state.v35_mobile_page) if st.session_state.v35_mobile_page in MAIN_PAGES else 0,
+    horizontal=True,
+    key="v35_main_mobile_menu",
+    label_visibility="collapsed"
+)
+st.session_state.v35_mobile_page = _mobile_choice
+
 
 TW_STOCKS={
 "台積電":"2330.TW","聯電":"2303.TW","世界先進":"5347.TWO","和椿":"6215.TWO","台光電":"2383.TW","威剛":"3260.TWO",
@@ -764,15 +838,43 @@ def ai_forecast(df):
         st.warning(str(e))
 
 st.markdown(f"""
-<div class="hero">
-  <div class="hero-title">📈 {APP_NAME}</div>
-  <div class="hero-sub">AI Institutional Edition｜{APP_VERSION}｜製作人：Tsung Chieh Yang</div>
+<div class="v35-banner">
+  <div class="v35-title">📈 智策股市 AI 決策平台</div>
+  <div class="v35-sub">V35 Institutional Ultimate Final｜企業評價 × ESG × 法人雷達 × 專業K線</div>
+  <div class="v35-visual">
+    <svg viewBox="0 0 900 220" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="lineg" x1="0" x2="1">
+          <stop offset="0" stop-color="#22d3ee"/>
+          <stop offset="0.5" stop-color="#60a5fa"/>
+          <stop offset="1" stop-color="#f87171"/>
+        </linearGradient>
+      </defs>
+      <polyline points="0,155 70,145 120,170 190,120 250,132 315,88 390,104 455,55 520,78 590,45 660,68 735,30 820,52 900,20"
+        fill="none" stroke="url(#lineg)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="0,185 90,160 160,180 250,130 360,152 470,90 590,122 700,70 820,88 900,60"
+        fill="none" stroke="rgba(34,211,238,.35)" stroke-width="3"/>
+      <rect x="95" y="92" width="18" height="70" fill="#22c55e"/>
+      <rect x="188" y="108" width="18" height="55" fill="#ef4444"/>
+      <rect x="310" y="70" width="18" height="78" fill="#22c55e"/>
+      <rect x="452" y="45" width="18" height="66" fill="#22c55e"/>
+      <rect x="585" y="62" width="18" height="60" fill="#ef4444"/>
+      <rect x="735" y="28" width="18" height="75" fill="#22c55e"/>
+    </svg>
+  </div>
+  <div class="v35-pillrow">
+    <span class="v35-pill">AI市場溫度</span>
+    <span class="v35-pill">法人資金</span>
+    <span class="v35-pill">DCF/EVA/EBO</span>
+    <span class="v35-pill">ESG共識</span>
+    <span class="v35-pill">券商式K線</span>
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
 with st.sidebar:
     st.title("☰ 功能選單")
-    page=st.radio("頁面",["🏠市場總覽","📊即時監控","📈專業K線","💹即時報價","🏦法人雷達","💎企業評價","🌱ESG中心","📑財報中心","🤖AI預測","⚙️系統設定"],index=0,key="page")
+    sidebar_page=st.selectbox("側邊備用選單",["跟隨手機主選單","🏠市場總覽","📊即時監控","📈專業K線","💹即時報價","🏦法人雷達","💎企業評價","🌱ESG中心","📑財報中心","🤖AI預測","⚙️系統設定"],index=0,key="sidebar_backup_page")
     st.markdown("---")
     source=st.selectbox("資料來源",["Yahoo Finance","Fugle + Yahoo","Fugle API"],index=0,key="sidebar_data_source")
     key=st.text_input("Fugle API Key（可空白）",type="password",key="sidebar_fugle_key")
@@ -806,9 +908,14 @@ with st.sidebar:
         st.cache_data.clear()
         st.rerun()
 
+# V35：決定目前頁面。預設使用手機固定主選單；側邊欄可作備用。
+page = PAGE_MAP.get(st.session_state.v35_mobile_page, "🏠市場總覽")
+if "sidebar_page" in locals() and sidebar_page != "跟隨手機主選單":
+    page = sidebar_page
+
 symbols=[clean_symbol(x.strip()) for x in monitor_text.split(",") if x.strip()][:mcount]
 
-# V34.3: 明確的分析股票選擇，不再固定台積電
+# V35: 明確的分析股票選擇，不再固定台積電
 if "selected_analysis_symbol" not in st.session_state:
     st.session_state.selected_analysis_symbol = symbols[0] if symbols else "2330.TW"
 
@@ -935,7 +1042,7 @@ elif page=="⚙️系統設定":
     <b>V33.1 Final Hotfix 手機版設定</b><br>
     建議手機保持「手機穩定模式」開啟，避免黑屏。<br>
     電腦版可關閉手機穩定模式，使用 10 / 30 / 60 秒自動更新。<br>
-    ESG、企業評價、法人雷達、財報、AI預測全部保留；手機卡片每排顯示、估值異常值、K線重複Key、全模組選股同步已修正。
+    ESG、企業評價、法人雷達、財報、AI預測全部保留；手機固定主選單、專業封面Banner、K線修復、全模組選股同步、估值異常過濾已完成。
     </div>
     """, unsafe_allow_html=True)
     st.write("目前版本：", APP_VERSION)
@@ -943,5 +1050,5 @@ elif page=="⚙️系統設定":
     st.write("監控檔數：", mcount)
 
 st.markdown("---")
-st.caption("AIStock V34.4 全模組選股同步版｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
+st.caption("AIStock V35 Institutional Ultimate Final｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
 st.caption("免責聲明：本平台為研究與教學用途，非投資建議。Yahoo Finance 可能為延遲或近即時資料；Fugle API 功能需自行申請 Key。")
