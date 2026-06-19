@@ -45,8 +45,10 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V38.3 Final Polish Fix"
+APP_VERSION="V38.4 Professional UI Edition"
 APP_NAME="智策股市 AI 決策平台"
+DEVELOPER_NAME="Tsung Chieh Yang"
+PRO_MODE=True
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
@@ -715,60 +717,121 @@ def financial_tables(symbol):
     except Exception: return {}
 
 
+
 FINANCIAL_ZH_MAP = {
     "Total Revenue": "營業收入合計",
     "Operating Revenue": "營業收入",
+    "Revenue": "營業收入",
     "Cost Of Revenue": "營業成本",
+    "Cost Of Goods Sold": "銷貨成本",
     "Gross Profit": "營業毛利",
     "Operating Expense": "營業費用",
     "Selling General And Administration": "銷售及管理費用",
+    "Selling And Marketing Expense": "銷售費用",
+    "General And Administrative Expense": "管理費用",
     "Research And Development": "研究發展費用",
     "Operating Income": "營業利益",
+    "Interest Income": "利息收入",
+    "Interest Expense": "利息費用",
+    "Other Income Expense": "其他收入及費用",
     "Pretax Income": "稅前淨利",
     "Tax Provision": "所得稅費用",
     "Net Income": "稅後淨利",
+    "Net Income Continuous Operations": "繼續營業單位淨利",
     "Net Income Common Stockholders": "歸屬普通股股東淨利",
-    "Diluted EPS": "稀釋每股盈餘",
     "Basic EPS": "基本每股盈餘",
+    "Diluted EPS": "稀釋每股盈餘",
     "EBITDA": "稅息折舊攤銷前盈餘",
     "EBIT": "稅前息前盈餘",
-    "Interest Expense": "利息費用",
-
     "Total Assets": "資產總計",
     "Current Assets": "流動資產",
-    "Cash Cash Equivalents And Short Term Investments": "現金及短期投資",
+    "Total Non Current Assets": "非流動資產合計",
+    "Cash Cash Equivalents And Short Term Investments": "現金、約當現金及短期投資",
     "Cash And Cash Equivalents": "現金及約當現金",
+    "Other Short Term Investments": "其他短期投資",
     "Accounts Receivable": "應收帳款",
+    "Net Receivables": "應收款項淨額",
     "Inventory": "存貨",
+    "Other Current Assets": "其他流動資產",
+    "Gross PPE": "不動產廠房設備總額",
+    "Net PPE": "不動產廠房設備淨額",
+    "Goodwill": "商譽",
+    "Other Intangible Assets": "其他無形資產",
+    "Investments And Advances": "投資及預付款",
     "Total Liabilities Net Minority Interest": "負債總計",
     "Current Liabilities": "流動負債",
+    "Total Non Current Liabilities Net Minority Interest": "非流動負債合計",
     "Accounts Payable": "應付帳款",
+    "Payables": "應付款項",
+    "Current Debt": "一年內到期負債",
     "Long Term Debt": "長期負債",
+    "Total Debt": "負債總額",
+    "Other Current Liabilities": "其他流動負債",
+    "Other Non Current Liabilities": "其他非流動負債",
     "Stockholders Equity": "股東權益",
+    "Common Stock Equity": "普通股股東權益",
+    "Total Equity Gross Minority Interest": "權益總計",
     "Retained Earnings": "保留盈餘",
     "Common Stock": "普通股股本",
-
+    "Capital Stock": "股本",
+    "Additional Paid In Capital": "資本公積",
+    "Treasury Stock": "庫藏股",
+    "Minority Interest": "少數股權",
+    "Working Capital": "營運資金",
+    "Tangible Book Value": "有形帳面價值",
+    "Net Tangible Assets": "有形資產淨額",
+    "Invested Capital": "投入資本",
     "Operating Cash Flow": "營業活動現金流量",
+    "Cash Flow From Continuing Operating Activities": "繼續營業單位營業現金流量",
     "Investing Cash Flow": "投資活動現金流量",
     "Financing Cash Flow": "籌資活動現金流量",
     "Free Cash Flow": "自由現金流量",
     "Capital Expenditure": "資本支出",
     "Depreciation And Amortization": "折舊及攤銷",
     "Change In Working Capital": "營運資金變動",
+    "Change In Receivables": "應收款項變動",
+    "Change In Inventory": "存貨變動",
+    "Change In Payable": "應付款項變動",
+    "Stock Based Compensation": "股份基礎給付",
+    "Cash Dividends Paid": "支付現金股利",
     "End Cash Position": "期末現金餘額",
+    "Beginning Cash Position": "期初現金餘額",
+    "Changes In Cash": "現金變動",
 }
 
+FINANCIAL_TOKEN_ZH = {
+    "Total": "合計", "Revenue": "營收", "Operating": "營業", "Income": "收益", "Net": "淨額",
+    "Common": "普通股", "Stockholders": "股東", "Equity": "權益", "Assets": "資產", "Liabilities": "負債",
+    "Current": "流動", "Non": "非", "Cash": "現金", "Equivalents": "約當現金", "Short": "短期", "Term": "期間",
+    "Investments": "投資", "Accounts": "帳款", "Receivable": "應收", "Receivables": "應收款",
+    "Payable": "應付", "Payables": "應付款", "Inventory": "存貨", "Debt": "負債", "Expense": "費用",
+    "Expenses": "費用", "Cost": "成本", "Gross": "毛額", "Profit": "利益", "Tax": "稅", "Provision": "提列",
+    "Cashflow": "現金流量", "Flow": "流量", "Financing": "籌資", "Investing": "投資", "Capital": "資本",
+    "Expenditure": "支出", "Depreciation": "折舊", "Amortization": "攤銷", "Working": "營運",
+    "Retained": "保留", "Earnings": "盈餘", "Goodwill": "商譽", "Intangible": "無形", "Tangible": "有形",
+    "Book": "帳面", "Value": "價值", "Shares": "股數", "Basic": "基本", "Diluted": "稀釋",
+    "EPS": "每股盈餘", "EBITDA": "EBITDA", "EBIT": "EBIT"
+}
+
+def zh_financial_name(name):
+    s = str(name)
+    if s in FINANCIAL_ZH_MAP:
+        return f"{FINANCIAL_ZH_MAP[s]}（{s}）"
+    parts = re.findall(r"[A-Z]+(?=[A-Z][a-z]|$)|[A-Z]?[a-z]+|\d+", s.replace("_"," "))
+    if parts:
+        zh_parts = [FINANCIAL_TOKEN_ZH.get(p, p) for p in parts]
+        zh = "".join(zh_parts)
+        if zh and zh != s:
+            return f"{zh}（{s}）"
+    return s
+
 def translate_financial_df(df):
-    """V38.3：Yahoo財報英文科目中文化。"""
+    """V38.4：Yahoo財報英文科目全面中文化，並保留原英文。"""
     if df is None or not isinstance(df, pd.DataFrame) or df.empty:
         return pd.DataFrame()
     out = df.copy()
-    def zh_idx(x):
-        s = str(x)
-        return FINANCIAL_ZH_MAP.get(s, s)
-    out.index = [zh_idx(i) for i in out.index]
+    out.index = [zh_financial_name(i) for i in out.index]
     out = out.reset_index().rename(columns={"index": "財報科目"})
-    # 日期欄位改成較易讀字串
     new_cols = []
     for c in out.columns:
         if c == "財報科目":
@@ -791,7 +854,6 @@ def financial_summary_zh(q):
         ["股息殖利率", q.get("div_yield")],
         ["資料來源", q.get("source", "Yahoo Finance")],
     ], columns=["項目", "數值"])
-
 
 def cards(mt,n,cols=2):
     if mt is None or mt.empty: st.warning("監控清單暫無資料"); return
@@ -870,14 +932,14 @@ def sustainability_center(symbol,q):
 st.markdown("""
 <div class="hero">
  <div class="hero-title">📈 智策股市 AI 決策平台</div>
- <div class="hero-sub">V38.3 Final Polish Fix｜全站股票管理 × 法人雷達2.0 × 主力籌碼 × 券商異常 × 評價中心2.0 × AI研究中心</div>
- <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">V37.1 Institutional Stability</text><text x="28" y="72" fill="#93c5fd" font-size="16">AI Research Terminal · ESG · Valuation · Institutional Flow</text></svg></div>
+ <div class="hero-sub">Professional Equity Research Platform｜Enterprise Valuation × ESG Research × Institutional Radar × AI Research</div>
+ <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">AIStock Research Terminal</text><text x="28" y="72" fill="#93c5fd" font-size="16">Valuation · ESG · Institutional Radar · AI Research</text></svg></div>
 </div>
 """, unsafe_allow_html=True)
 
 
 init_v38_session()
-MAIN=["🏠首頁","📊監控","📈K線","💎評價","🌱ESG永續","🏦法人","📑財報","🤖AI研究","⚙設定"]
+MAIN=["🏠首頁","📊監控","📈K線","💎評價","🌱ESG永續","🏦法人","📑財報","🤖AI研究","ℹ️關於系統","⚙設定"]
 if "page" not in st.session_state: st.session_state.page="🏠首頁"
 page=st.radio("主選單",MAIN,index=MAIN.index(st.session_state.page) if st.session_state.page in MAIN else 0,horizontal=True,key="stable_page_menu")
 st.session_state.page=page
@@ -903,6 +965,9 @@ with st.sidebar:
     )
     st.session_state.watch_text_value = watch_text
     typed=st.text_input("目前分析股票（可自行輸入）",placeholder="例如 台積電、2330、6215",key="typed_symbol")
+    st.markdown("---")
+    st.caption(f"Developer：{DEVELOPER_NAME}")
+    st.caption(f"Version：{APP_VERSION}")
     if st.button("手動刷新"):
         st.cache_data.clear(); st.rerun()
 
@@ -943,7 +1008,7 @@ with fav_cols[2]:
             save_v38_state(active_symbol=favs[0], watchlist=favs, favorites=favs)
             st.rerun()
 
-st.caption("V38：K線、評價、ESG永續、法人、財報、AI研究全部使用同一個『全站目前分析股票』，避免再跳回台積電。")
+
 
 resolved_active, df_daily = fetch_with_market_fallback(active, period)
 if resolved_active != active:
@@ -986,6 +1051,10 @@ elif page=="💎評價":
     val,inp=valuation(q.get("price"),q,scores); con=consensus(val)
     kpi([("現價",fmt(q.get("price"))),("共識合理價",fmt(con)),("模型數",len(val)),("AI總分",total)])
     st.dataframe(val,use_container_width=True,hide_index=True)
+    if "分類" in val.columns and not val.empty:
+        group_val = val.groupby("分類", as_index=False)["合理價"].mean().rename(columns={"合理價":"分類平均合理價"})
+        st.markdown("#### 分類共識價")
+        st.dataframe(group_val, use_container_width=True, hide_index=True)
     with st.expander("評價模型與來源說明"):
         st.dataframe(pd.DataFrame(list(inp.items()),columns=["使用數值","值"]),use_container_width=True,hide_index=True)
         st.info("已補回完整模型：DCF、FCFF、FCFE、APV、DDM、Dividend Discount、Gordon Growth、EVA、EBO、Residual Income、Abnormal Earnings Growth、CAP、PE、PB、PS、EV/Sales、EV/EBITDA、PEG、PEGY、Lynch、Graham、NAV、Tobin Q、ESG Premium、AI Premium、Institutional Premium、Industry Cycle、Super Bull。")
@@ -1008,7 +1077,9 @@ elif page=="🌱ESG永續":
         ("基礎PE","18"),
         ("計算來源","AIStock ESG Engine"),
     ])
-    st.markdown("""<div class="explain">
+    esg_grade = "AAA" if esg_consensus>=90 else ("AA" if esg_consensus>=80 else ("A" if esg_consensus>=70 else ("BBB" if esg_consensus>=60 else "BB")))
+    st.markdown(f"""<div class="explain">
+    <b>ESG等級：{esg_grade}</b><br>
     ESG合理價 = EPS × 18 × (1 + ESG溢價)。ESG牛市價 = ESG合理價 × 1.20；ESG超級牛市價 = ESG合理價 × 1.50。
     </div>""", unsafe_allow_html=True)
     tabs=st.tabs(["ESG評等","ESG估值","永續報告書","ESG AI分析","來源說明"])
@@ -1051,7 +1122,7 @@ elif page=="🤖AI研究":
     tabs=st.tabs(["AI總評","AI目標價","AI解釋","風險中心","產業循環","財報品質","法人分析","情境劇本"])
     with tabs[0]:
         kpi([("AI總分",ai_score),("AI評級",rec),("風險指數",f"{risk}/100"),("模型共識價",fmt(con))])
-        st.info("V38.3 AI研究中心整合技術面、基本面、法人雷達、ESG、完整企業評價模型，輸出研究結論。")
+        st.info("V38.4 AI研究中心整合技術面、基本面、法人雷達、ESG、完整企業評價模型，輸出研究結論。")
     with tabs[1]:
         ai_target_panel(df_daily,scores)
         if pd.notna(con):
@@ -1073,9 +1144,25 @@ elif page=="🤖AI研究":
     with tabs[7]:
         base=con if pd.notna(con) else price
         st.dataframe(pd.DataFrame([["熊市情境","20%",fmt(base*.75 if pd.notna(base) else np.nan)],["基準情境","55%",fmt(base if pd.notna(base) else np.nan)],["牛市情境","25%",fmt(base*1.25 if pd.notna(base) else np.nan)]],columns=["劇本","機率","目標價"]),use_container_width=True,hide_index=True)
+elif page=="ℹ️關於系統":
+    st.subheader("ℹ️ 關於系統")
+    kpi([
+        ("系統名稱", "AIStock Research Terminal"),
+        ("版本", APP_VERSION),
+        ("開發者", DEVELOPER_NAME),
+        ("定位", "機構研究終端機"),
+    ])
+    st.dataframe(pd.DataFrame([
+        ["Developer", DEVELOPER_NAME],
+        ["Version", APP_VERSION],
+        ["Research Framework", "AIStock Engine / AIStock ESG Engine / Institutional Radar"],
+        ["Data Sources", "Yahoo Finance / TWSE / TPEX public data / AIStock Proxy"],
+        ["Modules", "K線、企業評價、ESG永續、法人雷達、財報、AI研究"],
+        ["Copyright", f"© 2026 {DEVELOPER_NAME}"],
+    ], columns=["項目", "內容"]), use_container_width=True, hide_index=True)
 elif page=="⚙設定":
     st.subheader("⚙ 系統設定")
-    st.markdown('<div class="explain">V38.3 已修正：ESG估值固定顯示、財報中文化、和椿監控N/A備援、法人雷達2.0保留。</div>',unsafe_allow_html=True)
+    st.markdown(f'<div class="explain"><b>{APP_NAME}</b><br>Version：{APP_VERSION}<br>Developer：{DEVELOPER_NAME}<br>Research Framework：AIStock Engine / ESG Engine / Institutional Radar</div>',unsafe_allow_html=True)
 
 st.markdown("---")
-st.caption("AIStock V38.3 Final Polish Fix｜研究與教學用途，非投資建議。")
+st.caption(f"AIStock Research Terminal｜Developer：{DEVELOPER_NAME}｜Version：{APP_VERSION}｜研究與教學用途，非投資建議。")
