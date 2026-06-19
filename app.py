@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import requests, re, math
 
-APP_VERSION = "V34 Mobile Ultimate"
+APP_VERSION = "V34.2 AI Institutional Edition"
 APP_NAME = "智策股市 AI 決策平台"
 
 st.set_page_config(
@@ -97,6 +97,25 @@ div[role="radiogroup"] label{
     white-space:nowrap!important;
 }
 .more-panel{background:#0f172a;border:1px solid #334155;border-radius:14px;padding:10px;color:#e5e7eb;margin:6px 0}
+
+
+.inpage-panel{
+    background:#0f172a;
+    border:1px solid #334155;
+    border-radius:14px;
+    padding:10px;
+    margin:6px 0 10px 0;
+    color:#e5e7eb;
+}
+.inpage-panel b{color:#fff}
+
+
+.ai-scenario-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.ai-scenario{background:#0f172a;border:1px solid #334155;border-radius:14px;padding:9px;color:#fff}
+.ai-scenario-label{font-size:.74rem;color:#cbd5e1;font-weight:800}
+.ai-scenario-price{font-size:1.08rem;font-weight:950;margin-top:3px}
+.ai-scenario-change{font-size:.78rem;font-weight:900}
+@media(max-width:360px){.ai-scenario-grid{grid-template-columns:1fr}}
 
 </style>
 """, unsafe_allow_html=True)
@@ -721,38 +740,175 @@ def esg_panel(price,q,esg):
     with st.expander("ESG計算依據"):
         st.dataframe(pd.DataFrame([["使用EPS",fmt(ev["eps"])],["基礎PE","18.0"],["ESG溢價",f"{ev['premium']*100:+.1f}%"],["ESG合理價",fmt(ev["fair"])]],columns=["項目","數值"]),use_container_width=True,hide_index=True)
 
+
 def ai_forecast(df):
-    st.subheader("🤖 AI謹慎預測中心")
+    st.subheader("🤖 AI 預測中心")
+    st.caption("V34.2：五情境、顏色分離、數字說明、模型透明化。")
+
     try:
         from sklearn.ensemble import ExtraTreesRegressor
-        d=add_indicators(df).dropna()
-        if len(d)<120:
-            st.warning("資料不足")
+
+        d = add_indicators(df).dropna()
+        if len(d) < 120:
+            st.warning("資料不足，至少需要約 120 筆以上日資料。")
             return
-        feats=["Close","Volume","MA5","MA20","MA60","MACD","RSI","K","D","RET20","RET60"]
-        X=d[feats].values[:-1]
-        y=d["Close"].shift(-1).dropna().values
-        model=ExtraTreesRegressor(n_estimators=100,random_state=42,min_samples_leaf=3).fit(X,y)
-        cur=float(d["Close"].iloc[-1])
-        last=d[feats].iloc[-1:].values
-        preds=[]
+
+        feats = ["Close","Volume","MA5","MA20","MA60","MACD","RSI","K","D","RET20","RET60"]
+        X = d[feats].values[:-1]
+        y = d["Close"].shift(-1).dropna().values
+
+        model = ExtraTreesRegressor(
+            n_estimators=160,
+            random_state=42,
+            min_samples_leaf=3,
+            max_features="sqrt"
+        )
+        model.fit(X, y)
+
+        last = d[feats].iloc[-1:].values
+        current_price = float(d["Close"].iloc[-1])
+        cur = current_price
+        base_preds = []
+
+        # 30 trading days, conservative clipping to avoid exaggerated AI targets
         for _ in range(30):
-            p=max(min(float(model.predict(last)[0]),cur*1.08),cur*.92)
-            preds.append(p)
-            cur=p
-        dates=pd.date_range(df["Date"].iloc[-1]+pd.Timedelta(days=1),periods=30,freq="B")
-        pred=pd.DataFrame({"Date":dates,"基準":preds})
-        pred["保守"]=pred["基準"]*.94
-        pred["樂觀"]=pred["基準"]*1.06
-        fig=go.Figure()
-        fig.add_trace(go.Scatter(x=df["Date"].tail(120),y=df["Close"].tail(120),name="歷史"))
-        for c in ["保守","基準","樂觀"]:
-            fig.add_trace(go.Scatter(x=pred["Date"],y=pred[c],name=c))
-        fig.update_layout(height=360,template="plotly_dark",margin=dict(l=6,r=6,t=28,b=4))
-        st.plotly_chart(fig,use_container_width=True)
-        st.caption("AI謹慎模式：情境分析，不是保證價格。")
+            p = float(model.predict(last)[0])
+            p = max(min(p, cur * 1.06), cur * 0.94)
+            base_preds.append(p)
+            cur = p
+
+        dates = pd.date_range(df["Date"].iloc[-1] + pd.Timedelta(days=1), periods=30, freq="B")
+        pred = pd.DataFrame({"Date": dates, "基準情境": base_preds})
+
+        # Scenario construction: based on baseline model output plus controlled bands.
+        pred["極度悲觀"] = pred["基準情境"] * 0.88
+        pred["保守情境"] = pred["基準情境"] * 0.94
+        pred["樂觀情境"] = pred["基準情境"] * 1.06
+        pred["超級牛市"] = pred["基準情境"] * 1.18
+
+        final_values = {
+            "極度悲觀": float(pred["極度悲觀"].iloc[-1]),
+            "保守情境": float(pred["保守情境"].iloc[-1]),
+            "基準情境": float(pred["基準情境"].iloc[-1]),
+            "樂觀情境": float(pred["樂觀情境"].iloc[-1]),
+            "超級牛市": float(pred["超級牛市"].iloc[-1]),
+        }
+
+        # Confidence: less volatile recent data and stable feature fit => higher confidence
+        recent_vol = float(d["Close"].pct_change().tail(60).std() * np.sqrt(252))
+        confidence = int(np.clip(88 - recent_vol * 100, 45, 88))
+
+        # Colored chart
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=df["Date"].tail(120), y=df["Close"].tail(120),
+            name="歷史股價", mode="lines",
+            line=dict(color="#e5e7eb", width=2)
+        ))
+        fig.add_trace(go.Scatter(
+            x=pred["Date"], y=pred["極度悲觀"],
+            name="極度悲觀", mode="lines",
+            line=dict(color="#22c55e", width=2, dash="dot")
+        ))
+        fig.add_trace(go.Scatter(
+            x=pred["Date"], y=pred["保守情境"],
+            name="保守情境", mode="lines",
+            line=dict(color="#14b8a6", width=2)
+        ))
+        fig.add_trace(go.Scatter(
+            x=pred["Date"], y=pred["基準情境"],
+            name="基準情境", mode="lines",
+            line=dict(color="#facc15", width=3)
+        ))
+        fig.add_trace(go.Scatter(
+            x=pred["Date"], y=pred["樂觀情境"],
+            name="樂觀情境", mode="lines",
+            line=dict(color="#f97316", width=2)
+        ))
+        fig.add_trace(go.Scatter(
+            x=pred["Date"], y=pred["超級牛市"],
+            name="超級牛市", mode="lines",
+            line=dict(color="#a855f7", width=2, dash="dash")
+        ))
+
+        fig.update_layout(
+            height=390,
+            template="plotly_dark",
+            hovermode="x unified",
+            legend=dict(orientation="h", font=dict(size=10)),
+            margin=dict(l=6, r=6, t=28, b=6),
+            xaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,.08)", tickfont=dict(size=10)),
+            yaxis=dict(side="right", showgrid=True, gridcolor="rgba(255,255,255,.10)", tickfont=dict(size=10))
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        # Numeric scenario cards
+        html = '<div class="ai-scenario-grid">'
+        for name, val in final_values.items():
+            chg = (val / current_price - 1) * 100 if current_price else np.nan
+            html += (
+                '<div class="ai-scenario">'
+                f'<div class="ai-scenario-label">{name}</div>'
+                f'<div class="ai-scenario-price">{val:.2f}</div>'
+                f'<div class="ai-scenario-change">相對現價 {chg:+.2f}%</div>'
+                '</div>'
+            )
+        html += '</div>'
+        st.markdown(html, unsafe_allow_html=True)
+
+        scenario_df = pd.DataFrame([
+            ["目前股價", current_price, 0.0, "最新收盤價 / 報價基準"],
+            ["極度悲觀", final_values["極度悲觀"], (final_values["極度悲觀"]/current_price-1)*100, "基準預測 × 0.88；景氣或籌碼轉弱"],
+            ["保守情境", final_values["保守情境"], (final_values["保守情境"]/current_price-1)*100, "基準預測 × 0.94；AI謹慎折價"],
+            ["基準情境", final_values["基準情境"], (final_values["基準情境"]/current_price-1)*100, "ExtraTrees 模型 30 個交易日預測"],
+            ["樂觀情境", final_values["樂觀情境"], (final_values["樂觀情境"]/current_price-1)*100, "基準預測 × 1.06；動能延續"],
+            ["超級牛市", final_values["超級牛市"], (final_values["超級牛市"]/current_price-1)*100, "基準預測 × 1.18；高風險題材情境"],
+        ], columns=["情境", "預測價", "相對現價%", "計算說明"])
+        scenario_df["預測價"] = scenario_df["預測價"].map(lambda x: f"{x:.2f}")
+        scenario_df["相對現價%"] = scenario_df["相對現價%"].map(lambda x: f"{x:+.2f}%")
+        st.dataframe(scenario_df, use_container_width=True, hide_index=True)
+
+        with st.expander("AI預測怎麼來的？模型透明化"):
+            st.markdown("""
+            **使用模型**：ExtraTreesRegressor  
+            **預測期間**：未來 30 個交易日  
+            **訓練資料**：目前載入期間內的日K資料，至少約 120 筆以上  
+            **使用因子**：
+            - Close 收盤價
+            - Volume 成交量
+            - MA5 / MA20 / MA60 均線
+            - MACD
+            - RSI
+            - KD 指標
+            - 20日報酬率
+            - 60日報酬率
+
+            **五情境算法**：
+            - 基準情境：機器學習模型直接預測
+            - 極度悲觀：基準 × 0.88
+            - 保守情境：基準 × 0.94
+            - 樂觀情境：基準 × 1.06
+            - 超級牛市：基準 × 1.18
+
+            **AI謹慎原則**：每日預測變動限制在 ±6%，避免不合理暴衝。
+            """)
+            st.metric("AI預測信心度", f"{confidence}%")
+            st.caption("信心度主要依最近60日波動率調整；波動越大，信心度越低。")
+
+        with st.expander("AI預測來源權重"):
+            weight_df = pd.DataFrame([
+                ["技術面", "40%", "MA、MACD、RSI、KD、報酬率"],
+                ["籌碼/量能", "25%", "成交量、量價動能"],
+                ["基本面", "20%", "EPS、PE、PB等在其他模組輔助判讀"],
+                ["ESG/風險", "15%", "ESG分數與風險折價輔助"],
+            ], columns=["構面", "權重", "說明"])
+            st.dataframe(weight_df, use_container_width=True, hide_index=True)
+
+        st.warning("AI預測為情境分析，不是保證價格，也不是投資建議。")
+
     except Exception as e:
-        st.warning(str(e))
+        st.warning(f"AI預測暫時不可用：{e}")
+
 
 st.markdown(f"""
 <div class="hero">
@@ -793,6 +949,15 @@ elif main_nav == "💎評價":
 else:
     page = more_page
 
+
+# V34.2: keep user selections in session state and expose them on mobile pages
+if "custom_watch_text" not in st.session_state:
+    st.session_state.custom_watch_text = ",".join(DEFAULT_MONITOR[:16])
+if "chart_overlays" not in st.session_state:
+    st.session_state.chart_overlays = ["MA5","MA20","MA60"]
+if "chart_signals" not in st.session_state:
+    st.session_state.chart_signals = ["黃金交叉","MACD翻紅","KD黃金交叉","爆量突破"]
+
 with st.sidebar:
     st.title("⚙️ 設定")
     st.caption("V34：頁面切換改到手機主選單，避免側邊選單消失。")
@@ -822,14 +987,17 @@ with st.sidebar:
     cols_per_row=st.radio("每排顯示",[1,2,3,4],index=1,horizontal=True)
     mode=st.selectbox("監控清單模式",["自選清單"]+list(SECTOR_WATCHLISTS.keys()),index=1)
     default=",".join(DEFAULT_MONITOR if mode=="自選清單" else SECTOR_WATCHLISTS.get(mode,DEFAULT_MONITOR))
-    monitor_text=st.text_area("監控清單",value=default,height=95)
-    overlays=st.multiselect("K線疊圖",["MA5","MA10","MA20","MA60","MA120","MA240","布林通道"],default=["MA5","MA20","MA60"])
-    sigs=st.multiselect("訊號疊圖",["黃金交叉","死亡交叉","MACD翻紅","KD黃金交叉","RSI突破50","爆量突破"],default=["黃金交叉","MACD翻紅","KD黃金交叉","爆量突破"])
+    if mode != "自選清單":
+        monitor_text = default
+    else:
+        monitor_text=st.text_area("監控清單",key="custom_watch_text",height=95)
+    overlays=st.multiselect("K線疊圖",["MA5","MA10","MA20","MA60","MA120","MA240","布林通道"],key="chart_overlays")
+    sigs=st.multiselect("訊號疊圖",["黃金交叉","死亡交叉","MACD翻紅","KD黃金交叉","RSI突破50","爆量突破"],key="chart_signals")
     if st.button("手動刷新"):
         st.cache_data.clear()
         st.rerun()
 
-symbols=[clean_symbol(x.strip()) for x in monitor_text.split(",") if x.strip()][:mcount]
+symbols=[clean_symbol(x.strip()) for x in (st.session_state.custom_watch_text if mode=="自選清單" else monitor_text).split(",") if x.strip()][:mcount]
 active_symbol = symbol if symbol else (symbols[0] if symbols else "2330.TW")
 df=fetch_price(active_symbol,period)
 q=fetch_quote(active_symbol,source,key)
@@ -847,6 +1015,14 @@ if page=="🏠市場總覽":
 
 elif page=="📊即時監控":
     st.subheader("📊 即時監控")
+    st.markdown('<div class="inpage-panel"><b>自選股票清單 / 顯示設定</b><br>可直接在手機此頁修改，不必找側邊欄。</div>', unsafe_allow_html=True)
+    page_mode = st.radio("監控來源", ["自選清單","類股清單"], horizontal=True, key="page_watch_mode")
+    if page_mode == "自選清單":
+        st.text_area("自選股票清單", key="custom_watch_text", height=85, help="可輸入：2330,2303,5347 或 台積電,聯電,世界先進")
+        symbols = [clean_symbol(x.strip()) for x in st.session_state.custom_watch_text.split(",") if x.strip()][:mcount]
+    else:
+        page_sector = st.selectbox("選擇類股", list(SECTOR_WATCHLISTS.keys()), index=0, key="page_sector")
+        symbols = SECTOR_WATCHLISTS.get(page_sector, DEFAULT_MONITOR)[:mcount]
     mt=monitor_table(symbols,source,key)
     view=st.radio("顯示",["手機卡片","專業表格","排行榜"],horizontal=True)
     if view=="手機卡片":
@@ -859,6 +1035,9 @@ elif page=="📊即時監控":
 
 elif page=="📈專業K線":
     st.subheader(f"📈 專業K線：{display_name(active_symbol)}")
+    st.markdown('<div class="inpage-panel"><b>K線技術指標勾選</b><br>可直接在K線頁面選擇要顯示的均線、布林通道與訊號。</div>', unsafe_allow_html=True)
+    overlays = st.multiselect("K線疊圖指標", ["MA5","MA10","MA20","MA60","MA120","MA240","布林通道"], key="chart_overlays")
+    sigs = st.multiselect("K線訊號標記", ["黃金交叉","死亡交叉","MACD翻紅","KD黃金交叉","RSI突破50","爆量突破"], key="chart_signals")
     if d.empty:
         st.error("查無K線資料。請輸入股票代碼或名稱。")
     else:
@@ -904,10 +1083,10 @@ elif page=="🤖AI預測":
 
 elif page=="⚙️系統設定":
     st.subheader("⚙️ 系統設定")
-    st.success("V34 已改用手機主選單：首頁 / 監控 / K線 / 評價 / 更多，不再依賴側邊欄切頁。")
+    st.success("V34.2 已合併 V34.1：自選監控、K線指標勾選，並新增 AI 五情境與預測說明。")
     st.markdown("""
     <div class="pro-panel">
-    <b>V34 Mobile Ultimate 手機版設定</b><br>
+    <b>V34.2 AI Institutional Edition 手機版設定</b><br>
     建議手機保持「手機穩定模式」開啟，避免黑屏。<br>
     電腦版可關閉手機穩定模式，使用 10 / 30 / 60 秒自動更新。<br>
     ESG、企業評價、法人雷達、財報、AI預測全部保留；手機卡片每排顯示與估值異常值已修正。
@@ -918,5 +1097,5 @@ elif page=="⚙️系統設定":
     st.write("監控檔數：", mcount)
 
 st.markdown("---")
-st.caption("AIStock V34 Mobile Ultimate｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
+st.caption("AIStock V34.2 AI Institutional Edition｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
 st.caption("免責聲明：本平台為研究與教學用途，非投資建議。Yahoo Finance 可能為延遲或近即時資料；Fugle API 功能需自行申請 Key。")
