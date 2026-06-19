@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import requests, re, math
 
-APP_VERSION="V32.1"
+APP_VERSION="V32.3"
 APP_NAME="智策股市 AI 決策平台"
 
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
@@ -23,7 +23,7 @@ h1{font-size:1.35rem!important;margin-bottom:.1rem}
 [data-testid="stMetricLabel"] p{color:#cbd5e1!important;font-weight:800!important}
 [data-testid="stMetricValue"]{color:#fff!important;font-weight:900!important}
 [data-testid="stMetricDelta"]{color:#facc15!important;font-weight:900!important}
-.card{background:#0f172a;color:#fff;border:1px solid #334155;border-radius:16px;padding:11px;margin:6px 0;box-shadow:0 2px 12px rgba(15,23,42,.25)}
+.card{background:#0f172a;color:#fff;border:1px solid #334155;border-radius:16px;padding:11px;margin:6px 0;box-shadow:0 1px 6px rgba(15,23,42,.15)}
 .card-title{font-size:.86rem;color:#cbd5e1;font-weight:800}
 .card-price{font-size:1.45rem;font-weight:900;line-height:1.1}
 .card-small{font-size:.76rem;color:#cbd5e1}
@@ -36,57 +36,21 @@ h1{font-size:1.35rem!important;margin-bottom:.1rem}
 .hero{
     background:linear-gradient(135deg,#020617 0%,#0f172a 45%,#1e3a8a 100%);
     border:1px solid #334155;
-    border-radius:22px;
-    padding:18px;
+    border-radius:18px;
+    padding:13px;
     color:white;
-    box-shadow:0 10px 30px rgba(15,23,42,.28);
+    box-shadow:0 4px 14px rgba(15,23,42,.18);
     margin-bottom:12px;
 }
 .hero-title{font-size:1.55rem;font-weight:950;letter-spacing:.5px}
 .hero-sub{font-size:.88rem;color:#cbd5e1;margin-top:4px}
 .hero-pill{display:inline-block;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:4px 10px;margin:4px 4px 0 0;font-size:.78rem}
 .pro-panel{background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:12px;margin:6px 0}
-@media(max-width:768px){.hero{padding:14px;border-radius:18px}.hero-title{font-size:1.2rem}.hero-sub{font-size:.78rem}.hero-pill{font-size:.7rem;padding:3px 8px}}
+@media(max-width:768px){.hero{padding:11px;border-radius:16px}.hero-title{font-size:1.08rem}.hero-sub{font-size:.74rem}.hero-pill{font-size:.68rem;padding:2px 6px}}
 
-
-.quick-nav-note{font-size:.78rem;color:#475569;margin:.2rem 0 .4rem 0}
-div[data-testid="stHorizontalBlock"] button{
-    border-radius:12px!important;
-    font-weight:800!important;
-}
 
 </style>
 """, unsafe_allow_html=True)
-
-st.markdown('<div class="quick-nav-note">手機快捷功能按鈕：點選後會切換頁面</div>', unsafe_allow_html=True)
-q1,q2,q3,q4 = st.columns(4)
-if q1.button("📊 監控", key="quick_watch"):
-    st.session_state.v321_page = "📊監控"
-    st.rerun()
-if q2.button("📈 K線", key="quick_kline"):
-    st.session_state.v321_page = "📈K線"
-    st.rerun()
-if q3.button("🏦 法人", key="quick_inst"):
-    st.session_state.v321_page = "🏦法人"
-    st.rerun()
-if q4.button("💎 評價", key="quick_val"):
-    st.session_state.v321_page = "💎評價"
-    st.rerun()
-
-q5,q6,q7,q8 = st.columns(4)
-if q5.button("💹 報價", key="quick_quote"):
-    st.session_state.v321_page = "💹報價"
-    st.rerun()
-if q6.button("🌱 ESG", key="quick_esg"):
-    st.session_state.v321_page = "🌱ESG"
-    st.rerun()
-if q7.button("📑 財報", key="quick_fin"):
-    st.session_state.v321_page = "📑財報"
-    st.rerun()
-if q8.button("🏠 首頁", key="quick_home"):
-    st.session_state.v321_page = "🏠首頁"
-    st.rerun()
-
 
 TW_STOCKS={
 "台積電":"2330.TW","聯電":"2303.TW","世界先進":"5347.TWO","和椿":"6215.TWO","台光電":"2383.TW","威剛":"3260.TWO",
@@ -504,24 +468,21 @@ def market_overview(symbols, source, key, mcount, sec):
             st.info("暫無估值排行資料。")
 
     st.markdown("#### 📊 類股快速入口")
-    cols = st.columns(3)
     modes = ["半導體","AI伺服器","PCB/CCL","記憶體","機器人/自動化","金融","航運","觀光","重電","ETF","CoWoS/先進封裝"]
-    for i, m in enumerate(modes):
-        with cols[i%3]:
-            st.caption(f"▸ {m}")
+    selected_sector = st.selectbox("選擇類股查看前幾檔", modes, index=0, key="home_sector_select")
+    sector_symbols = SECTOR_WATCHLISTS.get(selected_sector, [])[:8]
+    if sector_symbols:
+        st.caption("此區為首頁快速預覽；完整切換請到左側「監控清單模式」選擇類股。")
+        sector_mt = monitor_table(sector_symbols, source, key)
+        cards(sector_mt, min(8, len(sector_symbols)))
+    else:
+        st.info("此類股目前尚無清單。")
 
 st.markdown(f"""
 <div class="hero">
   <div class="hero-title">📈 {APP_NAME}</div>
   <div class="hero-sub">AIStock Professional Market Dashboard｜{APP_VERSION}｜製作人：Tsung Chieh Yang</div>
-  <div style="margin-top:8px">
-    <span class="hero-pill">即時監控</span>
-    <span class="hero-pill">專業K線</span>
-    <span class="hero-pill">法人雷達</span>
-    <span class="hero-pill">企業評價</span>
-    <span class="hero-pill">ESG研究</span>
-    <span class="hero-pill">AI謹慎模式</span>
-  </div>
+  <div class="hero-sub">市場總覽｜專業K線｜法人雷達｜企業評價｜ESG研究</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -529,9 +490,15 @@ with st.sidebar:
     st.header("設定")
     source=st.selectbox("即時資料來源",["Yahoo Finance","Fugle + Yahoo","Fugle API"],index=0)
     key=st.text_input("Fugle API Key（可空白）",type="password")
-    sec=st.selectbox("自動更新",[0,1,3,5,10,30,60],index=4,format_func=lambda x:"關閉" if x==0 else f"{x}秒")
-    auto_refresh(sec)
-    if sec in [1,3]: st.warning("高頻模式建議 8~16 檔，避免資料源限流。")
+    mobile_stable = st.checkbox("手機穩定模式（避免黑屏閃爍）", value=True, help="開啟後會關閉自動重跑，建議手機使用。")
+    if mobile_stable:
+        sec = 0
+        st.info("手機穩定模式已啟用：自動更新關閉，請用手動刷新。")
+    else:
+        sec=st.selectbox("自動更新",[0,10,30,60],index=2,format_func=lambda x:"關閉" if x==0 else f"{x}秒")
+        auto_refresh(sec)
+        if sec == 10:
+            st.warning("手機使用 10 秒仍可能輕微閃爍；若黑屏請改回手機穩定模式。")
     if "symbol_input" not in st.session_state:
         st.session_state.symbol_input = ""
     symbol_text = st.text_input("股票名稱 / 代碼（可空白，首頁不預設個股）", key="symbol_input", placeholder="例如：台積電、2330、和椿、6215")
@@ -597,11 +564,11 @@ if page == "🏠首頁":
     else:
         st.markdown("""
         <div class="pro-panel">
-        <b>V32.1 手機快捷修復</b><br>
+        <b>V32.3 手機精簡穩定</b><br>
         ✅ 首頁改為市場總覽，不再預設世界先進<br>
         ✅ 可先看 AI熱門股、法人排行、低估值觀察<br>
         ✅ 輸入股票後才顯示個股快覽<br>
-        ✅ 上方快捷功能已改成真正可點選按鈕
+        ✅ 移除上方快捷按鈕，節省手機空間
         </div>
         """, unsafe_allow_html=True)
 
@@ -678,5 +645,5 @@ elif page == "📑財報":
 
 
 st.markdown("---")
-st.caption("AIStock V32.1 Mobile Quick Nav Fix｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
+st.caption("AIStock V32.3 Mobile Clean Stable｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
 st.caption("免責聲明：本平台為研究與教學用途，非投資建議。Fugle API 功能需自行申請 API Key；Yahoo Finance 可能為延遲或近即時資料。")
