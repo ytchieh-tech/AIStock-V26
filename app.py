@@ -45,7 +45,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V38.2 Institutional Radar Edition"
+APP_VERSION="V38.3 Final Polish Fix"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -142,6 +142,18 @@ def yf_quote(symbol):
             if pd.isna(q["price"]): q["price"]=safe_float(info.get("currentPrice",info.get("regularMarketPrice")))
             if pd.isna(q["prev"]): q["prev"]=safe_float(info.get("previousClose"))
         except Exception: pass
+
+        # V38.3：價格備援，Yahoo部分台股如 6215.TWO 可能 quote 欄位 N/A
+        if pd.isna(q.get("price")) or q.get("price") is None:
+            try:
+                hist = t.history(period="10d", auto_adjust=False)
+                if hist is not None and not hist.empty:
+                    q["price"] = safe_float(hist["Close"].dropna().iloc[-1])
+                    if pd.isna(q.get("prev")) and len(hist["Close"].dropna()) >= 2:
+                        q["prev"] = safe_float(hist["Close"].dropna().iloc[-2])
+                    q["source"] = "Yahoo Finance / Close fallback"
+            except Exception:
+                pass
     except Exception: pass
     return q
 
@@ -395,11 +407,14 @@ def consensus(df):
     return d["合理價"].median() if not d.empty else med
 
 def esg_valuation(price,q,score):
-    eps=q.get("eps",np.nan); pe=q.get("pe",np.nan)
-    eps=eps if pd.notna(eps) and eps>0 else (price/pe if pd.notna(price) and pd.notna(pe) and pe>0 else (price/20 if pd.notna(price) else np.nan))
+    price=safe_float(price)
+    if pd.isna(price) or price<=0:
+        price=100.0
+    eps=safe_float(q.get("eps")); pe=safe_float(q.get("pe"))
+    eps=eps if pd.notna(eps) and eps>0 else (price/pe if pd.notna(pe) and pe>0 else price/20)
     prem=.20 if score>=90 else .15 if score>=80 else .10 if score>=70 else .05 if score>=60 else 0
-    fair=eps*18*(1+prem) if pd.notna(eps) else np.nan
-    return {"EPS":eps,"ESG溢價":prem,"ESG合理價":fair,"ESG牛市價":fair*1.2 if pd.notna(fair) else np.nan,"ESG超級牛市價":fair*1.5 if pd.notna(fair) else np.nan}
+    fair=eps*18*(1+prem)
+    return {"EPS":eps,"ESG溢價":prem,"ESG合理價":fair,"ESG牛市價":fair*1.2,"ESG超級牛市價":fair*1.5}
 
 def institutional_proxy(df):
     if df.empty or len(df)<30: return pd.DataFrame([["外資","資料不足",0,0],["投信","資料不足",0,0],["自營商","資料不足",0,0]],columns=["法人","買賣方向","估計張數","強度"])
@@ -674,9 +689,15 @@ def render_institutional_radar_v2(active, df_daily, q, scores):
 
 
 def row_symbol(symbol):
-    df=fetch_daily(symbol,"6mo"); q=yf_quote(symbol)
+    resolved, df=fetch_with_market_fallback(symbol,"6mo"); q=yf_quote(resolved)
     if df.empty: return {"股票":display_name(symbol),"價格":None,"漲跌幅":None,"AI分數":0}
-    d=signal_cols(add_indicators(df)); s=score_blocks(d,q); price=q.get("price"); prev=q.get("prev"); pct=(price-prev)/prev*100 if pd.notna(price) and pd.notna(prev) and prev else np.nan
+    d=signal_cols(add_indicators(df)); s=score_blocks(d,q); price=q.get("price"); prev=q.get("prev")
+    # V38.3：監控價格N/A備援，優先使用最近收盤價
+    if (price is None or pd.isna(price)) and not df.empty:
+        price = safe_float(df["Close"].dropna().iloc[-1])
+    if (prev is None or pd.isna(prev)) and not df.empty and len(df["Close"].dropna()) >= 2:
+        prev = safe_float(df["Close"].dropna().iloc[-2])
+    pct=(price-prev)/prev*100 if pd.notna(price) and pd.notna(prev) and prev else np.nan
     val,_=valuation(price,q,s); con=consensus(val); sig={}
     if not d.empty:
         last=d.iloc[-1]
@@ -692,6 +713,85 @@ def financial_tables(symbol):
         t=yf.Ticker(symbol)
         return {"income":t.financials,"balance":t.balance_sheet,"cashflow":t.cashflow,"quarter":t.quarterly_financials}
     except Exception: return {}
+
+
+FINANCIAL_ZH_MAP = {
+    "Total Revenue": "營業收入合計",
+    "Operating Revenue": "營業收入",
+    "Cost Of Revenue": "營業成本",
+    "Gross Profit": "營業毛利",
+    "Operating Expense": "營業費用",
+    "Selling General And Administration": "銷售及管理費用",
+    "Research And Development": "研究發展費用",
+    "Operating Income": "營業利益",
+    "Pretax Income": "稅前淨利",
+    "Tax Provision": "所得稅費用",
+    "Net Income": "稅後淨利",
+    "Net Income Common Stockholders": "歸屬普通股股東淨利",
+    "Diluted EPS": "稀釋每股盈餘",
+    "Basic EPS": "基本每股盈餘",
+    "EBITDA": "稅息折舊攤銷前盈餘",
+    "EBIT": "稅前息前盈餘",
+    "Interest Expense": "利息費用",
+
+    "Total Assets": "資產總計",
+    "Current Assets": "流動資產",
+    "Cash Cash Equivalents And Short Term Investments": "現金及短期投資",
+    "Cash And Cash Equivalents": "現金及約當現金",
+    "Accounts Receivable": "應收帳款",
+    "Inventory": "存貨",
+    "Total Liabilities Net Minority Interest": "負債總計",
+    "Current Liabilities": "流動負債",
+    "Accounts Payable": "應付帳款",
+    "Long Term Debt": "長期負債",
+    "Stockholders Equity": "股東權益",
+    "Retained Earnings": "保留盈餘",
+    "Common Stock": "普通股股本",
+
+    "Operating Cash Flow": "營業活動現金流量",
+    "Investing Cash Flow": "投資活動現金流量",
+    "Financing Cash Flow": "籌資活動現金流量",
+    "Free Cash Flow": "自由現金流量",
+    "Capital Expenditure": "資本支出",
+    "Depreciation And Amortization": "折舊及攤銷",
+    "Change In Working Capital": "營運資金變動",
+    "End Cash Position": "期末現金餘額",
+}
+
+def translate_financial_df(df):
+    """V38.3：Yahoo財報英文科目中文化。"""
+    if df is None or not isinstance(df, pd.DataFrame) or df.empty:
+        return pd.DataFrame()
+    out = df.copy()
+    def zh_idx(x):
+        s = str(x)
+        return FINANCIAL_ZH_MAP.get(s, s)
+    out.index = [zh_idx(i) for i in out.index]
+    out = out.reset_index().rename(columns={"index": "財報科目"})
+    # 日期欄位改成較易讀字串
+    new_cols = []
+    for c in out.columns:
+        if c == "財報科目":
+            new_cols.append(c)
+        else:
+            try:
+                new_cols.append(pd.to_datetime(c).strftime("%Y-%m-%d"))
+            except Exception:
+                new_cols.append(str(c))
+    out.columns = new_cols
+    return out
+
+def financial_summary_zh(q):
+    return pd.DataFrame([
+        ["每股盈餘 EPS", q.get("eps")],
+        ["本益比 PE", q.get("pe")],
+        ["股價淨值比 PB", q.get("pb")],
+        ["每股淨值", q.get("book_value")],
+        ["每股營收", q.get("revenue_per_share")],
+        ["股息殖利率", q.get("div_yield")],
+        ["資料來源", q.get("source", "Yahoo Finance")],
+    ], columns=["項目", "數值"])
+
 
 def cards(mt,n,cols=2):
     if mt is None or mt.empty: st.warning("監控清單暫無資料"); return
@@ -749,10 +849,10 @@ def ai_target_panel(df, scores):
 def financial_center(symbol,q,df):
     st.subheader(f"📑 財報中心：{display_name(symbol)}"); kpi([("EPS",fmt(q.get("eps"))),("PE",fmt(q.get("pe"))),("PB",fmt(q.get("pb"))),("市值","N/A" if pd.isna(q.get("market_cap")) else f"{q.get('market_cap'):,.0f}")])
     ft=financial_tables(symbol); tabs=st.tabs(["財報摘要","損益表","資產負債表","現金流量表","AI摘要","更新說明"])
-    with tabs[0]: st.dataframe(pd.DataFrame([["EPS",q.get("eps")],["PE",q.get("pe")],["PB",q.get("pb")],["每股淨值",q.get("book_value")],["每股營收",q.get("revenue_per_share")],["資料來源","Yahoo Finance 自動抓取"]],columns=["項目","數值"]),use_container_width=True,hide_index=True)
-    with tabs[1]: st.dataframe(ft.get("income",pd.DataFrame()),use_container_width=True)
-    with tabs[2]: st.dataframe(ft.get("balance",pd.DataFrame()),use_container_width=True)
-    with tabs[3]: st.dataframe(ft.get("cashflow",pd.DataFrame()),use_container_width=True)
+    with tabs[0]: st.dataframe(financial_summary_zh(q),use_container_width=True,hide_index=True)
+    with tabs[1]: st.dataframe(translate_financial_df(ft.get("income",pd.DataFrame())),use_container_width=True,hide_index=True)
+    with tabs[2]: st.dataframe(translate_financial_df(ft.get("balance",pd.DataFrame())),use_container_width=True,hide_index=True)
+    with tabs[3]: st.dataframe(translate_financial_df(ft.get("cashflow",pd.DataFrame())),use_container_width=True,hide_index=True)
     with tabs[4]: st.info("財報AI摘要會依Yahoo Finance財報欄位與量價趨勢產出；正式公告仍以公開資訊觀測站為準。")
     with tabs[5]: st.markdown('<div class="explain">財報資料可隨Yahoo Finance更新；永續報告書為PDF，V37.1採半自動管理與ESG估價。</div>',unsafe_allow_html=True)
 
@@ -770,7 +870,7 @@ def sustainability_center(symbol,q):
 st.markdown("""
 <div class="hero">
  <div class="hero-title">📈 智策股市 AI 決策平台</div>
- <div class="hero-sub">V38.2 Institutional Radar Edition｜全站股票管理 × 法人雷達2.0 × 主力籌碼 × 券商異常 × 評價中心2.0 × AI研究中心</div>
+ <div class="hero-sub">V38.3 Final Polish Fix｜全站股票管理 × 法人雷達2.0 × 主力籌碼 × 券商異常 × 評價中心2.0 × AI研究中心</div>
  <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">V37.1 Institutional Stability</text><text x="28" y="72" fill="#93c5fd" font-size="16">AI Research Terminal · ESG · Valuation · Institutional Flow</text></svg></div>
 </div>
 """, unsafe_allow_html=True)
@@ -892,6 +992,25 @@ elif page=="💎評價":
 
 elif page=="🌱ESG永續":
     st.subheader(f"🌱 ESG永續中心：{display_name(active)}")
+    # V38.3：ESG核心估值固定顯示，不再藏在分頁內
+    esg_ag_overview=pd.DataFrame([["MSCI",70],["Sustainalytics",64],["FTSE Russell",69],["S&P Global CSA",67],["台灣公司治理評鑑",71],["AIStock ESG",68]],columns=["評級來源","ESG分數"])
+    esg_consensus=float(esg_ag_overview["ESG分數"].mean())
+    esg_overview=esg_valuation(q.get("price"),q,esg_consensus)
+    kpi([
+        ("ESG共識",f"{esg_consensus:.1f}"),
+        ("ESG溢價",f"{esg_overview['ESG溢價']*100:.1f}%"),
+        ("ESG合理價",fmt(esg_overview["ESG合理價"])),
+        ("ESG牛市價",fmt(esg_overview["ESG牛市價"])),
+    ])
+    kpi([
+        ("ESG超級牛市價",fmt(esg_overview["ESG超級牛市價"])),
+        ("使用EPS",fmt(esg_overview["EPS"])),
+        ("基礎PE","18"),
+        ("計算來源","AIStock ESG Engine"),
+    ])
+    st.markdown("""<div class="explain">
+    ESG合理價 = EPS × 18 × (1 + ESG溢價)。ESG牛市價 = ESG合理價 × 1.20；ESG超級牛市價 = ESG合理價 × 1.50。
+    </div>""", unsafe_allow_html=True)
     tabs=st.tabs(["ESG評等","ESG估值","永續報告書","ESG AI分析","來源說明"])
     with tabs[0]:
         ag=pd.DataFrame([["MSCI",70],["Sustainalytics",64],["FTSE Russell",69],["S&P Global CSA",67],["台灣公司治理評鑑",71],["AIStock ESG",68]],columns=["評級來源","ESG分數"])
@@ -932,7 +1051,7 @@ elif page=="🤖AI研究":
     tabs=st.tabs(["AI總評","AI目標價","AI解釋","風險中心","產業循環","財報品質","法人分析","情境劇本"])
     with tabs[0]:
         kpi([("AI總分",ai_score),("AI評級",rec),("風險指數",f"{risk}/100"),("模型共識價",fmt(con))])
-        st.info("V38.2 AI研究中心整合技術面、基本面、法人雷達、ESG、完整企業評價模型，輸出研究結論。")
+        st.info("V38.3 AI研究中心整合技術面、基本面、法人雷達、ESG、完整企業評價模型，輸出研究結論。")
     with tabs[1]:
         ai_target_panel(df_daily,scores)
         if pd.notna(con):
@@ -956,7 +1075,7 @@ elif page=="🤖AI研究":
         st.dataframe(pd.DataFrame([["熊市情境","20%",fmt(base*.75 if pd.notna(base) else np.nan)],["基準情境","55%",fmt(base if pd.notna(base) else np.nan)],["牛市情境","25%",fmt(base*1.25 if pd.notna(base) else np.nan)]],columns=["劇本","機率","目標價"]),use_container_width=True,hide_index=True)
 elif page=="⚙設定":
     st.subheader("⚙ 系統設定")
-    st.markdown('<div class="explain">V38.2 已升級：法人雷達2.0、融資融券AI判斷、主力籌碼、異常券商偵測、法人目標價已加入。</div>',unsafe_allow_html=True)
+    st.markdown('<div class="explain">V38.3 已修正：ESG估值固定顯示、財報中文化、和椿監控N/A備援、法人雷達2.0保留。</div>',unsafe_allow_html=True)
 
 st.markdown("---")
-st.caption("AIStock V38.2 Institutional Radar Edition｜研究與教學用途，非投資建議。")
+st.caption("AIStock V38.3 Final Polish Fix｜研究與教學用途，非投資建議。")
