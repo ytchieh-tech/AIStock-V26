@@ -45,7 +45,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V38.4 Professional UI Edition"
+APP_VERSION="V38.5 Desktop Pro Edition"
 APP_NAME="智策股市 AI 決策平台"
 DEVELOPER_NAME="Tsung Chieh Yang"
 PRO_MODE=True
@@ -53,7 +53,7 @@ st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", lay
 
 st.markdown("""
 <style>
-.block-container{padding-top:.45rem;padding-left:.42rem;padding-right:.42rem;max-width:1600px}
+.block-container{padding-top:.65rem;padding-left:1.2rem;padding-right:1.2rem;max-width:1920px}
 #MainMenu, footer, header{visibility:hidden}
 .hero{background:linear-gradient(135deg,#020617,#0f172a 45%,#172554 72%,#1e40af);border:1px solid #334155;border-radius:18px;padding:14px;margin-bottom:10px;color:white;box-shadow:0 8px 24px rgba(2,6,23,.35)}
 .hero-title{font-size:1.18rem;font-weight:950}.hero-sub{font-size:.74rem;color:#cbd5e1;margin-top:5px}
@@ -71,6 +71,28 @@ st.markdown("""
 .targetbar{background:#0f172a;border:1px solid #334155;border-radius:14px;padding:12px;margin:8px 0;color:white}.target-row{display:flex;align-items:center;gap:8px;margin:8px 0}.target-name{width:58px;font-weight:850;color:#cbd5e1;font-size:.78rem}.target-line{height:16px;border-radius:999px;background:#334155;flex:1;overflow:hidden}.target-fill{height:100%;border-radius:999px}.target-val{width:74px;text-align:right;font-weight:900}
 @media(max-width:480px){.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr 1fr}}@media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr}}
 @media(max-width:768px){.hero{padding:11px}.hero-title{font-size:1.04rem}.hero-sub{font-size:.67rem}.visual{height:72px}.kpi{padding:8px}.kpi-value{font-size:1rem}}
+
+/* V38.5 Desktop Pro：以手機版架構為核心，電腦版改寬版、卡片更清楚 */
+@media(min-width:1024px){
+  .hero{padding:22px;border-radius:22px;margin-bottom:16px}
+  .hero-title{font-size:1.65rem}
+  .hero-sub{font-size:.92rem}
+  .visual{height:128px}
+  .kpi-grid{grid-template-columns:repeat(4,1fr);gap:12px}
+  .kpi{padding:14px;border-radius:16px}
+  .kpi-label{font-size:.78rem}
+  .kpi-value{font-size:1.25rem}
+  .stock-grid.cols-1{grid-template-columns:1fr}
+  .stock-grid.cols-2{grid-template-columns:1fr 1fr}
+  .stock-grid.cols-3{grid-template-columns:repeat(3,1fr)}
+  .stock-grid.cols-4{grid-template-columns:repeat(4,1fr)}
+  .card{padding:13px;border-radius:16px}
+  .card-title{font-size:.82rem}
+  .card-price{font-size:1.25rem}
+  .card-small{font-size:.72rem}
+  .targetbar{padding:16px;border-radius:16px}
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -932,7 +954,7 @@ def sustainability_center(symbol,q):
 st.markdown("""
 <div class="hero">
  <div class="hero-title">📈 智策股市 AI 決策平台</div>
- <div class="hero-sub">Professional Equity Research Platform｜Enterprise Valuation × ESG Research × Institutional Radar × AI Research</div>
+ <div class="hero-sub">Desktop Pro Research Terminal｜Mobile Architecture × Wide Dashboard × Valuation × ESG × Institutional Radar × AI Research</div>
  <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">AIStock Research Terminal</text><text x="28" y="72" fill="#93c5fd" font-size="16">Valuation · ESG · Institutional Radar · AI Research</text></svg></div>
 </div>
 """, unsafe_allow_html=True)
@@ -949,7 +971,7 @@ with st.sidebar:
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
-    cols=st.radio("每排顯示",[1,2,3,4],index=1,horizontal=True,key="cols")
+    cols=st.radio("每排顯示",[1,2,3,4],index=3,horizontal=True,key="cols")
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
     if "watch_text_value" not in st.session_state:
@@ -1017,7 +1039,8 @@ if resolved_active != active:
 q=yf_quote(active); d_daily=signal_cols(add_indicators(df_daily)); scores=score_blocks(d_daily,q); total=ai_total(scores)
 
 if page=="🏠首頁":
-    st.subheader("🏠 市場總覽")
+    st.subheader("🏠 桌面版市場總覽")
+    st.markdown("#### Desktop Pro Dashboard")
     mt=monitor_table(symbols); temp=int(np.clip(pd.to_numeric(mt.get("AI分數",pd.Series(dtype=float)),errors="coerce").mean() if not mt.empty else 50,0,100))
     kpi([("AI市場溫度",f"{temp}/100"),("目前分析",display_name(active)),("更新頻率",refresh_label),("資料來源","Yahoo Finance")])
     cards(mt.sort_values("AI分數",ascending=False,na_position="last"),min(6,mcount),cols)
@@ -1158,6 +1181,7 @@ elif page=="ℹ️關於系統":
         ["Research Framework", "AIStock Engine / AIStock ESG Engine / Institutional Radar"],
         ["Data Sources", "Yahoo Finance / TWSE / TPEX public data / AIStock Proxy"],
         ["Modules", "K線、企業評價、ESG永續、法人雷達、財報、AI研究"],
+        ["Layout", "Desktop Pro / Mobile architecture compatible"],
         ["Copyright", f"© 2026 {DEVELOPER_NAME}"],
     ], columns=["項目", "內容"]), use_container_width=True, hide_index=True)
 elif page=="⚙設定":
@@ -1165,4 +1189,4 @@ elif page=="⚙設定":
     st.markdown(f'<div class="explain"><b>{APP_NAME}</b><br>Version：{APP_VERSION}<br>Developer：{DEVELOPER_NAME}<br>Research Framework：AIStock Engine / ESG Engine / Institutional Radar</div>',unsafe_allow_html=True)
 
 st.markdown("---")
-st.caption(f"AIStock Research Terminal｜Developer：{DEVELOPER_NAME}｜Version：{APP_VERSION}｜研究與教學用途，非投資建議。")
+st.caption(f"AIStock Desktop Pro Terminal｜Developer：{DEVELOPER_NAME}｜Version：{APP_VERSION}｜研究與教學用途，非投資建議。")
