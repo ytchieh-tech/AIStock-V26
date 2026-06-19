@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import requests, re, math
 
-APP_VERSION = "V35.1 Ultimate Fix"
+APP_VERSION = "V36 Institutional Ultimate Explanation"
 APP_NAME = "智策股市 AI 決策平台"
 
 st.set_page_config(
@@ -130,6 +130,42 @@ div[role="radiogroup"] label{white-space:nowrap}
     .v35-pill{font-size:.62rem;padding:3px 7px}
 }
 
+
+.v36-cover{
+    background:linear-gradient(135deg,#020617 0%,#0f172a 38%,#172554 68%,#1e40af 100%);
+    border:1px solid #334155;
+    border-radius:20px;
+    padding:16px;
+    margin:0 0 10px 0;
+    color:#ffffff;
+    box-shadow:0 10px 30px rgba(2,6,23,.32);
+    overflow:hidden;
+}
+.v36-cover-title{font-size:1.28rem;font-weight:950;letter-spacing:.4px}
+.v36-cover-sub{font-size:.78rem;color:#cbd5e1;margin-top:4px;line-height:1.5}
+.v36-cover-visual{
+    height:105px;
+    border-radius:14px;
+    margin-top:10px;
+    background:
+      linear-gradient(180deg,rgba(15,23,42,.05),rgba(15,23,42,.75)),
+      repeating-linear-gradient(90deg,rgba(255,255,255,.09) 0 1px,transparent 1px 22px),
+      repeating-linear-gradient(0deg,rgba(255,255,255,.07) 0 1px,transparent 1px 22px);
+    border:1px solid rgba(148,163,184,.35);
+    position:relative;
+}
+.v36-cover-visual svg{width:100%;height:100%;display:block}
+.v36-cover-pills{display:flex;gap:6px;overflow-x:auto;margin-top:9px}
+.v36-cover-pill{white-space:nowrap;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.11);border-radius:999px;padding:4px 9px;font-size:.68rem;font-weight:800;color:#e2e8f0}
+.explain-box{background:#0f172a;border:1px solid #334155;border-radius:14px;padding:10px;color:#e5e7eb;line-height:1.6;font-size:.84rem}
+@media(max-width:768px){
+    .v36-cover{padding:12px;border-radius:16px}
+    .v36-cover-title{font-size:1.05rem}
+    .v36-cover-sub{font-size:.68rem}
+    .v36-cover-visual{height:82px}
+    .v36-cover-pill{font-size:.61rem;padding:3px 7px}
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -138,7 +174,7 @@ div[role="radiogroup"] label{white-space:nowrap}
 st.markdown(f"""
 <div class="v35-banner">
   <div class="v35-title">📈 智策股市 AI 決策平台</div>
-  <div class="v35-sub">V35.1 Ultimate Fix｜專業看盤 × 法人雷達 × 企業評價 × ESG × AI預測</div>
+  <div class="v35-sub">V36 Institutional Ultimate Explanation｜專業看盤 × 法人雷達 × 企業評價 × ESG × AI預測</div>
   <div class="v35-visual">
     <svg viewBox="0 0 900 220" preserveAspectRatio="none">
       <defs>
@@ -166,6 +202,45 @@ st.markdown(f"""
     <span class="v35-pill">法人買賣代理</span>
     <span class="v35-pill">估值透明化</span>
     <span class="v35-pill">AI數值來源</span>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+
+# V36 Professional Cover - 強制顯示
+st.markdown("""
+<div class="v36-cover">
+  <div class="v36-cover-title">📈 智策股市 AI 決策平台</div>
+  <div class="v36-cover-sub">V36 Institutional Ultimate Explanation｜專業看盤 × 法人雷達 × 企業評價 × ESG × AI謹慎預測</div>
+  <div class="v36-cover-visual">
+    <svg viewBox="0 0 900 220" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="v36line" x1="0" x2="1">
+          <stop offset="0" stop-color="#22d3ee"/>
+          <stop offset="0.48" stop-color="#60a5fa"/>
+          <stop offset="1" stop-color="#fb7185"/>
+        </linearGradient>
+      </defs>
+      <polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22"
+        fill="none" stroke="url(#v36line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="0,188 90,162 170,180 255,132 365,152 475,92 590,122 700,70 820,88 900,60"
+        fill="none" stroke="rgba(34,211,238,.40)" stroke-width="3"/>
+      <rect x="92" y="92" width="16" height="70" fill="#22c55e"/>
+      <rect x="185" y="108" width="16" height="55" fill="#ef4444"/>
+      <rect x="306" y="70" width="16" height="78" fill="#22c55e"/>
+      <rect x="448" y="45" width="16" height="66" fill="#22c55e"/>
+      <rect x="580" y="62" width="16" height="60" fill="#ef4444"/>
+      <rect x="732" y="28" width="16" height="75" fill="#22c55e"/>
+      <text x="28" y="42" fill="#e0f2fe" font-size="22" font-weight="700">AI Market Intelligence</text>
+      <text x="28" y="70" fill="#93c5fd" font-size="16">Valuation · ESG · Institutional Flow</text>
+    </svg>
+  </div>
+  <div class="v36-cover-pills">
+    <span class="v36-cover-pill">來源說明</span>
+    <span class="v36-cover-pill">計算透明化</span>
+    <span class="v36-cover-pill">法人買賣代理</span>
+    <span class="v36-cover-pill">ESG溢價模型</span>
+    <span class="v36-cover-pill">AI固定三情境</span>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -871,6 +946,22 @@ def val_panel(price,q,s):
     with st.expander("估值透明化：EPS / WACC / 成長率"):
         st.dataframe(pd.DataFrame([["使用財報",inp["period"]],["EPS",fmt(inp["eps"])],["每股淨值",fmt(inp["bvps"])],["每股營收",fmt(inp["rps"])],["成長率",f"{inp['growth']*100:.1f}%"],["WACC",f"{inp['wacc']*100:.1f}%"],["永續成長率",f"{inp['terminal_g']*100:.1f}%"],["資料來源",inp["source"]]],columns=["項目","數值"]),use_container_width=True,hide_index=True)
     st.dataframe(val.sort_values(["分類","合理價"]),use_container_width=True,hide_index=True)
+    
+    with st.expander("企業評價來源與計算說明"):
+        st.dataframe(pd.DataFrame([
+            ["資料來源", "Yahoo Finance 可取得之價格、EPS、PE、PB、每股淨值、每股營收；若欄位缺漏，系統會用保守代理估算"],
+            ["EPS", "優先使用 trailingEps；若缺漏，以 現價 / PE 估算；若仍缺漏，以 現價 / 20 作保守代理"],
+            ["BVPS", "優先使用 bookValue；若缺漏，以 現價 / PB 估算；若仍缺漏，以 現價 / 2 作代理"],
+            ["成長率", "(技術分數 + 基本面分數 + 法人分數) / 300 × 22%，上下限 3%~22%"],
+            ["WACC", "以 10.5% 為基準，依基本面分數與 ESG 分數微調，上下限 6.5%~13%"],
+            ["DCF", "FCF = EPS × 0.82；DCF = FCF × (1+成長率) / (WACC - 永續成長率)"],
+            ["EVA", "BVPS + (ROE - WACC) × BVPS / (WACC - 永續成長率)"],
+            ["PE法", "EPS × 合理PE；合理PE由成長率推估並限制於合理區間"],
+            ["ESG Premium", "PE估值 × (1 + ESG溢價)"],
+            ["Super Bull", "高風險樂觀情境，只作情境參考，不列為唯一合理價"],
+            ["異常值過濾", "若估值低於現價35%或高於現價350%，自動隱藏，避免資料錯誤造成誤判"],
+        ], columns=["項目","說明"]), use_container_width=True, hide_index=True)
+
     with st.expander("模型中文說明"):
         for k,v in VALUATION_DESC.items():
             st.markdown(f"**{k}**：{v}")
@@ -886,8 +977,21 @@ def esg_panel(price,q,esg):
         ("超級牛市價", fmt(ev["superbull"])),
     ])
     st.dataframe(ag,use_container_width=True,hide_index=True)
+    
+    with st.expander("ESG共識、溢價、合理價與牛市價來源說明"):
+        st.dataframe(pd.DataFrame([
+            ["ESG資料來源", "目前為 AIStock ESG Engine 代理模型；多機構欄位包含 MSCI、Sustainalytics、FTSE、S&P、台灣公司治理評鑑、AIStock ESG"],
+            ["ESG共識分數", "上述多機構代理分數的平均值"],
+            ["ESG溢價", "ESG分數 <60：0%；60~69：+5%；70~79：+10%；80~89：+15%；90以上：+20%"],
+            ["ESG合理價", "EPS × 基礎PE 18 × (1 + ESG溢價)"],
+            ["ESG牛市價", "ESG合理價 × 1.20"],
+            ["ESG超級牛市價", "ESG合理價 × 1.50，屬高風險樂觀情境"],
+            ["限制", "若未串接正式ESG資料，結果為代理估算，需搭配永續報告書與外部評級驗證"],
+        ], columns=["項目","說明"]), use_container_width=True, hide_index=True)
+
     with st.expander("ESG計算依據"):
         st.dataframe(pd.DataFrame([["使用EPS",fmt(ev["eps"])],["基礎PE","18.0"],["ESG溢價",f"{ev['premium']*100:+.1f}%"],["ESG合理價",fmt(ev["fair"])]],columns=["項目","數值"]),use_container_width=True,hide_index=True)
+
 
 
 def ai_forecast(df):
@@ -899,16 +1003,13 @@ def ai_forecast(df):
             st.warning("資料不足")
             return
 
-        st.markdown("#### 圖形顏色設定")
-        c1,c2,c3 = st.columns(3)
-        color_cons = c1.color_picker("保守情境顏色", "#22c55e", key="ai_color_cons")
-        color_base = c2.color_picker("基準情境顏色", "#60a5fa", key="ai_color_base")
-        color_bull = c3.color_picker("樂觀情境顏色", "#f87171", key="ai_color_bull")
+        st.info("V36 已取消 AI 顏色自訂，改用固定三色：保守=綠色、基準=藍色、樂觀=紅色，避免手機上只顯示單一顏色。")
 
         feats=["Close","Volume","MA5","MA20","MA60","MACD","RSI","K","D","RET20","RET60"]
         X=d[feats].values[:-1]
         y=d["Close"].shift(-1).dropna().values
-        model=ExtraTreesRegressor(n_estimators=100,random_state=42,min_samples_leaf=3).fit(X,y)
+        model=ExtraTreesRegressor(n_estimators=120,random_state=42,min_samples_leaf=3).fit(X,y)
+
         cur=float(d["Close"].iloc[-1])
         last=d[feats].iloc[-1:].values
         preds=[]
@@ -924,9 +1025,9 @@ def ai_forecast(df):
 
         fig=go.Figure()
         fig.add_trace(go.Scatter(x=df["Date"].tail(120),y=df["Close"].tail(120),name="歷史",line=dict(color="#94a3b8",width=1.5)))
-        fig.add_trace(go.Scatter(x=pred["Date"],y=pred["保守"],name="保守",line=dict(color=color_cons,width=2)))
-        fig.add_trace(go.Scatter(x=pred["Date"],y=pred["基準"],name="基準",line=dict(color=color_base,width=2.5)))
-        fig.add_trace(go.Scatter(x=pred["Date"],y=pred["樂觀"],name="樂觀",line=dict(color=color_bull,width=2)))
+        fig.add_trace(go.Scatter(x=pred["Date"],y=pred["保守"],name="保守情境",line=dict(color="#22c55e",width=2)))
+        fig.add_trace(go.Scatter(x=pred["Date"],y=pred["基準"],name="基準情境",line=dict(color="#60a5fa",width=3)))
+        fig.add_trace(go.Scatter(x=pred["Date"],y=pred["樂觀"],name="樂觀情境",line=dict(color="#f87171",width=2)))
         fig.update_layout(height=360,template="plotly_dark",margin=dict(l=6,r=6,t=28,b=4),legend=dict(orientation="h"))
         st.plotly_chart(fig,use_container_width=True)
 
@@ -935,18 +1036,31 @@ def ai_forecast(df):
             ("30日保守", fmt(latest["保守"])),
             ("30日基準", fmt(latest["基準"])),
             ("30日樂觀", fmt(latest["樂觀"])),
-            ("模型模式", "謹慎限制"),
+            ("模型", "謹慎模式"),
         ])
 
-        with st.expander("AI數值如何出來的"):
+        with st.expander("AI數值來源與計算說明"):
             st.dataframe(pd.DataFrame([
-                ["模型", "ExtraTreesRegressor 隨機森林類模型"],
-                ["使用資料", "近歷史收盤價、成交量、均線、MACD、RSI、KD、20日/60日報酬"],
-                ["保守情境", "基準預測 × 0.94"],
-                ["基準情境", "模型預測值，並限制單步最大漲跌不超過 ±8%"],
-                ["樂觀情境", "基準預測 × 1.06"],
-                ["限制原因", "避免 AI 過度誇大、避免不合理暴衝"],
+                ["資料來源", "Yahoo Finance 歷史日K資料；若有 Fugle 僅用於即時報價，不直接作為此預測訓練資料"],
+                ["使用欄位", "Close、Volume、MA5、MA20、MA60、MACD、RSI、K、D、RET20、RET60"],
+                ["模型", "ExtraTreesRegressor，屬於多棵決策樹的集成模型"],
+                ["基準情境", "模型逐日預測未來30個交易日價格"],
+                ["保守情境", "基準情境 × 0.94"],
+                ["樂觀情境", "基準情境 × 1.06"],
+                ["風險限制", "每一步預測限制在前一日 ±8% 內，避免AI過度誇大"],
+                ["用途", "僅作情境分析，不是保證價格或投資建議"],
             ], columns=["項目","說明"]), use_container_width=True, hide_index=True)
+
+            st.markdown("""
+            <div class="explain-box">
+            <b>公式摘要</b><br>
+            基準價 = AI模型預測值，並套用單步 ±8% 限制。<br>
+            保守價 = 基準價 × 0.94。<br>
+            樂觀價 = 基準價 × 1.06。<br>
+            這樣做是為了符合「AI謹慎原則」，避免模型輸出過度樂觀。
+            </div>
+            """, unsafe_allow_html=True)
+
         st.caption("AI謹慎模式：情境分析，不是保證價格。")
     except Exception as e:
         st.warning(str(e))
@@ -955,7 +1069,7 @@ def ai_forecast(df):
 st.markdown(f"""
 <div class="v35-banner">
   <div class="v35-title">📈 智策股市 AI 決策平台</div>
-  <div class="v35-sub">V35 Institutional Ultimate Final｜企業評價 × ESG × 法人雷達 × 專業K線</div>
+  <div class="v35-sub">V36 Institutional Ultimate Explanation｜企業評價 × ESG × 法人雷達 × 專業K線</div>
   <div class="v35-visual">
     <svg viewBox="0 0 900 220" preserveAspectRatio="none">
       <defs>
@@ -1134,6 +1248,18 @@ elif page=="🏦法人雷達":
     st.caption("目前法人資料以量價代理估算；未來可接 TWSE/TPEX/Fugle/券商 API。")
     st.markdown("#### 三大法人買賣超代理")
     st.dataframe(institutional_proxy(df), use_container_width=True, hide_index=True)
+    with st.expander("法人分數、籌碼、主力來源與計算說明"):
+        st.dataframe(pd.DataFrame([
+            ["資料來源", "Yahoo Finance 歷史價格與成交量；正式外資/投信/自營商即時資料需未來串接 TWSE/TPEX/Fugle/券商API"],
+            ["法人買賣代理", "用成交量放大、20日報酬、60日報酬、是否站上月線/季線推估法人方向"],
+            ["外資強度", "50 + RET20×160 + RET60×80 + 站上MA20加分 + 量比加分，限制0~100"],
+            ["投信強度", "50 + RET20×120 + MA20>MA60加分 + 站上MA20加分，限制0~100"],
+            ["自營商強度", "50 + RET20×220 + 量比加分，限制0~100"],
+            ["估計張數", "成交量 / 1000 × 量比 × 係數；外資係數較高，投信次之，自營商較低"],
+            ["法人分數", "目前等同籌碼代理分數，來源為量價與短中期動能"],
+            ["主力狀態", "法人分數 >=65 偏多；45以下偏空；中間為中性"],
+            ["限制", "這是量價代理模型，不等於交易所正式三大法人買賣超"],
+        ], columns=["項目","說明"]), use_container_width=True, hide_index=True)
     st.dataframe(monitor_table(symbols,source,key).sort_values("法人分數",ascending=False),use_container_width=True,hide_index=True)
 
 elif page=="💎企業評價":
@@ -1170,7 +1296,7 @@ elif page=="⚙️系統設定":
     <b>V33.1 Final Hotfix 手機版設定</b><br>
     建議手機保持「手機穩定模式」開啟，避免黑屏。<br>
     電腦版可關閉手機穩定模式，使用 10 / 30 / 60 秒自動更新。<br>
-    ESG、企業評價、法人雷達、財報、AI預測全部保留；手機固定主選單、專業封面Banner、K線修復、全模組選股同步、估值異常過濾已完成。
+    ESG、企業評價、法人雷達、財報、AI預測全部保留；手機固定主選單、專業封面Banner、K線修復、全模組選股同步、估值異常過濾、來源與計算說明已完成。
     </div>
     """, unsafe_allow_html=True)
     st.write("目前版本：", APP_VERSION)
@@ -1178,5 +1304,5 @@ elif page=="⚙️系統設定":
     st.write("監控檔數：", mcount)
 
 st.markdown("---")
-st.caption("AIStock V35.1 Ultimate Fix｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
+st.caption("AIStock V36 Institutional Ultimate Explanation｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
 st.caption("免責聲明：本平台為研究與教學用途，非投資建議。Yahoo Finance 可能為延遲或近即時資料；Fugle API 功能需自行申請 Key。")
