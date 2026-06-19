@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V53 NameError Hotfix Final"
+APP_VERSION="V54 Kline Indicator Render Fix Final"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -704,7 +704,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V53 NameError Hotfix Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V54 Kline Indicator Render Fix Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -1776,7 +1776,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V53 NameError Hotfix Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V54 Kline Indicator Render Fix Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1792,7 +1792,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V53 NameError Hotfix Final</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V54 Kline Indicator Render Fix Final</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1821,7 +1821,7 @@ try:
 except Exception:
     pass
 with st.sidebar:
-    st.title("☰ V53設定")
+    st.title("☰ V54設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
@@ -1856,6 +1856,200 @@ with st.sidebar:
 symbols=[clean_symbol(x.strip()) for x in watch_text.split(",") if x.strip()][:mcount] or DEFAULT_MONITOR[:mcount]
 
 # V39：唯一全站股票控制器
+
+# ================= V54 KLINE INDICATOR RENDER FIX =================
+def _v54_num(s):
+    return pd.to_numeric(s, errors="coerce")
+
+def add_more_indicators(df):
+    """V54 robust technical indicators."""
+    if df is None or df.empty:
+        return pd.DataFrame()
+    d = df.copy()
+    if "Date" not in d.columns:
+        d = d.reset_index()
+        if "Date" not in d.columns:
+            d.rename(columns={d.columns[0]:"Date"}, inplace=True)
+    for c in ["Open","High","Low","Close","Volume"]:
+        if c in d.columns:
+            d[c] = _v54_num(d[c])
+    d = d.dropna(subset=["Close"])
+    if d.empty:
+        return d
+
+    close=d["Close"]
+    high=d["High"] if "High" in d else close
+    low=d["Low"] if "Low" in d else close
+    vol=d["Volume"] if "Volume" in d else pd.Series([0]*len(d), index=d.index)
+
+    for n in [5,10,20,60,120,240]:
+        d[f"MA{n}"] = close.rolling(n, min_periods=max(2, min(n, 5))).mean()
+
+    delta=close.diff()
+    gain=delta.clip(lower=0).rolling(14, min_periods=3).mean()
+    loss=(-delta.clip(upper=0)).rolling(14, min_periods=3).mean()
+    rs=gain/(loss.replace(0,np.nan))
+    d["RSI"]=100-(100/(1+rs))
+
+    ema12=close.ewm(span=12, adjust=False).mean()
+    ema26=close.ewm(span=26, adjust=False).mean()
+    d["DIF"]=ema12-ema26
+    d["MACD"]=d["DIF"].ewm(span=9, adjust=False).mean()
+    d["OSC"]=d["DIF"]-d["MACD"]
+
+    ll=low.rolling(9, min_periods=3).min()
+    hh=high.rolling(9, min_periods=3).max()
+    rsv=(close-ll)/(hh-ll).replace(0,np.nan)*100
+    d["K"]=rsv.ewm(alpha=1/3, adjust=False).mean()
+    d["D"]=d["K"].ewm(alpha=1/3, adjust=False).mean()
+    d["J"]=3*d["K"]-2*d["D"]
+
+    for n in [5,10,20,60]:
+        ma=close.rolling(n, min_periods=max(2, min(n, 5))).mean()
+        d[f"BIAS{n}"]=(close-ma)/ma.replace(0,np.nan)*100
+
+    mid=close.rolling(20, min_periods=5).mean()
+    std=close.rolling(20, min_periods=5).std()
+    d["BB_MID"]=mid
+    d["BB_UP"]=mid+2*std
+    d["BB_LOW"]=mid-2*std
+    d["BB_WIDTH"]=(d["BB_UP"]-d["BB_LOW"])/mid.replace(0,np.nan)*100
+
+    tr=pd.concat([(high-low).abs(),(high-close.shift()).abs(),(low-close.shift()).abs()],axis=1).max(axis=1)
+    d["ATR"]=tr.rolling(14, min_periods=3).mean()
+    d["ATR_PCT"]=d["ATR"]/close.replace(0,np.nan)*100
+
+    d["OBV"]=(np.sign(close.diff()).fillna(0)*vol.fillna(0)).cumsum()
+    d["OBV_MA20"]=d["OBV"].rolling(20, min_periods=5).mean()
+
+    tp=(high+low+close)/3
+    money=tp*vol
+    pos=money.where(tp>tp.shift(),0).rolling(14, min_periods=3).sum()
+    neg=money.where(tp<tp.shift(),0).rolling(14, min_periods=3).sum()
+    d["MFI"]=100-100/(1+(pos/neg.replace(0,np.nan)))
+
+    d["WILLR"]=(hh-close)/(hh-ll).replace(0,np.nan)*-100
+
+    sma_tp=tp.rolling(20, min_periods=5).mean()
+    mad=(tp-sma_tp).abs().rolling(20, min_periods=5).mean()
+    d["CCI"]=(tp-sma_tp)/(0.015*mad.replace(0,np.nan))
+
+    up_move=high.diff()
+    down_move=-low.diff()
+    plus_dm=up_move.where((up_move>down_move) & (up_move>0),0)
+    minus_dm=down_move.where((down_move>up_move) & (down_move>0),0)
+    atr=tr.rolling(14, min_periods=3).mean()
+    plus_di=100*(plus_dm.rolling(14, min_periods=3).mean()/atr.replace(0,np.nan))
+    minus_di=100*(minus_dm.rolling(14, min_periods=3).mean()/atr.replace(0,np.nan))
+    dx=(abs(plus_di-minus_di)/(plus_di+minus_di).replace(0,np.nan))*100
+    d["PLUS_DI"]=plus_di
+    d["MINUS_DI"]=minus_di
+    d["ADX"]=dx.rolling(14, min_periods=3).mean()
+
+    d["ROC12"]=close.pct_change(12)*100
+    d["MOM10"]=close-close.shift(10)
+    d["VOL_MA20"]=vol.rolling(20, min_periods=5).mean()
+    return d
+
+def kline_chart(df, overlays, panel):
+    """V54: draw main candlestick + real selected lower indicator panel."""
+    if df is None or df.empty:
+        st.warning("查無K線資料")
+        return
+    d = add_more_indicators(add_indicators(df))
+    if d is None or d.empty:
+        st.warning("查無K線資料")
+        return
+    dd = d.tail(180).copy()
+    if "Date" not in dd.columns:
+        dd = dd.reset_index().rename(columns={"index":"Date"})
+
+    fig = go.Figure()
+    fig.add_trace(go.Candlestick(
+        x=dd["Date"], open=dd["Open"], high=dd["High"], low=dd["Low"], close=dd["Close"],
+        name="K線",
+        increasing_line_color="#ff3333", decreasing_line_color="#00d26a",
+        increasing_fillcolor="#ff3333", decreasing_fillcolor="#00d26a"
+    ))
+
+    color_map={"MA5":"#facc15","MA10":"#22d3ee","MA20":"#d946ef","MA60":"#fb923c","MA120":"#94a3b8","MA240":"#64748b"}
+    for ma in overlays or []:
+        if ma in dd.columns:
+            fig.add_trace(go.Scatter(x=dd["Date"], y=dd[ma], name=ma, mode="lines", line=dict(width=1.5, color=color_map.get(ma))))
+    if overlays and "布林通道" in overlays:
+        for col, nm in [("BB_UP","BB上軌"),("BB_MID","BB中軌"),("BB_LOW","BB下軌")]:
+            if col in dd.columns:
+                fig.add_trace(go.Scatter(x=dd["Date"], y=dd[col], name=nm, mode="lines", line=dict(width=1, dash="dot")))
+
+    fig.update_layout(
+        height=520, template="plotly_white", xaxis_rangeslider_visible=False,
+        margin=dict(l=10,r=10,t=25,b=10),
+        legend=dict(orientation="h", y=-0.15, font=dict(size=9)),
+        yaxis=dict(side="right"),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    panel = panel or "成交量"
+    sub = go.Figure()
+    if panel == "成交量":
+        sub.add_trace(go.Bar(x=dd["Date"], y=dd["Volume"], name="成交量"))
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["VOL_MA20"], name="20日均量", mode="lines"))
+    elif panel == "MACD":
+        sub.add_trace(go.Bar(x=dd["Date"], y=dd["OSC"], name="OSC"))
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["DIF"], name="DIF", mode="lines"))
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["MACD"], name="MACD", mode="lines"))
+    elif panel == "KD":
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["K"], name="K", mode="lines"))
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["D"], name="D", mode="lines"))
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["J"], name="J", mode="lines"))
+        sub.add_hline(y=80,line_dash="dot"); sub.add_hline(y=20,line_dash="dot")
+    elif panel == "RSI":
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["RSI"], name="RSI", mode="lines"))
+        sub.add_hline(y=70,line_dash="dot"); sub.add_hline(y=30,line_dash="dot")
+    elif panel == "BIAS":
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["BIAS20"], name="BIAS20", mode="lines"))
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["BIAS60"], name="BIAS60", mode="lines"))
+        sub.add_hline(y=0,line_dash="dot")
+    elif panel == "布林通道":
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["BB_WIDTH"], name="BB寬度%", mode="lines"))
+    elif panel == "OBV":
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["OBV"], name="OBV", mode="lines"))
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["OBV_MA20"], name="OBV_MA20", mode="lines"))
+    elif panel == "MFI":
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["MFI"], name="MFI", mode="lines"))
+        sub.add_hline(y=80,line_dash="dot"); sub.add_hline(y=20,line_dash="dot")
+    elif panel == "威廉%R":
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["WILLR"], name="Williams %R", mode="lines"))
+        sub.add_hline(y=-20,line_dash="dot"); sub.add_hline(y=-80,line_dash="dot")
+    elif panel == "CCI":
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["CCI"], name="CCI", mode="lines"))
+        sub.add_hline(y=100,line_dash="dot"); sub.add_hline(y=-100,line_dash="dot")
+    elif panel == "ADX":
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["ADX"], name="ADX", mode="lines"))
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["PLUS_DI"], name="+DI", mode="lines"))
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["MINUS_DI"], name="-DI", mode="lines"))
+        sub.add_hline(y=20,line_dash="dot")
+    elif panel == "ATR":
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["ATR_PCT"], name="ATR%", mode="lines"))
+    elif panel == "ROC":
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["ROC12"], name="ROC12", mode="lines"))
+        sub.add_hline(y=0,line_dash="dot")
+    elif panel == "Momentum":
+        sub.add_trace(go.Scatter(x=dd["Date"], y=dd["MOM10"], name="MOM10", mode="lines"))
+        sub.add_hline(y=0,line_dash="dot")
+    else:
+        sub.add_trace(go.Bar(x=dd["Date"], y=dd["Volume"], name="成交量"))
+
+    sub.update_layout(
+        title=dict(text=f"副圖：{panel}", font=dict(size=14)),
+        height=300, template="plotly_white",
+        margin=dict(l=10,r=10,t=35,b=10),
+        legend=dict(orientation="h", y=-0.18, font=dict(size=9)),
+        yaxis=dict(side="right")
+    )
+    st.plotly_chart(sub, use_container_width=True)
+# ================= V54 KLINE INDICATOR RENDER FIX END =================
+
 active = unified_symbol_manager(symbols)
 
 # V39：手機/電腦響應式欄位
@@ -2053,6 +2247,6 @@ elif page=="⚙設定":
     st.dataframe(enterprise_feature_checklist(), use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("AIStock V53 NameError Hotfix Final｜研究與教學用途，非投資建議。")
+st.caption("AIStock V54 Kline Indicator Render Fix Final｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
