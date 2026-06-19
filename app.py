@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import requests, re, math
 
-APP_VERSION = "V33 Final"
+APP_VERSION = "V33.1 Mobile Visible Menu"
 APP_NAME = "智策股市 AI 決策平台"
 
 st.set_page_config(
@@ -68,6 +68,28 @@ div[data-testid="stDataFrame"]{font-size:.75rem}
     .mobile-kpi-value{font-size:1rem}
     .card-price{font-size:1.12rem}
 }
+
+.top-menu-wrap{
+    background:#020617;
+    border:1px solid #334155;
+    border-radius:14px;
+    padding:8px;
+    margin:6px 0 10px 0;
+}
+.top-menu-title{
+    color:#e5e7eb;
+    font-size:.78rem;
+    font-weight:900;
+    margin-bottom:5px;
+}
+div[data-testid="stRadio"] label{
+    font-weight:800!important;
+}
+@media(max-width:768px){
+    [data-testid="stSidebar"]{display:none!important}
+    .top-menu-wrap{padding:7px;border-radius:12px}
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -678,10 +700,19 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+
+PAGES=["🏠市場總覽","📊即時監控","📈專業K線","💹即時報價","🏦法人雷達","💎企業評價","🌱ESG中心","📑財報中心","🤖AI預測","⚙️系統設定"]
+st.markdown('<div class="top-menu-wrap"><div class="top-menu-title">☰ 手機功能選單</div></div>', unsafe_allow_html=True)
+page=st.radio(
+    "選擇功能",
+    PAGES,
+    index=PAGES.index(st.session_state.get("page","🏠市場總覽")) if st.session_state.get("page","🏠市場總覽") in PAGES else 0,
+    key="page",
+    horizontal=True
+)
+
 with st.sidebar:
-    st.title("☰ 功能選單")
-    page=st.radio("頁面",["🏠市場總覽","📊即時監控","📈專業K線","💹即時報價","🏦法人雷達","💎企業評價","🌱ESG中心","📑財報中心","🤖AI預測","⚙️系統設定"],index=0,key="page")
-    st.markdown("---")
+    st.title("⚙️ 系統設定")
     source=st.selectbox("資料來源",["Yahoo Finance","Fugle + Yahoo","Fugle API"],index=0)
     key=st.text_input("Fugle API Key（可空白）",type="password")
     mobile_stable=st.checkbox("手機穩定模式",value=True,help="手機建議開啟，避免黑屏。")
@@ -801,5 +832,5 @@ elif page=="⚙️系統設定":
     st.write("監控檔數：", mcount)
 
 st.markdown("---")
-st.caption("AIStock V33 Final｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
+st.caption("AIStock V33.1 Mobile Visible Menu｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
 st.caption("免責聲明：本平台為研究與教學用途，非投資建議。Yahoo Finance 可能為延遲或近即時資料；Fugle API 功能需自行申請 Key。")
