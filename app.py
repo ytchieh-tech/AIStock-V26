@@ -1,6 +1,7 @@
 
 import streamlit as st
 import streamlit.components.v1 as components
+from streamlit_autorefresh import st_autorefresh
 import pandas as pd
 import numpy as np
 import yfinance as yf
@@ -8,7 +9,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import requests, re, math
 
-APP_VERSION="V31.0"
+APP_VERSION="V32.0"
 APP_NAME="智策股市 AI 決策平台"
 
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
@@ -31,6 +32,22 @@ h1{font-size:1.35rem!important;margin-bottom:.1rem}
 .stTabs [data-baseweb="tab-list"]{gap:4px;overflow-x:auto}
 .stTabs [data-baseweb="tab"]{background:#f1f5f9;border-radius:12px;padding:8px 10px;white-space:nowrap}
 @media(max-width:768px){h1{font-size:1.12rem!important}.block-container{padding-left:.35rem;padding-right:.35rem}.card-price{font-size:1.32rem}}
+
+.hero{
+    background:linear-gradient(135deg,#020617 0%,#0f172a 45%,#1e3a8a 100%);
+    border:1px solid #334155;
+    border-radius:22px;
+    padding:18px;
+    color:white;
+    box-shadow:0 10px 30px rgba(15,23,42,.28);
+    margin-bottom:12px;
+}
+.hero-title{font-size:1.55rem;font-weight:950;letter-spacing:.5px}
+.hero-sub{font-size:.88rem;color:#cbd5e1;margin-top:4px}
+.hero-pill{display:inline-block;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:4px 10px;margin:4px 4px 0 0;font-size:.78rem}
+.pro-panel{background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:12px;margin:6px 0}
+@media(max-width:768px){.hero{padding:14px;border-radius:18px}.hero-title{font-size:1.2rem}.hero-sub{font-size:.78rem}.hero-pill{font-size:.7rem;padding:3px 8px}}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -92,8 +109,13 @@ VALUATION_DESC={
 
 def tw_now(): return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S 台灣時間")
 def auto_refresh(sec):
-    if int(sec)>0:
-        components.html(f"<script>setTimeout(function(){{window.parent.location.reload();}}, {int(sec)*1000});</script>",height=0)
+    """Use Streamlit rerun instead of browser reload, preserving mobile page and selected stock."""
+    try:
+        sec = int(sec)
+    except Exception:
+        sec = 0
+    if sec > 0:
+        st_autorefresh(interval=sec*1000, key="v311_data_refresh")
 def safe_float(x, default=np.nan):
     try:
         if x is None: return default
@@ -394,8 +416,77 @@ def ai_forecast(df):
         fig.update_layout(height=430); st.plotly_chart(fig,use_container_width=True); st.caption("AI謹慎模式：情境分析，不是保證價格。")
     except Exception as e: st.warning(str(e))
 
-st.title(f"📈 {APP_NAME}")
-st.caption(f"Institutional Ultimate Edition｜{APP_VERSION}｜製作人：Tsung Chieh Yang")
+
+def market_temp_score(mt):
+    if mt is None or mt.empty:
+        return 50
+    ai = pd.to_numeric(mt.get("AI分數", pd.Series(dtype=float)), errors="coerce").mean()
+    pct = pd.to_numeric(mt.get("漲跌幅", pd.Series(dtype=float)), errors="coerce").fillna(0).mean()
+    score = 50 + (ai-60)*0.45 + pct*2
+    return int(np.clip(score, 0, 100))
+
+def market_overview(symbols, source, key, mcount, sec):
+    st.subheader("🏠 市場總覽儀表板")
+    st.caption("首頁不預設個股；先看市場、類股、AI排行，再輸入股票進入個股分析。")
+    mt = monitor_table(symbols, source, key)
+    temp = market_temp_score(mt)
+    c = st.columns(4)
+    c[0].metric("AI市場溫度", f"{temp}/100")
+    c[1].metric("監控檔數", f"{len(symbols)}")
+    c[2].metric("資料來源", source)
+    c[3].metric("更新頻率", "手動" if sec==0 else f"{sec}秒")
+    if temp >= 75:
+        st.success("市場狀態：偏多，但仍需留意追高風險。")
+    elif temp >= 55:
+        st.info("市場狀態：中性偏多，適合觀察強勢族群。")
+    elif temp >= 40:
+        st.warning("市場狀態：震盪整理，建議提高安全邊際。")
+    else:
+        st.error("市場狀態：偏弱，建議保守控管風險。")
+
+    if mt.empty:
+        st.warning("目前無監控資料。")
+        return
+
+    st.markdown("#### 🔥 AI熱門股 / 強勢監控")
+    cards(mt.sort_values("AI分數", ascending=False, na_position="last"), min(8, mcount))
+
+    r1, r2 = st.columns(2)
+    with r1:
+        st.markdown("#### 🏦 法人/籌碼分數排行")
+        cols = [x for x in ["股票","價格","漲跌幅","法人分數","AI分數","共識價"] if x in mt.columns]
+        show = mt.sort_values("法人分數", ascending=False, na_position="last").head(10)
+        st.dataframe(show[cols], use_container_width=True, hide_index=True)
+    with r2:
+        st.markdown("#### 💎 低估值觀察")
+        if "低估%" in mt.columns:
+            cols = [x for x in ["股票","價格","低估%","共識價","AI分數","評級"] if x in mt.columns]
+            show = mt.sort_values("低估%", ascending=False, na_position="last").head(10)
+            st.dataframe(show[cols], use_container_width=True, hide_index=True)
+        else:
+            st.info("暫無估值排行資料。")
+
+    st.markdown("#### 📊 類股快速入口")
+    cols = st.columns(3)
+    modes = ["半導體","AI伺服器","PCB/CCL","記憶體","機器人/自動化","金融","航運","觀光","重電","ETF","CoWoS/先進封裝"]
+    for i, m in enumerate(modes):
+        with cols[i%3]:
+            st.caption(f"▸ {m}")
+
+st.markdown(f"""
+<div class="hero">
+  <div class="hero-title">📈 {APP_NAME}</div>
+  <div class="hero-sub">AIStock Professional Market Dashboard｜{APP_VERSION}｜製作人：Tsung Chieh Yang</div>
+  <div style="margin-top:8px">
+    <span class="hero-pill">即時監控</span>
+    <span class="hero-pill">專業K線</span>
+    <span class="hero-pill">法人雷達</span>
+    <span class="hero-pill">企業評價</span>
+    <span class="hero-pill">ESG研究</span>
+    <span class="hero-pill">AI謹慎模式</span>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 with st.sidebar:
     st.header("設定")
@@ -404,7 +495,14 @@ with st.sidebar:
     sec=st.selectbox("自動更新",[0,1,3,5,10,30,60],index=4,format_func=lambda x:"關閉" if x==0 else f"{x}秒")
     auto_refresh(sec)
     if sec in [1,3]: st.warning("高頻模式建議 8~16 檔，避免資料源限流。")
-    symbol=clean_symbol(st.text_input("股票名稱 / 代碼","世界先進")); st.success(symbol)
+    if "symbol_input" not in st.session_state:
+        st.session_state.symbol_input = ""
+    symbol_text = st.text_input("股票名稱 / 代碼（可空白，首頁不預設個股）", key="symbol_input", placeholder="例如：台積電、2330、和椿、6215")
+    symbol = clean_symbol(symbol_text) if symbol_text.strip() else "2330.TW"
+    if symbol_text.strip():
+        st.success(symbol)
+    else:
+        st.info("首頁為市場總覽；輸入股票後可查看個股分析。")
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True)
     st.subheader("監控")
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True)
@@ -422,41 +520,120 @@ df=fetch_price(symbol,period); q=fetch_quote(symbol,source,key)
 d=signal_columns(add_indicators(df)) if not df.empty else pd.DataFrame()
 scores=score_blocks(d,q) if not d.empty else {"tech":50,"chip":50,"fund":50,"esg":65,"inst":50}
 total=ai_total(scores)
-tabs=st.tabs(["🏠首頁","📊監控","📈K線","💹報價","🏦法人","💎評價","🌱ESG","📑財報"])
 
-with tabs[0]:
-    st.markdown(f"### {display_name(symbol)}")
-    quote_panel(q)
-    c=st.columns(5); c[0].metric("AI總分",f"{total}",rating(total)); c[1].metric("法人",scores["inst"]); c[2].metric("技術",scores["tech"]); c[3].metric("基本面",scores["fund"]); c[4].metric("ESG",scores["esg"])
-    st.info("V31：Yahoo Finance 基礎資料 + Fugle API 即時接口 + AIStock Engine + AIStock ESG Engine。")
-with tabs[1]:
-    mt=monitor_table(symbols,source,key); v=st.radio("顯示模式",["手機卡片","專業表格","排行榜"],horizontal=True)
-    if v=="手機卡片": cards(mt,mcount)
-    elif v=="專業表格": st.dataframe(mt,use_container_width=True,hide_index=True)
+page = st.sidebar.radio(
+    "頁面",
+    ["🏠首頁","📊監控","📈K線","💹報價","🏦法人","💎評價","🌱ESG","📑財報"],
+    index=0,
+    key="v311_page"
+)
+
+if page == "🏠首頁":
+    market_overview(symbols, source, key, mcount, sec)
+
+    if symbol_text.strip():
+        st.markdown("---")
+        st.markdown(f"### 個股快覽：{display_name(symbol)}")
+        quote_panel(q)
+        c=st.columns(5)
+        c[0].metric("AI總分",f"{total}",rating(total))
+        c[1].metric("法人",scores["inst"])
+        c[2].metric("技術",scores["tech"])
+        c[3].metric("基本面",scores["fund"])
+        c[4].metric("ESG",scores["esg"])
+
+        price = q.get("price")
+        val, inp = valuation_models(price, q, scores)
+        if not val.empty:
+            vc = consensus(val, price)
+            c2 = st.columns(4)
+            c2[0].metric("AIStock共識價", fmt(vc.get("consensus")))
+            c2[1].metric("低估/高估", "N/A" if pd.isna(vc.get("margin",np.nan)) else f"{vc.get('margin'):+.1f}%")
+            c2[2].metric("機構合理價", fmt(vc.get("inst")))
+            c2[3].metric("市場合理價", fmt(vc.get("market")))
     else:
-        col=st.selectbox("排行欄位",["AI分數","漲跌幅","成交量","法人分數","低估%"],index=0); top=mt.sort_values(col,ascending=False,na_position="last").head(20); st.dataframe(top,use_container_width=True,hide_index=True)
-with tabs[2]:
-    if d.empty: st.error("查無K線資料")
-    else: kline(d,overlays,sigs)
-with tabs[3]:
+        st.markdown("""
+        <div class="pro-panel">
+        <b>V32 首頁升級</b><br>
+        ✅ 首頁改為市場總覽，不再預設世界先進<br>
+        ✅ 可先看 AI熱門股、法人排行、低估值觀察<br>
+        ✅ 輸入股票後才顯示個股快覽<br>
+        ✅ V31.1 手機穩定修復全部保留
+        </div>
+        """, unsafe_allow_html=True)
+
+elif page == "📊監控":
+    st.subheader("📊 即時監控中心")
+    st.caption(f"模式：{mode}｜檔數：{len(symbols)}｜更新：{'關閉' if sec==0 else str(sec)+'秒'}｜資料源：{source}")
+    mt=monitor_table(symbols,source,key)
+    v=st.radio("顯示模式",["手機卡片","專業表格","排行榜"],horizontal=True,key="monitor_view")
+    if v=="手機卡片":
+        cards(mt,mcount)
+    elif v=="專業表格":
+        st.dataframe(mt,use_container_width=True,hide_index=True)
+    else:
+        col=st.selectbox("排行欄位",["AI分數","漲跌幅","成交量","法人分數","低估%"],index=0,key="rank_col")
+        top=mt.sort_values(col,ascending=False,na_position="last").head(20)
+        st.dataframe(top,use_container_width=True,hide_index=True)
+
+elif page == "📈K線":
+    st.subheader("📈 專業K線中心")
+    if d.empty:
+        st.error("查無K線資料")
+    else:
+        kline(d,overlays,sigs)
+
+elif page == "💹報價":
+    st.subheader("💹 即時報價 / 五檔 / 成交明細")
     quote_panel(q)
     if source!="Yahoo Finance" and key:
-        b,a=fugle_books(symbol,key); st.subheader("五檔報價"); c1,c2=st.columns(2); c1.dataframe(b,use_container_width=True,hide_index=True); c2.dataframe(a,use_container_width=True,hide_index=True)
-        st.subheader("逐筆成交"); st.dataframe(fugle_trades(symbol,key),use_container_width=True,hide_index=True)
-    else: st.info("五檔報價與逐筆成交需要 Fugle API Key。")
-with tabs[4]:
-    st.subheader("法人雷達研究中心")
-    c=st.columns(4); c[0].metric("法人分數",scores["inst"]); c[1].metric("籌碼",scores["chip"]); c[2].metric("主力狀態","偏多" if scores["inst"]>=65 else "偏空" if scores["inst"]<45 else "中性"); c[3].metric("資料狀態","量價代理")
+        b,a=fugle_books(symbol,key)
+        st.subheader("五檔報價")
+        c1,c2=st.columns(2)
+        c1.dataframe(b,use_container_width=True,hide_index=True)
+        c2.dataframe(a,use_container_width=True,hide_index=True)
+        st.subheader("逐筆成交")
+        st.dataframe(fugle_trades(symbol,key),use_container_width=True,hide_index=True)
+    else:
+        st.info("五檔報價與逐筆成交需要 Fugle API Key。未輸入時仍可使用 Yahoo Finance 報價。")
+
+elif page == "🏦法人":
+    st.subheader("🏦 法人雷達研究中心")
+    c=st.columns(4)
+    c[0].metric("法人分數",scores["inst"])
+    c[1].metric("籌碼",scores["chip"])
+    c[2].metric("主力狀態","偏多" if scores["inst"]>=65 else "偏空" if scores["inst"]<45 else "中性")
+    c[3].metric("資料狀態","量價代理")
+    st.caption("目前法人雷達以量價代理估算；未來可接 TWSE/TPEX/Fugle/券商 API 正式法人買賣超。")
     st.dataframe(monitor_table(symbols,source,key).sort_values("法人分數",ascending=False),use_container_width=True,hide_index=True)
-with tabs[5]:
+
+elif page == "💎評價":
+    st.subheader("💎 中文企業評價研究中心")
     val_panel(q.get("price"),q,scores)
-with tabs[6]:
+
+elif page == "🌱ESG":
+    st.subheader("🌱 ESG 2.0 多機構共識研究中心")
     esg_panel(q.get("price"),q,scores["esg"])
-with tabs[7]:
-    st.subheader("財報研究中心")
-    st.dataframe(pd.DataFrame([["EPS",q.get("eps")],["PE",q.get("pe")],["PB",q.get("pb")],["每股淨值",q.get("book_value")],["每股營收",q.get("revenue_per_share")],["殖利率",q.get("div_yield")],["市值",q.get("market_cap")],["企業價值",q.get("enterprise_value")],["EBITDA",q.get("ebitda")],["資料時間",q.get("time")],["資料來源",q.get("source")]],columns=["項目","數值"]),use_container_width=True,hide_index=True)
-    if not df.empty: ai_forecast(df)
+
+elif page == "📑財報":
+    st.subheader("📑 財報研究中心")
+    st.dataframe(pd.DataFrame([
+        ["EPS",q.get("eps")],
+        ["PE",q.get("pe")],
+        ["PB",q.get("pb")],
+        ["每股淨值",q.get("book_value")],
+        ["每股營收",q.get("revenue_per_share")],
+        ["殖利率",q.get("div_yield")],
+        ["市值",q.get("market_cap")],
+        ["企業價值",q.get("enterprise_value")],
+        ["EBITDA",q.get("ebitda")],
+        ["資料時間",q.get("time")],
+        ["資料來源",q.get("source")]
+    ],columns=["項目","數值"]),use_container_width=True,hide_index=True)
+    if not df.empty:
+        ai_forecast(df)
+
 
 st.markdown("---")
-st.caption("AIStock V31 Institutional Ultimate｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
+st.caption("AIStock V32 Professional Market Dashboard｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
 st.caption("免責聲明：本平台為研究與教學用途，非投資建議。Fugle API 功能需自行申請 API Key；Yahoo Finance 可能為延遲或近即時資料。")
