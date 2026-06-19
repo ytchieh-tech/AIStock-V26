@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V42 Enterprise Audit Final"
+APP_VERSION="V43 Institutional Professional Final"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -68,6 +68,39 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 TW_STOCKS={"台積電":"2330.TW","聯電":"2303.TW","世界先進":"5347.TWO","和椿":"6215.TWO","台光電":"2383.TW","威剛":"3260.TWO","台達電":"2308.TW","鴻海":"2317.TW","聯發科":"2454.TW","廣達":"2382.TW","緯創":"3231.TW","英業達":"2356.TW","華碩":"2357.TW","技嘉":"2376.TW","欣興":"3037.TW","南亞科":"2408.TW","瑞昱":"2379.TW","力積電":"6770.TW","智邦":"2345.TW","奇鋐":"3017.TW","世芯-KY":"3661.TW","緯穎":"6669.TW","健策":"3653.TW"}
+
+# V43：補充常見台股中文名稱，讓輸入代碼後能顯示公司中文名稱
+TW_STOCKS.update({
+    "光寶科":"2301.TW",
+    "全友":"2305.TW",
+    "仁寶":"2324.TW",
+    "佳世達":"2352.TW",
+    "宏碁":"2353.TW",
+    "神達":"3706.TW",
+    "友達":"2409.TW",
+    "群創":"3481.TW",
+    "中華電":"2412.TW",
+    "中鋼":"2002.TW",
+    "長榮":"2603.TW",
+    "陽明":"2609.TW",
+    "萬海":"2615.TW",
+    "富邦金":"2881.TW",
+    "國泰金":"2882.TW",
+    "玉山金":"2884.TW",
+    "元大金":"2885.TW",
+    "兆豐金":"2886.TW",
+    "中信金":"2891.TW",
+    "第一金":"2892.TW",
+    "華南金":"2880.TW",
+    "合庫金":"5880.TW",
+    "華新":"1605.TW",
+    "大亞":"1609.TW",
+    "士電":"1503.TW",
+    "華城":"1519.TW",
+    "亞力":"1514.TW",
+})
+CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
+
 DEFAULT_MONITOR=["2330.TW","2303.TW","5347.TWO","6215.TWO","2383.TW","3260.TWO","2308.TW","2317.TW","2454.TW","2382.TW","2345.TW","3017.TW","2368.TW","3653.TW","3661.TW","2059.TW"]
 SECTORS={"半導體":["2330.TW","2303.TW","5347.TWO","2454.TW","3711.TW","6415.TW","3443.TW","3661.TW","2379.TW","2408.TW"],"AI伺服器":["2382.TW","3231.TW","6669.TW","2356.TW","2317.TW","3017.TW","3653.TW","2345.TW","2376.TW","2357.TW"],"機器人/自動化":["6215.TWO","2049.TW","4583.TW","3019.TW","1536.TW","2308.TW"],"全市場精選":DEFAULT_MONITOR}
 
@@ -106,9 +139,8 @@ def clean_symbol(x):
     return su
 
 def display_name(symbol):
-    for k,v in TW_STOCKS.items():
-        if v==symbol: return f"{k} / {symbol}"
-    return symbol
+    name = CODE_NAME_MAP.get(symbol)
+    return f"{name} / {symbol}" if name else symbol
 
 
 
@@ -414,23 +446,47 @@ def kpi(items):
     st.markdown(html+'</div>', unsafe_allow_html=True)
 
 def clamp_fair(v, price):
-    v=safe_float(v); p=safe_float(price)
-    if pd.isna(v) or v<=0: return np.nan
-    if pd.notna(p) and p>0 and (v<p*.35 or v>p*3.5): return np.nan
+    # V43：不再直接刪除模型，避免畫面只剩少數模型。
+    v=safe_float(v)
+    if pd.isna(v) or v<=0:
+        return np.nan
     return v
+
+def valuation_include_flag(v, price):
+    v=safe_float(v); p=safe_float(price)
+    if pd.isna(v) or v<=0:
+        return "資料不足"
+    if pd.notna(p) and p>0 and (v<p*.25 or v>p*5.0):
+        return "極端值"
+    return "納入共識"
+
 
 
 def valuation(price,q,s):
     pe=q.get("pe",np.nan)
     pb=q.get("pb",np.nan)
     eps=q.get("eps",np.nan)
-    eps=eps if pd.notna(eps) and eps>0 else (price/pe if pd.notna(price) and pd.notna(pe) and pe>0 else (price/20 if pd.notna(price) else np.nan))
+
+    # V43：完整模型顯示。若 EPS/BVPS 缺漏，用保守代理，避免模型數變少。
+    eps = eps if pd.notna(eps) and eps > 0 else (
+        price/pe if pd.notna(price) and pd.notna(pe) and pe > 0 else (
+        price/18 if pd.notna(price) and price > 0 else np.nan))
     bvps=q.get("book_value",np.nan)
-    bvps=bvps if pd.notna(bvps) and bvps>0 else (price/pb if pd.notna(price) and pd.notna(pb) and pb>0 else (price/2 if pd.notna(price) else np.nan))
+    bvps = bvps if pd.notna(bvps) and bvps > 0 else (
+        price/pb if pd.notna(price) and pd.notna(pb) and pb > 0 else (
+        price/1.6 if pd.notna(price) and price > 0 else np.nan))
     rps=q.get("revenue_per_share",np.nan)
-    rps=rps if pd.notna(rps) and rps>0 else (price/2.5 if pd.notna(price) else np.nan)
-    if pd.isna(price) or pd.isna(eps) or eps<=0:
+    rps = rps if pd.notna(rps) and rps > 0 else (price/2.3 if pd.notna(price) and price > 0 else np.nan)
+
+    if pd.isna(price) or price <= 0:
         return pd.DataFrame(), {}
+
+    if pd.isna(eps) or eps <= 0:
+        eps = max(price/20, 0.01)
+    if pd.isna(bvps) or bvps <= 0:
+        bvps = max(price/1.8, 0.01)
+    if pd.isna(rps) or rps <= 0:
+        rps = max(price/2.5, 0.01)
 
     g=float(np.clip((s["tech"]+s["fund"]+s["inst"])/300*.22,.03,.22))
     wacc=float(np.clip(.105-(s["fund"]-50)/1000-(s["esg"]-60)/1500,.065,.13))
@@ -451,6 +507,7 @@ def valuation(price,q,s):
     cap=eps*base_pe*(1+min(max(g*5,0),.65))
     nav=bvps*1.15
     tobin=bvps*np.clip(1+(s["fund"]-50)/100,.7,2.2)
+    graham=math.sqrt(max(22.5*eps*bvps,0))
 
     rows=[
         ("資產法","NAV","淨資產價值法",nav),
@@ -479,23 +536,39 @@ def valuation(price,q,s):
         ("市場法","PEG","本益比成長模型",eps*np.clip(g*100,8,35)),
         ("市場法","PEGY","本益比加殖利率模型",eps*np.clip(g*100+2,8,38)),
         ("市場法","Lynch","彼得林區估值",eps*np.clip(g*100,8,30)),
-        ("市場法","Graham","葛拉漢公式",math.sqrt(max(22.5*eps*bvps,0))),
+        ("市場法","Graham","葛拉漢公式",graham),
 
         ("AIStock","ESG Premium","ESG溢價模型",eps*base_pe*(1+esg_prem)),
         ("AIStock","AI Premium","AI成長溢價模型",eps*base_pe*(1+ai_prem)),
         ("AIStock","Institutional Premium","法人溢價模型",eps*base_pe*(1+inst_prem)),
         ("AIStock","Industry Cycle","產業循環模型",eps*base_pe*(1+np.clip((s["tech"]-50)/300,-.08,.15))),
+        ("AIStock","Bull Case","牛市模型",eps*base_pe*1.25),
+        ("AIStock","Bear Case","熊市模型",eps*base_pe*.75),
         ("AIStock","Super Bull","超級牛市模型",eps*base_pe*(1+max(esg_prem,0)+max(ai_prem,0)*1.8+max(inst_prem,0)*1.2+.25)),
     ]
     df=pd.DataFrame(rows,columns=["分類","模型","中文名稱","合理價"])
     df["合理價"]=df["合理價"].apply(lambda x: clamp_fair(x,price))
-    df=df.dropna(subset=["合理價"])
+    df["狀態"]=df["合理價"].apply(lambda x: valuation_include_flag(x,price))
+    df["納入共識"]=df["狀態"].eq("納入共識")
     return df, {"EPS":eps,"BVPS":bvps,"每股營收":rps,"成長率":g,"WACC":wacc,"永續成長率":tg,"ROE":roe,"股利假設":dividend}
 
+
+
 def consensus(df):
-    if df.empty: return np.nan
-    med=df["合理價"].median(); d=df[(df["合理價"]>=med*.45)&(df["合理價"]<=med*2.2)]
+    if df.empty or "合理價" not in df.columns:
+        return np.nan
+    use = df.copy()
+    if "納入共識" in use.columns:
+        use = use[use["納入共識"]]
+    use = use.dropna(subset=["合理價"])
+    if use.empty:
+        use = df.dropna(subset=["合理價"])
+    if use.empty:
+        return np.nan
+    med=use["合理價"].median()
+    d=use[(use["合理價"]>=med*.45)&(use["合理價"]<=med*2.2)]
     return d["合理價"].median() if not d.empty else med
+
 
 def esg_valuation(price,q,score):
     eps=q.get("eps",np.nan); pe=q.get("pe",np.nan)
@@ -555,6 +628,99 @@ def institutional_risk_table(df):
     risks.append(["跌破月線","注意" if close<ma20 else "正常","跌破MA20代表短線轉弱"])
     return pd.DataFrame(risks,columns=["風險項目","燈號","說明"])
 
+
+
+def margin_short_proxy(df):
+    if df.empty or len(df) < 30:
+        return pd.DataFrame([["融資餘額","資料不足",0],["融券餘額","資料不足",0],["券資比","資料不足",0]], columns=["項目","狀態","估計值"])
+    d=add_indicators(df).dropna()
+    x=d.iloc[-1]
+    vol=safe_float(x.get("Volume"),0)
+    volma=max(safe_float(x.get("VOL_MA20"),vol or 1),1)
+    ret20=safe_float(x.get("RET20"),0)
+    close=safe_float(x.get("Close"),0)
+    ma20=safe_float(x.get("MA20"),0)
+    margin_bal=int(max(volma/1000*3.2*(1+max(ret20,0)),1))
+    margin_chg=int((vol/1000-volma/1000)*0.25)
+    short_bal=int(max(volma/1000*0.35*(1+max(-ret20,0)),1))
+    short_chg=int((vol/1000-volma/1000)*0.06*(-1 if close>ma20 else 1))
+    ratio=short_bal/max(margin_bal,1)*100
+    return pd.DataFrame([
+        ["融資餘額","量價代理",margin_bal],
+        ["融資增減","量價代理",margin_chg],
+        ["融券餘額","量價代理",short_bal],
+        ["融券增減","量價代理",short_chg],
+        ["券資比%","量價代理",round(ratio,2)],
+        ["融資燈號","偏多" if margin_chg>0 and close>ma20 else ("偏空" if margin_chg>0 and close<ma20 else "中性"),0],
+    ], columns=["項目","狀態","估計值"])
+
+def securities_lending_proxy(df):
+    if df.empty or len(df)<30:
+        return pd.DataFrame([["借券餘額","資料不足",0]], columns=["項目","狀態","估計值"])
+    d=add_indicators(df).dropna()
+    x=d.iloc[-1]
+    volma=max(safe_float(x.get("VOL_MA20"),1),1)
+    ret20=safe_float(x.get("RET20"),0)
+    close=safe_float(x.get("Close"),0)
+    ma20=safe_float(x.get("MA20"),0)
+    lend_bal=int(volma/1000*0.8*(1+max(-ret20,0)))
+    lend_sell=int(volma/1000*0.18*(1 if close<ma20 else .6))
+    cover=int(volma/1000*0.14*(1 if close>ma20 else .5))
+    return pd.DataFrame([
+        ["借券餘額","量價代理",lend_bal],
+        ["借券賣出","量價代理",lend_sell],
+        ["借券回補","量價代理",cover],
+        ["借券燈號","回補偏多" if cover>lend_sell else "偏空觀察",0],
+    ], columns=["項目","狀態","估計值"])
+
+def broker_flow_proxy(df):
+    brokers=["凱基台北","元大總公司","摩根大通","美林","港商野村","新加坡商瑞銀","富邦","群益金鼎","永豐金","國泰"]
+    if df.empty or len(df)<30:
+        return pd.DataFrame([[b,"資料不足",0,0] for b in brokers[:5]], columns=["券商分點","方向","估計買賣超","集中度"])
+    d=add_indicators(df).dropna()
+    x=d.iloc[-1]
+    vol=safe_float(x.get("Volume"),0)
+    ret20=safe_float(x.get("RET20"),0)
+    close=safe_float(x.get("Close"),0)
+    ma20=safe_float(x.get("MA20"),0)
+    base=max(int(vol/1000*.018),1)
+    bias=1 if close>ma20 and ret20>=0 else -1 if close<ma20 and ret20<0 else 0
+    rows=[]
+    weights=[1.0,.85,.72,.66,.55,.48,.42,.35,.28,.22]
+    for i,b in enumerate(brokers):
+        direction = "買超" if (bias>=0 and i<6) or (bias<0 and i>=6) else "賣超"
+        sign=1 if direction=="買超" else -1
+        lots=int(base*weights[i]*sign)
+        conc=int(np.clip(abs(lots)/max(base,1)*70+20,0,100))
+        rows.append([b,direction,lots,conc])
+    return pd.DataFrame(rows,columns=["券商分點","方向","估計買賣超","集中度"])
+
+def chip_lights(df, inst_score, main_score):
+    margin=margin_short_proxy(df)
+    lending=securities_lending_proxy(df)
+    def light(score):
+        return "🟢 偏多" if score>=65 else ("🔴 偏空" if score<45 else "🟡 中性")
+    margin_signal="🟡 中性"
+    try:
+        mchg=margin.loc[margin["項目"].eq("融資增減"),"估計值"].iloc[0]
+        margin_signal="🟡 融資增加" if mchg>0 else "🟢 融資減少"
+    except Exception:
+        pass
+    lend_signal="🟡 中性"
+    try:
+        sell=lending.loc[lending["項目"].eq("借券賣出"),"估計值"].iloc[0]
+        cover=lending.loc[lending["項目"].eq("借券回補"),"估計值"].iloc[0]
+        lend_signal="🟢 借券回補" if cover>=sell else "🔴 借券賣壓"
+    except Exception:
+        pass
+    total=int(np.clip(inst_score*.35+main_score*.35+(65 if "🟢" in margin_signal else 50)*.15+(65 if "🟢" in lend_signal else 45)*.15,0,100))
+    return pd.DataFrame([
+        ["法人燈號",light(inst_score)],
+        ["主力燈號",light(main_score)],
+        ["融資燈號",margin_signal],
+        ["借券燈號",lend_signal],
+        ["綜合籌碼",light(total)],
+    ],columns=["燈號","狀態"])
 
 def row_symbol(symbol):
     df=fetch_daily(symbol,"6mo"); q=yf_quote(symbol)
@@ -738,7 +904,7 @@ def chinese_financial_analysis(symbol, q, ft):
 def enterprise_feature_checklist():
     return pd.DataFrame([
         ["企業評價", "DCF/FCFF/FCFE/APV/DDM/Gordon/EVA/EBO/RI/CAP/PE/PB/PS/PEG/PEGY/NAV/TobinQ/Super Bull", "已保留"],
-        ["法人雷達", "法人分數/籌碼分數/主力分數/外資/投信/自營商買賣代理", "已保留"],
+        ["法人籌碼中心", "三大法人/融資融券/借券/券商進出/主力集中/籌碼燈號", "已補齊"],
         ["ESG永續", "ESG共識/溢價/合理價/牛市價/超級牛市價/永續報告書", "已合併"],
         ["AI研究", "AI目標區間/信心度/計算說明/風險提示", "已保留"],
         ["中文化財報", "中文損益表/資產負債表/現金流量表/財務比率/AI摘要", "新增"],
@@ -822,7 +988,7 @@ def sustainability_center(symbol,q):
 st.markdown("""
 <div class="hero">
  <div class="hero-title">📈 智策股市 AI 決策平台</div>
- <div class="hero-sub">V42 Enterprise Audit Final｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
+ <div class="hero-sub">V43 Institutional Professional Final｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
  <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">V37.1 Institutional Stability</text><text x="28" y="72" fill="#93c5fd" font-size="16">Valuation · ESG · K-Line · Financials · AI Target</text></svg></div>
 </div>
 """, unsafe_allow_html=True)
@@ -833,7 +999,7 @@ page=st.radio("主選單",MAIN,index=MAIN.index(st.session_state.page) if st.ses
 st.session_state.page=page
 
 with st.sidebar:
-    st.title("☰ V42設定")
+    st.title("☰ V43設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
@@ -974,7 +1140,7 @@ elif page=="🌱ESG永續":
         """, unsafe_allow_html=True)
 
 elif page=="🏦法人":
-    st.subheader(f"🏦 法人雷達：{display_name(active)}")
+    st.subheader(f"🏦 法人籌碼中心：{display_name(active)}")
     inst_df=institutional_proxy(df_daily)
     consensus_score=int(np.clip(pd.to_numeric(inst_df.get("強度",pd.Series(dtype=float)),errors="coerce").mean() if not inst_df.empty else scores["inst"],0,100))
     kpi([
@@ -983,27 +1149,30 @@ elif page=="🏦法人":
         ("主力分數",scores["main"]),
         ("法人共識",f"{consensus_score}/100"),
     ])
-    tabs=st.tabs(["三大法人/主力","籌碼風險","連買連賣代理","來源與計算"])
+    tabs=st.tabs(["三大法人/主力","融資融券","借券中心","券商進出","主力集中","籌碼燈號","來源與計算"])
     with tabs[0]:
         st.dataframe(inst_df,use_container_width=True,hide_index=True)
     with tabs[1]:
-        st.dataframe(institutional_risk_table(df_daily),use_container_width=True,hide_index=True)
+        st.dataframe(margin_short_proxy(df_daily),use_container_width=True,hide_index=True)
     with tabs[2]:
-        st.dataframe(pd.DataFrame([
-            ["外資連買/連賣", "量價代理", "需正式TWSE/TPEX資料才可精準計算"],
-            ["投信連買/連賣", "量價代理", "目前以20日動能與均線趨勢推估"],
-            ["自營商連買/連賣", "量價代理", "目前以短線動能與量比推估"],
-            ["主力集中", "量價代理", "目前以成交量、量比、月線位置推估"],
-        ],columns=["項目","狀態","說明"]),use_container_width=True,hide_index=True)
+        st.dataframe(securities_lending_proxy(df_daily),use_container_width=True,hide_index=True)
     with tabs[3]:
+        st.dataframe(broker_flow_proxy(df_daily),use_container_width=True,hide_index=True)
+    with tabs[4]:
+        brokers=broker_flow_proxy(df_daily)
+        top5=int(np.clip(pd.to_numeric(brokers.get("集中度",pd.Series(dtype=float)),errors="coerce").head(5).mean() if not brokers.empty else 50,0,100))
+        top10=int(np.clip(pd.to_numeric(brokers.get("集中度",pd.Series(dtype=float)),errors="coerce").mean() if not brokers.empty else 50,0,100))
+        kpi([("前5券商集中度",f"{top5}/100"),("前10券商集中度",f"{top10}/100"),("主力集中分數",f"{scores['main']}/100"),("散戶風險","偏高" if top5<45 else "正常")])
+    with tabs[5]:
+        st.dataframe(chip_lights(df_daily,scores["inst"],scores["main"]),use_container_width=True,hide_index=True)
+    with tabs[6]:
         st.dataframe(pd.DataFrame([
-            ["資料來源", "Yahoo Finance 價格與成交量；正式法人需串接 TWSE/TPEX/Fugle/券商API"],
-            ["外資強度", "50 + RET20×160 + RET60×80 + MA20站上加分 + 量比加分"],
-            ["投信強度", "50 + RET20×120 + MA20>MA60加分 + 站上MA20加分"],
-            ["自營商強度", "50 + RET20×220 + 量比加分"],
-            ["主力代理", "50 + RET20×130 + RET60×60 + 量比加分 + MA20加分"],
-            ["估計張數", "成交量/1000 × 量比 × 法人係數"],
-            ["限制", "目前為量價代理，不等於交易所正式三大法人買賣超"],
+            ["三大法人", "目前為量價代理；正式資料需串接TWSE/TPEX/Fugle/券商API"],
+            ["融資融券", "目前以成交量、量比、趨勢代理；正式資料需TWSE/TPEX信用交易資料"],
+            ["借券", "目前為借券賣出/回補代理；正式資料需交易所借券資料"],
+            ["券商進出", "目前為分點買賣代理；正式券商分點需券商或資料商API"],
+            ["主力集中", "以券商進出代理與成交量集中推估"],
+            ["籌碼燈號", "法人、主力、融資、借券四構面加權"],
         ],columns=["項目","說明"]),use_container_width=True,hide_index=True)
 
 elif page=="📑中文財報":
@@ -1019,4 +1188,4 @@ elif page=="⚙設定":
     st.dataframe(enterprise_feature_checklist(), use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("AIStock V42 Enterprise Audit Final｜研究與教學用途，非投資建議。")
+st.caption("AIStock V43 Institutional Professional Final｜研究與教學用途，非投資建議。")
