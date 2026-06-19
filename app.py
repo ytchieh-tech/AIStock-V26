@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V54 Kline Indicator Render Fix Final"
+APP_VERSION="V55 Symbol Resolver Pro Final"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -704,7 +704,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V54 Kline Indicator Render Fix Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V55 Symbol Resolver Pro Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -1776,7 +1776,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V54 Kline Indicator Render Fix Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V55 Symbol Resolver Pro Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1792,7 +1792,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V54 Kline Indicator Render Fix Final</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V55 Symbol Resolver Pro Final</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1821,7 +1821,7 @@ try:
 except Exception:
     pass
 with st.sidebar:
-    st.title("☰ V54設定")
+    st.title("☰ V55設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
@@ -2050,6 +2050,127 @@ def kline_chart(df, overlays, panel):
     st.plotly_chart(sub, use_container_width=True)
 # ================= V54 KLINE INDICATOR RENDER FIX END =================
 
+# ================= V55 SYMBOL RESOLVER PRO =================
+@st.cache_data(show_spinner=False, ttl=3600)
+def yahoo_has_price_data(symbol):
+    """Return True if Yahoo Finance returns usable price data."""
+    try:
+        df = yf.download(symbol, period="3mo", interval="1d", progress=False, auto_adjust=False, threads=False)
+        return df is not None and not df.empty and "Close" in df.columns and pd.to_numeric(df["Close"], errors="coerce").dropna().size > 0
+    except Exception:
+        return False
+
+@st.cache_data(show_spinner=False, ttl=86400)
+def yahoo_resolve_numeric_code(code):
+    """Try .TW then .TWO for Taiwan stocks. Return the working Yahoo symbol."""
+    c = str(code).strip()
+    if not c.isdigit():
+        return c
+    candidates = [f"{c}.TW", f"{c}.TWO"]
+    # Known OTC first list
+    known_two = set(globals().get("OTC_CODES", set())) | {"6215","5347","3260","3105","8086","8299","6643","3529","6223","6510","3131","3455","6187","5483","6488","8069","5425","8255"}
+    if c in known_two:
+        candidates = [f"{c}.TWO", f"{c}.TW"]
+    for sym in candidates:
+        if yahoo_has_price_data(sym):
+            return sym
+    # fallback: still choose TW for listed-like, TWO for known OTC
+    return f"{c}.TWO" if c in known_two else f"{c}.TW"
+
+def clean_symbol(x):
+    """V55 smart clean symbol: Chinese name, explicit suffix, numeric TW/TWO auto-test."""
+    s = str(x).strip()
+    if not s:
+        return "2330.TW"
+    name_map = globals().get("TW_STOCKS", {})
+    if s in name_map:
+        return name_map[s]
+    # partial Chinese match
+    for nm, sym in name_map.items():
+        try:
+            if s in nm or nm in s:
+                return sym
+        except Exception:
+            pass
+    if "." in s:
+        return s.upper()
+    if s.isdigit():
+        return yahoo_resolve_numeric_code(s)
+    return s
+
+def v55_symbol_lookup_candidates(raw):
+    s = str(raw).strip()
+    out = []
+    if not s:
+        return out
+    name_map = globals().get("TW_STOCKS", {})
+    if s.isdigit():
+        tw = f"{s}.TW"; two = f"{s}.TWO"
+        if yahoo_has_price_data(tw):
+            out.append(tw)
+        if yahoo_has_price_data(two):
+            out.append(two)
+        if not out:
+            out.append(yahoo_resolve_numeric_code(s))
+    else:
+        for nm, sym in name_map.items():
+            if s in nm or nm in s:
+                out.append(sym)
+        if "." in s:
+            out.append(s.upper())
+    # unique preserve order
+    seen=set(); clean=[]
+    for sym in out:
+        if sym not in seen:
+            clean.append(sym); seen.add(sym)
+    return clean[:8]
+
+def unified_symbol_manager(symbols):
+    """V55 single controller with smart TW/TWO resolver and clickable candidates."""
+    if "active_symbol" not in st.session_state:
+        st.session_state.active_symbol = symbols[0] if symbols else "2330.TW"
+    if "recent_symbols" not in st.session_state:
+        st.session_state.recent_symbols = [st.session_state.active_symbol]
+
+    st.markdown("🎯")
+    qtext = st.text_input(
+        "搜尋股票名稱或代碼",
+        value="",
+        placeholder="例如：2330、聯電、和椿、6415、6830、6308",
+        key="v55_symbol_search"
+    )
+    if qtext.strip():
+        target = clean_symbol(qtext.strip())
+        st.session_state.active_symbol = target
+        if target not in st.session_state.recent_symbols:
+            st.session_state.recent_symbols.insert(0, target)
+            st.session_state.recent_symbols = st.session_state.recent_symbols[:12]
+
+    active_now = st.session_state.active_symbol
+    st.caption(f"目前全站分析：{display_name(active_now)}")
+
+    cands = v55_symbol_lookup_candidates(qtext) if qtext.strip() else []
+    recent = st.session_state.get("recent_symbols", [])[:8]
+    show_items = []
+    for s in cands + recent:
+        if s not in show_items:
+            show_items.append(s)
+
+    with st.expander("候選 / 最近使用", expanded=bool(cands)):
+        if cands:
+            st.caption("V55 已自動測試 .TW / .TWO，有資料者優先顯示。")
+        cols = st.columns(4)
+        for i, s in enumerate(show_items[:12]):
+            if cols[i % 4].button(display_name(s), key=f"v55_pick_{i}_{s}"):
+                st.session_state.active_symbol = s
+                if s not in st.session_state.recent_symbols:
+                    st.session_state.recent_symbols.insert(0, s)
+                    st.session_state.recent_symbols = st.session_state.recent_symbols[:12]
+                st.rerun()
+    return st.session_state.active_symbol
+# ================= V55 SYMBOL RESOLVER PRO END =================
+
+
 active = unified_symbol_manager(symbols)
 
 # V39：手機/電腦響應式欄位
@@ -2247,6 +2368,6 @@ elif page=="⚙設定":
     st.dataframe(enterprise_feature_checklist(), use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("AIStock V54 Kline Indicator Render Fix Final｜研究與教學用途，非投資建議。")
+st.caption("AIStock V55 Symbol Resolver Pro Final｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
