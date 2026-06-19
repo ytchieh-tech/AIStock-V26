@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import requests, re, math
 
-APP_VERSION = "V35 Institutional Ultimate Final"
+APP_VERSION = "V35.1 Ultimate Fix"
 APP_NAME = "智策股市 AI 決策平台"
 
 st.set_page_config(
@@ -133,6 +133,43 @@ div[role="radiogroup"] label{white-space:nowrap}
 </style>
 """, unsafe_allow_html=True)
 
+
+# V35.1 Professional Cover Banner - 強制顯示
+st.markdown(f"""
+<div class="v35-banner">
+  <div class="v35-title">📈 智策股市 AI 決策平台</div>
+  <div class="v35-sub">V35.1 Ultimate Fix｜專業看盤 × 法人雷達 × 企業評價 × ESG × AI預測</div>
+  <div class="v35-visual">
+    <svg viewBox="0 0 900 220" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="v351g" x1="0" x2="1">
+          <stop offset="0" stop-color="#22d3ee"/>
+          <stop offset="0.45" stop-color="#60a5fa"/>
+          <stop offset="1" stop-color="#fb7185"/>
+        </linearGradient>
+      </defs>
+      <polyline points="0,165 70,145 130,170 205,118 270,135 330,82 410,106 485,58 555,80 635,42 705,68 785,28 850,50 900,24"
+        fill="none" stroke="url(#v351g)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="0,188 95,162 170,180 255,130 365,152 480,90 600,122 705,70 820,88 900,60"
+        fill="none" stroke="rgba(34,211,238,.38)" stroke-width="3"/>
+      <rect x="95" y="92" width="18" height="70" fill="#22c55e"/>
+      <rect x="188" y="108" width="18" height="55" fill="#ef4444"/>
+      <rect x="310" y="70" width="18" height="78" fill="#22c55e"/>
+      <rect x="452" y="45" width="18" height="66" fill="#22c55e"/>
+      <rect x="585" y="62" width="18" height="60" fill="#ef4444"/>
+      <rect x="735" y="28" width="18" height="75" fill="#22c55e"/>
+    </svg>
+  </div>
+  <div class="v35-pillrow">
+    <span class="v35-pill">自選監控</span>
+    <span class="v35-pill">券商式K線</span>
+    <span class="v35-pill">法人買賣代理</span>
+    <span class="v35-pill">估值透明化</span>
+    <span class="v35-pill">AI數值來源</span>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
 # V35：手機首頁固定主選單，不再依賴側邊欄
 MAIN_PAGES = ["🏠首頁","📊監控","📈K線","💎評價","🌱ESG","🏦法人","🤖AI","⚙設定"]
 PAGE_MAP = {
@@ -249,10 +286,22 @@ def display_name(symbol):
     return symbol
 
 
+
 def module_symbol_picker(label, available_symbols, key_suffix):
-    """Every module uses this picker so K線、報價、法人、評價、ESG、財報、AI預測同步切換股票."""
+    """每個模組都可自行輸入或下拉選股，並同步到全平台。"""
     if "selected_analysis_symbol" not in st.session_state:
         st.session_state.selected_analysis_symbol = available_symbols[0] if available_symbols else "2330.TW"
+
+    custom = st.text_input(
+        f"{label}｜自訂輸入",
+        value="",
+        placeholder="例如：2330、台積電、6215、和椿",
+        key=f"module_symbol_text_{key_suffix}"
+    )
+    if custom.strip():
+        picked_custom = clean_symbol(custom)
+        if picked_custom:
+            st.session_state.selected_analysis_symbol = picked_custom
 
     symbols_unique = []
     for s in ([st.session_state.selected_analysis_symbol] + list(available_symbols) + DEFAULT_MONITOR):
@@ -265,13 +314,14 @@ def module_symbol_picker(label, available_symbols, key_suffix):
         symbols_unique,
         index=symbols_unique.index(current),
         format_func=display_name,
-        key=f"module_symbol_{key_suffix}",
-        help="切換後，本頁分析資料會改用此股票。"
+        key=f"module_symbol_select_{key_suffix}",
+        help="切換後，本頁和其他模組都會同步使用此股票。"
     )
     if picked != st.session_state.selected_analysis_symbol:
         st.session_state.selected_analysis_symbol = picked
         st.rerun()
-    return picked
+    return st.session_state.selected_analysis_symbol
+
 
 def fmt(x):
     return "N/A" if x is None or pd.isna(x) else f"{float(x):.2f}"
@@ -574,6 +624,41 @@ def esg_value(price,q,esg):
     fair=eps*18*(1+prem) if pd.notna(eps) else np.nan
     return {"eps":eps,"premium":prem,"fair":fair,"bull":fair*1.2 if pd.notna(fair) else np.nan,"superbull":fair*1.5 if pd.notna(fair) else np.nan}
 
+
+def institutional_proxy(df):
+    """法人買賣超代理：Yahoo 無正式法人即時買賣超時，用量價估算方向。"""
+    if df is None or df.empty or len(df) < 30:
+        return pd.DataFrame([["外資","資料不足",0,0],["投信","資料不足",0,0],["自營商","資料不足",0,0]], columns=["法人","買賣方向","估計張數","強度"])
+    d = add_indicators(df).dropna()
+    if d.empty:
+        return pd.DataFrame([["外資","資料不足",0,0],["投信","資料不足",0,0],["自營商","資料不足",0,0]], columns=["法人","買賣方向","估計張數","強度"])
+    x = d.iloc[-1]
+    vol = safe_float(x.get("Volume"), 0)
+    vol_ma = safe_float(x.get("VOL_MA20"), vol if vol else 1)
+    ret20 = safe_float(x.get("RET20"), 0)
+    ret60 = safe_float(x.get("RET60"), 0)
+    close = safe_float(x.get("Close"), np.nan)
+    ma20 = safe_float(x.get("MA20"), np.nan)
+    ma60 = safe_float(x.get("MA60"), np.nan)
+    volume_ratio = max(vol / vol_ma, 0) if vol_ma else 1
+    base_lots = int(max(vol / 1000, 1) * min(max(volume_ratio, .4), 2.5) * 0.06)
+
+    foreign_strength = int(np.clip(50 + ret20*160 + ret60*80 + (close > ma20)*12 + (volume_ratio-1)*10, 0, 100))
+    trust_strength = int(np.clip(50 + ret20*120 + (ma20 > ma60)*15 + (close > ma20)*8, 0, 100))
+    dealer_strength = int(np.clip(50 + ret20*220 + (volume_ratio-1)*18, 0, 100))
+
+    def row(name, strength, mult):
+        direction = "買超" if strength >= 55 else ("賣超" if strength <= 45 else "中性")
+        sign = 1 if direction == "買超" else (-1 if direction == "賣超" else 0)
+        lots = int(base_lots * mult * sign)
+        return [name, direction, lots, strength]
+
+    return pd.DataFrame([
+        row("外資", foreign_strength, 1.6),
+        row("投信", trust_strength, .75),
+        row("自營商", dealer_strength, .45),
+    ], columns=["法人","買賣方向","估計張數","強度"])
+
 def row_symbol(symbol, source, key):
     df=fetch_price(symbol,"6mo")
     q=fetch_quote(symbol,source,key)
@@ -804,6 +889,7 @@ def esg_panel(price,q,esg):
     with st.expander("ESG計算依據"):
         st.dataframe(pd.DataFrame([["使用EPS",fmt(ev["eps"])],["基礎PE","18.0"],["ESG溢價",f"{ev['premium']*100:+.1f}%"],["ESG合理價",fmt(ev["fair"])]],columns=["項目","數值"]),use_container_width=True,hide_index=True)
 
+
 def ai_forecast(df):
     st.subheader("🤖 AI謹慎預測中心")
     try:
@@ -812,6 +898,13 @@ def ai_forecast(df):
         if len(d)<120:
             st.warning("資料不足")
             return
+
+        st.markdown("#### 圖形顏色設定")
+        c1,c2,c3 = st.columns(3)
+        color_cons = c1.color_picker("保守情境顏色", "#22c55e", key="ai_color_cons")
+        color_base = c2.color_picker("基準情境顏色", "#60a5fa", key="ai_color_base")
+        color_bull = c3.color_picker("樂觀情境顏色", "#f87171", key="ai_color_bull")
+
         feats=["Close","Volume","MA5","MA20","MA60","MACD","RSI","K","D","RET20","RET60"]
         X=d[feats].values[:-1]
         y=d["Close"].shift(-1).dropna().values
@@ -823,19 +916,41 @@ def ai_forecast(df):
             p=max(min(float(model.predict(last)[0]),cur*1.08),cur*.92)
             preds.append(p)
             cur=p
+
         dates=pd.date_range(df["Date"].iloc[-1]+pd.Timedelta(days=1),periods=30,freq="B")
         pred=pd.DataFrame({"Date":dates,"基準":preds})
         pred["保守"]=pred["基準"]*.94
         pred["樂觀"]=pred["基準"]*1.06
+
         fig=go.Figure()
-        fig.add_trace(go.Scatter(x=df["Date"].tail(120),y=df["Close"].tail(120),name="歷史"))
-        for c in ["保守","基準","樂觀"]:
-            fig.add_trace(go.Scatter(x=pred["Date"],y=pred[c],name=c))
-        fig.update_layout(height=360,template="plotly_dark",margin=dict(l=6,r=6,t=28,b=4))
+        fig.add_trace(go.Scatter(x=df["Date"].tail(120),y=df["Close"].tail(120),name="歷史",line=dict(color="#94a3b8",width=1.5)))
+        fig.add_trace(go.Scatter(x=pred["Date"],y=pred["保守"],name="保守",line=dict(color=color_cons,width=2)))
+        fig.add_trace(go.Scatter(x=pred["Date"],y=pred["基準"],name="基準",line=dict(color=color_base,width=2.5)))
+        fig.add_trace(go.Scatter(x=pred["Date"],y=pred["樂觀"],name="樂觀",line=dict(color=color_bull,width=2)))
+        fig.update_layout(height=360,template="plotly_dark",margin=dict(l=6,r=6,t=28,b=4),legend=dict(orientation="h"))
         st.plotly_chart(fig,use_container_width=True)
+
+        latest = pred.iloc[-1]
+        mobile_kpi_grid([
+            ("30日保守", fmt(latest["保守"])),
+            ("30日基準", fmt(latest["基準"])),
+            ("30日樂觀", fmt(latest["樂觀"])),
+            ("模型模式", "謹慎限制"),
+        ])
+
+        with st.expander("AI數值如何出來的"):
+            st.dataframe(pd.DataFrame([
+                ["模型", "ExtraTreesRegressor 隨機森林類模型"],
+                ["使用資料", "近歷史收盤價、成交量、均線、MACD、RSI、KD、20日/60日報酬"],
+                ["保守情境", "基準預測 × 0.94"],
+                ["基準情境", "模型預測值，並限制單步最大漲跌不超過 ±8%"],
+                ["樂觀情境", "基準預測 × 1.06"],
+                ["限制原因", "避免 AI 過度誇大、避免不合理暴衝"],
+            ], columns=["項目","說明"]), use_container_width=True, hide_index=True)
         st.caption("AI謹慎模式：情境分析，不是保證價格。")
     except Exception as e:
         st.warning(str(e))
+
 
 st.markdown(f"""
 <div class="v35-banner">
@@ -952,8 +1067,19 @@ if page=="🏠市場總覽":
 
 elif page=="📊即時監控":
     st.subheader("📊 即時監控")
+    st.markdown("#### 自訂監控股票")
+    quick_watch = st.text_area(
+        "即時監控自選清單",
+        value=",".join(symbols),
+        height=80,
+        key="page_monitor_custom_symbols",
+        help="可輸入股票名稱或代碼，用逗號分隔，例如：台積電,聯電,6215,5347"
+    )
+    page_symbols = [clean_symbol(x.strip()) for x in quick_watch.split(",") if x.strip()][:mcount]
+    if page_symbols:
+        symbols = page_symbols
     mt=monitor_table(symbols,source,key)
-    view=st.radio("顯示",["手機卡片","專業表格","排行榜"],horizontal=True)
+    view=st.radio("顯示",["手機卡片","專業表格","排行榜"],horizontal=True,key="monitor_view_mode")
     if view=="手機卡片":
         cards(mt,mcount,cols_per_row)
     elif view=="專業表格":
@@ -1006,6 +1132,8 @@ elif page=="🏦法人雷達":
     st.subheader(f"🏦 法人雷達：{display_name(active_symbol)}")
     mobile_kpi_grid([("法人分數",scores["inst"]),("籌碼",scores["chip"]),("主力狀態","偏多" if scores["inst"]>=65 else "偏空" if scores["inst"]<45 else "中性"),("資料狀態","量價代理")])
     st.caption("目前法人資料以量價代理估算；未來可接 TWSE/TPEX/Fugle/券商 API。")
+    st.markdown("#### 三大法人買賣超代理")
+    st.dataframe(institutional_proxy(df), use_container_width=True, hide_index=True)
     st.dataframe(monitor_table(symbols,source,key).sort_values("法人分數",ascending=False),use_container_width=True,hide_index=True)
 
 elif page=="💎企業評價":
@@ -1050,5 +1178,5 @@ elif page=="⚙️系統設定":
     st.write("監控檔數：", mcount)
 
 st.markdown("---")
-st.caption("AIStock V35 Institutional Ultimate Final｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
+st.caption("AIStock V35.1 Ultimate Fix｜智策股市 AI 決策平台｜製作人：Tsung Chieh Yang")
 st.caption("免責聲明：本平台為研究與教學用途，非投資建議。Yahoo Finance 可能為延遲或近即時資料；Fugle API 功能需自行申請 Key。")
