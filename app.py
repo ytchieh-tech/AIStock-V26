@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V44 AI Research + Monitor UX Final"
+APP_VERSION="V45 Enterprise Stable Multi-User Final"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -110,6 +110,34 @@ TW_STOCKS.update({
 })
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
+
+# V45：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+TW_STOCKS.update({
+    "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
+    "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
+    "仁寶":"2324.TW","國巨":"2327.TW","廣宇":"2328.TW","台積電":"2330.TW","精英":"2331.TW",
+    "友訊":"2332.TW","旺宏":"2337.TW","光罩":"2338.TW","台亞":"2340.TW","英業達":"2356.TW",
+    "華碩":"2357.TW","所羅門":"2359.TW","致茂":"2360.TW","藍天":"2362.TW","矽統":"2363.TW",
+    "倫飛":"2364.TW","昆盈":"2365.TW","燿華":"2367.TW","金像電":"2368.TW","菱生":"2369.TW",
+    "大同":"2371.TW","震旦行":"2373.TW","佳能":"2374.TW","智寶":"2375.TW","技嘉":"2376.TW",
+    "微星":"2377.TW","瑞昱":"2379.TW","虹光":"2380.TW","廣達":"2382.TW","台光電":"2383.TW",
+    "群光":"2385.TW","精元":"2387.TW","威盛":"2388.TW","云辰":"2390.TW","正崴":"2392.TW",
+    "研華":"2395.TW","凌陽":"2401.TW","毅嘉":"2402.TW","漢唐":"2404.TW","輔信":"2405.TW",
+    "國碩":"2406.TW","南亞科":"2408.TW","友達":"2409.TW","中華電":"2412.TW","圓剛":"2417.TW",
+    "仲琦":"2419.TW","新巨":"2420.TW","建準":"2421.TW","偉詮電":"2436.TW","超豐":"2441.TW",
+    "京元電子":"2449.TW","創見":"2451.TW","聯發科":"2454.TW","全新":"2455.TW","飛宏":"2457.TW",
+    "義隆":"2458.TW","敦吉":"2459.TW","美律":"2439.TW","神腦":"2450.TW","志聖":"2467.TW",
+    "立隆電":"2472.TW","可成":"2474.TW","華新科":"2492.TW","宏達電":"2498.TW","中鋼":"2002.TW",
+    "中華化":"1727.TW","台塑":"1301.TW","南亞":"1303.TW","台化":"1326.TW","長榮":"2603.TW",
+    "陽明":"2609.TW","萬海":"2615.TW","富邦金":"2881.TW","國泰金":"2882.TW","玉山金":"2884.TW",
+    "元大金":"2885.TW","兆豐金":"2886.TW","中信金":"2891.TW","第一金":"2892.TW","合庫金":"5880.TW",
+    "和椿":"6215.TWO","世界先進":"5347.TWO","威剛":"3260.TWO","穩懋":"3105.TWO","宏捷科":"8086.TWO",
+    "群聯":"8299.TWO","M31":"6643.TWO","信驊":"5274.TW","智原":"3035.TW","創意":"3443.TW",
+    "緯穎":"6669.TW","世芯-KY":"3661.TW","川湖":"2059.TW","奇鋐":"3017.TW","健策":"3653.TW",
+    "智邦":"2345.TW","緯創":"3231.TW","英業達":"2356.TW","華城":"1519.TW","亞力":"1514.TW",
+    "士電":"1503.TW","華新":"1605.TW","大亞":"1609.TW"
+})
+CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 DEFAULT_MONITOR=["2330.TW","2303.TW","5347.TWO","6215.TWO","2383.TW","3260.TWO","2308.TW","2317.TW","2454.TW","2382.TW","2345.TW","3017.TW","2368.TW","3653.TW","3661.TW","2059.TW"]
 SECTORS={"半導體":["2330.TW","2303.TW","5347.TWO","2454.TW","3711.TW","6415.TW","3443.TW","3661.TW","2379.TW","2408.TW"],"AI伺服器":["2382.TW","3231.TW","6669.TW","2356.TW","2317.TW","3017.TW","3653.TW","2345.TW","2376.TW","2357.TW"],"機器人/自動化":["6215.TWO","2049.TW","4583.TW","3019.TW","1536.TW","2308.TW"],"全市場精選":DEFAULT_MONITOR}
 
@@ -233,7 +261,7 @@ def unified_symbol_manager(symbols):
             unique_candidates.append(s)
 
     # 手機避免長條列：只顯示在展開區，且每列最多4個小按鈕
-    with st.expander("候選 / 最近使用", expanded=bool(query.strip())):
+    with st.expander("候選 / 最近使用", expanded=False):
         if unique_candidates:
             cols = st.columns(4)
             for i, s in enumerate(unique_candidates[:12]):
@@ -951,6 +979,51 @@ def ai_target_panel(df, scores):
         ],columns=["項目","說明"]),use_container_width=True,hide_index=True)
 
 
+
+FIN_ZH_MAP = {
+    "Total Revenue":"營業收入總額","Operating Revenue":"營業收入","Cost Of Revenue":"營業成本","Gross Profit":"營業毛利",
+    "Operating Expense":"營業費用","Operating Income":"營業利益","Pretax Income":"稅前淨利","Tax Provision":"所得稅費用",
+    "Net Income":"本期淨利","Net Income Common Stockholders":"歸屬母公司淨利","Diluted EPS":"稀釋EPS","Basic EPS":"基本EPS",
+    "EBITDA":"稅息折舊攤銷前盈餘","EBIT":"息稅前盈餘","Total Assets":"資產總額","Current Assets":"流動資產",
+    "Cash And Cash Equivalents":"現金及約當現金","Inventory":"存貨","Accounts Receivable":"應收帳款",
+    "Total Liabilities Net Minority Interest":"負債總額","Current Liabilities":"流動負債","Long Term Debt":"長期負債",
+    "Stockholders Equity":"股東權益","Retained Earnings":"保留盈餘","Operating Cash Flow":"營業活動現金流",
+    "Investing Cash Flow":"投資活動現金流","Financing Cash Flow":"籌資活動現金流","Free Cash Flow":"自由現金流",
+    "Capital Expenditure":"資本支出","Depreciation And Amortization":"折舊及攤銷"
+}
+def zh_financial_df(df):
+    if df is None or df.empty:
+        return pd.DataFrame()
+    out=df.copy()
+    out.insert(0,"中文項目",[FIN_ZH_MAP.get(str(i),str(i)) for i in out.index])
+    out.insert(0,"英文項目",[str(i) for i in out.index])
+    return out.reset_index(drop=True)
+def fin_get(df,key):
+    try:
+        if df is None or df.empty or key not in df.index:
+            return np.nan
+        val=df.loc[key].dropna()
+        return safe_float(val.iloc[0]) if len(val) else np.nan
+    except Exception:
+        return np.nan
+def chinese_financial_analysis(symbol,q,ft):
+    income=ft.get("income",pd.DataFrame()); balance=ft.get("balance",pd.DataFrame()); cashflow=ft.get("cashflow",pd.DataFrame())
+    revenue=fin_get(income,"Total Revenue"); gross=fin_get(income,"Gross Profit"); op_income=fin_get(income,"Operating Income"); net_income=fin_get(income,"Net Income")
+    assets=fin_get(balance,"Total Assets"); equity=fin_get(balance,"Stockholders Equity")
+    ocf=fin_get(cashflow,"Operating Cash Flow"); capex=fin_get(cashflow,"Capital Expenditure"); fcf=fin_get(cashflow,"Free Cash Flow")
+    if pd.isna(fcf) and pd.notna(ocf) and pd.notna(capex): fcf=ocf+capex
+    summary=pd.DataFrame([["營業收入",revenue],["營業毛利",gross],["營業利益",op_income],["本期淨利",net_income],["資產總額",assets],["股東權益",equity],["營業活動現金流",ocf],["自由現金流",fcf],["EPS",q.get("eps")],["PE",q.get("pe")],["PB",q.get("pb")]],columns=["中文項目","最新數值"])
+    gm=gross/revenue*100 if pd.notna(gross) and pd.notna(revenue) and revenue else np.nan
+    om=op_income/revenue*100 if pd.notna(op_income) and pd.notna(revenue) and revenue else np.nan
+    nm=net_income/revenue*100 if pd.notna(net_income) and pd.notna(revenue) and revenue else np.nan
+    roe=net_income/equity*100 if pd.notna(net_income) and pd.notna(equity) and equity else np.nan
+    roa=net_income/assets*100 if pd.notna(net_income) and pd.notna(assets) and assets else np.nan
+    fcf_margin=fcf/revenue*100 if pd.notna(fcf) and pd.notna(revenue) and revenue else np.nan
+    ratios=pd.DataFrame([["毛利率",gm],["營益率",om],["淨利率",nm],["ROE",roe],["ROA",roa],["自由現金流率",fcf_margin]],columns=["指標","數值%"])
+    score=50
+    for v, add in [(gm,10),(om,10),(nm,10),(roe,12),(roa,8),(fcf_margin,10)]:
+        if pd.notna(v): score += add if v>10 else (add/2 if v>0 else -add/2)
+    return summary, ratios, int(np.clip(score,0,100))
 def financial_center(symbol,q,df):
     st.subheader(f"📑 中文化財報中心：{display_name(symbol)}")
     ft = financial_tables(symbol)
@@ -1027,7 +1100,7 @@ def sustainability_center(symbol,q):
 st.markdown("""
 <div class="hero">
  <div class="hero-title">📈 智策股市 AI 決策平台</div>
- <div class="hero-sub">V44 AI Research + Monitor UX Final｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
+ <div class="hero-sub">V45 Enterprise Stable Multi-User Final｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
  <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">V37.1 Institutional Stability</text><text x="28" y="72" fill="#93c5fd" font-size="16">Valuation · ESG · K-Line · Financials · AI Target</text></svg></div>
 </div>
 """, unsafe_allow_html=True)
@@ -1038,7 +1111,7 @@ page=st.radio("主選單",MAIN,index=MAIN.index(st.session_state.page) if st.ses
 st.session_state.page=page
 
 with st.sidebar:
-    st.title("☰ V44設定")
+    st.title("☰ V45設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
@@ -1046,6 +1119,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
+    # V45_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -1056,6 +1130,8 @@ with st.sidebar:
         st.session_state.last_sector_loaded = sector
     if sector == "自選":
         st.session_state.last_sector_loaded = "自選"
+    elif sector in SECTORS:
+        st.session_state.watch_text_value = ",".join(SECTORS.get(sector, DEFAULT_MONITOR))
     watch_text=st.text_area(
         "自選監控清單（可自行輸入股票）",
         value=st.session_state.watch_text_value,
@@ -1088,12 +1164,15 @@ if page=="🏠首頁":
 elif page=="📊監控":
     st.subheader("📊 即時監控中心")
     st.markdown("#### 監控設定")
-    page_sector=st.selectbox("本頁類股快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")
+    # V45_PAGE_SECTOR_FIX
+    page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")
     if page_sector!="自選":
-        st.session_state.watch_text_value=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
+        page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
+        st.session_state.watch_text_value=page_list
+        st.session_state.page_watch_text=page_list
     page_refresh_label=st.radio("本頁更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=["手動","1秒","3秒","5秒","10秒","30秒","60秒"].index(refresh_label),horizontal=True,key="page_refresh_label")
     page_refresh_sec=0 if page_refresh_label=="手動" else int(page_refresh_label.replace("秒",""))
-    page_watch=st.text_area("本頁自選監控清單",value=st.session_state.watch_text_value,height=100,key="page_watch_text",help="這裡修改後會同步回左側自選清單")
+    page_watch=st.text_area("本頁自選監控清單",value=st.session_state.get("page_watch_text", st.session_state.watch_text_value),height=100,key="page_watch_text",help="這裡修改後會同步回左側自選清單")
     st.session_state.watch_text_value = page_watch
     symbols=[clean_symbol(x.strip()) for x in page_watch.split(",") if x.strip()][:mcount] or DEFAULT_MONITOR[:mcount]
     if st.button("將監控清單第一檔設為全站分析股票", key="apply_first_watch_symbol"):
@@ -1231,11 +1310,12 @@ elif page=="🤖AI":
     st.subheader(f"🤖 AI目標區間：{display_name(active)}")
     ai_target_panel(df_daily,scores)
 elif page=="⚙設定":
-    st.subheader("⚙ 系統設定 / V42功能稽核")
+    st.subheader("⚙ 系統設定 / V45多人共用安全")
+    st.info("多人共用安全：股票、最近使用、自選清單皆使用 st.session_state，屬於每位使用者自己的瀏覽器工作階段；不會互相切換或覆蓋。")
     st.markdown('<div class="explain">V42 已完成：ESG與永續真正合併、企業評價模型以K線收盤價備援、法人雷達補齊、中文化財報分析層、手機/電腦自動響應。</div>',unsafe_allow_html=True)
     st.dataframe(enterprise_feature_checklist(), use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("AIStock V44 AI Research + Monitor UX Final｜研究與教學用途，非投資建議。")
+st.caption("AIStock V45 Enterprise Stable Multi-User Final｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
