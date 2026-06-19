@@ -7,8 +7,13 @@ import yfinance as yf
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import re, math
+try:
+    from streamlit_autorefresh import st_autorefresh
+except Exception:
+    st_autorefresh = None
 
-APP_VERSION="V37.1 Stability Fix"
+
+APP_VERSION="V37.2 Master Fix"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -66,8 +71,12 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
+    # V37.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
-        components.html(f"<script>setTimeout(()=>window.parent.location.reload(), {int(sec)*1000});</script>", height=0)
+        if st_autorefresh is not None:
+            st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
+        else:
+            st.caption("自動更新套件未安裝，請手動刷新；已避免使用瀏覽器reload造成回首頁。")
 
 @st.cache_data(show_spinner=False, ttl=30)
 def yf_quote(symbol):
@@ -187,18 +196,78 @@ def clamp_fair(v, price):
     if pd.notna(p) and p>0 and (v<p*.35 or v>p*3.5): return np.nan
     return v
 
+
 def valuation(price,q,s):
-    pe=q.get("pe",np.nan); pb=q.get("pb",np.nan); eps=q.get("eps",np.nan)
+    pe=q.get("pe",np.nan)
+    pb=q.get("pb",np.nan)
+    eps=q.get("eps",np.nan)
     eps=eps if pd.notna(eps) and eps>0 else (price/pe if pd.notna(price) and pd.notna(pe) and pe>0 else (price/20 if pd.notna(price) else np.nan))
-    bvps=q.get("book_value",np.nan); bvps=bvps if pd.notna(bvps) and bvps>0 else (price/pb if pd.notna(price) and pd.notna(pb) and pb>0 else (price/2 if pd.notna(price) else np.nan))
-    rps=q.get("revenue_per_share",np.nan); rps=rps if pd.notna(rps) and rps>0 else (price/2.5 if pd.notna(price) else np.nan)
-    if pd.isna(price) or pd.isna(eps) or eps<=0: return pd.DataFrame(), {}
-    g=float(np.clip((s["tech"]+s["fund"]+s["inst"])/300*.22,.03,.22)); wacc=float(np.clip(.105-(s["fund"]-50)/1000-(s["esg"]-60)/1500,.065,.13)); tg=float(np.clip(.025+(g-.08)/6,.01,.04)); roe=float(np.clip(.08+(s["fund"]-50)/250,.03,.28))
-    base_pe=float(np.clip(14+g*80,10,32)); esg_prem=.15 if s["esg"]>=80 else .10 if s["esg"]>=70 else .05 if s["esg"]>=60 else 0; ai_prem=float(np.clip((s["tech"]+s["inst"]-100)/500,-.05,.18))
-    fcf=eps*.82; dcf=fcf*(1+g)/max(wacc-tg,.025); eva=bvps+(roe-wacc)*bvps/max(wacc-tg,.025); dividend=eps*.45; ddm=dividend*(1+tg)/max(wacc-tg,.025); ri=bvps+(eps-wacc*bvps)/max(wacc-tg,.025); cap=eps*base_pe*(1+min(max(g*5,0),.65))
-    rows=[("DCF","現金流量折現",dcf),("FCFF","企業自由現金流",dcf*1.03),("FCFE","股東自由現金流",dcf*.97),("APV","調整現值",dcf*1.01),("EVA","經濟附加價值",eva),("EBO","異常盈餘",bvps+eps*5*np.clip(roe/wacc,.5,2.5)),("Residual Income","剩餘盈餘",ri),("DDM","股利折現",ddm),("CAP","競爭優勢期間",cap),("PE","本益比",eps*base_pe),("PB","股價淨值比",bvps*np.clip(1.2+roe*8,.8,4.8)),("PS","股價營收比",rps*np.clip(1.2+g*8,.8,4.5)),("PEG","成長本益比",eps*np.clip(g*100,8,35)),("ESG Premium","ESG溢價",eps*base_pe*(1+esg_prem)),("AI Premium","AI溢價",eps*base_pe*(1+ai_prem)),("Super Bull","超級牛市",eps*base_pe*(1+max(esg_prem,0)+max(ai_prem,0)*1.8+.25))]
-    df=pd.DataFrame(rows,columns=["模型","中文名稱","合理價"]); df["合理價"]=df["合理價"].apply(lambda x: clamp_fair(x,price)); df=df.dropna(subset=["合理價"])
-    return df, {"EPS":eps,"BVPS":bvps,"每股營收":rps,"成長率":g,"WACC":wacc,"永續成長率":tg,"ROE":roe}
+    bvps=q.get("book_value",np.nan)
+    bvps=bvps if pd.notna(bvps) and bvps>0 else (price/pb if pd.notna(price) and pd.notna(pb) and pb>0 else (price/2 if pd.notna(price) else np.nan))
+    rps=q.get("revenue_per_share",np.nan)
+    rps=rps if pd.notna(rps) and rps>0 else (price/2.5 if pd.notna(price) else np.nan)
+    if pd.isna(price) or pd.isna(eps) or eps<=0:
+        return pd.DataFrame(), {}
+
+    g=float(np.clip((s["tech"]+s["fund"]+s["inst"])/300*.22,.03,.22))
+    wacc=float(np.clip(.105-(s["fund"]-50)/1000-(s["esg"]-60)/1500,.065,.13))
+    tg=float(np.clip(.025+(g-.08)/6,.01,.04))
+    roe=float(np.clip(.08+(s["fund"]-50)/250,.03,.28))
+    base_pe=float(np.clip(14+g*80,10,32))
+    esg_prem=.20 if s["esg"]>=90 else (.15 if s["esg"]>=80 else (.10 if s["esg"]>=70 else (.05 if s["esg"]>=60 else 0)))
+    ai_prem=float(np.clip((s["tech"]+s["inst"]-100)/500,-.05,.18))
+    inst_prem=float(np.clip((s["inst"]-55)/250,-.08,.18))
+    fcf=eps*.82
+    dcf=fcf*(1+g)/max(wacc-tg,.025)
+    eva=bvps+(roe-wacc)*bvps/max(wacc-tg,.025)
+    ebo=bvps+eps*5*np.clip(roe/wacc,.5,2.5)
+    residual=bvps+(eps-wacc*bvps)/max(wacc-tg,.025)
+    dividend=eps*.45
+    ddm=dividend*(1+tg)/max(wacc-tg,.025)
+    gordon=ddm
+    cap=eps*base_pe*(1+min(max(g*5,0),.65))
+    nav=bvps*1.15
+    tobin=bvps*np.clip(1+(s["fund"]-50)/100,.7,2.2)
+
+    rows=[
+        ("資產法","NAV","淨資產價值法",nav),
+        ("資產法","Tobin Q","托賓Q模型",tobin),
+        ("資產法","Replacement Cost","重置成本代理",bvps*1.25),
+
+        ("收益法","DCF","現金流量折現",dcf),
+        ("收益法","FCFF","企業自由現金流",dcf*1.03),
+        ("收益法","FCFE","股東自由現金流",dcf*.97),
+        ("收益法","APV","調整現值法",dcf*1.01),
+        ("收益法","DDM","股利折現模型",ddm),
+        ("收益法","Dividend Discount","股利折現模型完整名稱",ddm),
+        ("收益法","Gordon Growth","高登股利成長模型",gordon),
+
+        ("剩餘收益","EVA","經濟附加價值",eva),
+        ("剩餘收益","EBO","異常盈餘模型",ebo),
+        ("剩餘收益","Residual Income","剩餘盈餘模型",residual),
+        ("剩餘收益","Abnormal Earnings Growth","異常盈餘成長模型",eps*base_pe*(1+g)),
+        ("剩餘收益","CAP","競爭優勢期間模型",cap),
+
+        ("市場法","PE","本益比",eps*base_pe),
+        ("市場法","PB","股價淨值比",bvps*np.clip(1.2+roe*8,.8,4.8)),
+        ("市場法","PS","股價營收比",rps*np.clip(1.2+g*8,.8,4.5)),
+        ("市場法","EV/Sales","企業價值營收比",rps*np.clip(1.25+g*8,.8,4.7)),
+        ("市場法","EV/EBITDA","企業價值EBITDA比",eps*np.clip(16+g*65,11,32)),
+        ("市場法","PEG","本益比成長模型",eps*np.clip(g*100,8,35)),
+        ("市場法","PEGY","本益比加殖利率模型",eps*np.clip(g*100+2,8,38)),
+        ("市場法","Lynch","彼得林區估值",eps*np.clip(g*100,8,30)),
+        ("市場法","Graham","葛拉漢公式",math.sqrt(max(22.5*eps*bvps,0))),
+
+        ("AIStock","ESG Premium","ESG溢價模型",eps*base_pe*(1+esg_prem)),
+        ("AIStock","AI Premium","AI成長溢價模型",eps*base_pe*(1+ai_prem)),
+        ("AIStock","Institutional Premium","法人溢價模型",eps*base_pe*(1+inst_prem)),
+        ("AIStock","Industry Cycle","產業循環模型",eps*base_pe*(1+np.clip((s["tech"]-50)/300,-.08,.15))),
+        ("AIStock","Super Bull","超級牛市模型",eps*base_pe*(1+max(esg_prem,0)+max(ai_prem,0)*1.8+max(inst_prem,0)*1.2+.25)),
+    ]
+    df=pd.DataFrame(rows,columns=["分類","模型","中文名稱","合理價"])
+    df["合理價"]=df["合理價"].apply(lambda x: clamp_fair(x,price))
+    df=df.dropna(subset=["合理價"])
+    return df, {"EPS":eps,"BVPS":bvps,"每股營收":rps,"成長率":g,"WACC":wacc,"永續成長率":tg,"ROE":roe,"股利假設":dividend}
 
 def consensus(df):
     if df.empty: return np.nan
@@ -321,7 +390,7 @@ def sustainability_center(symbol,q):
 st.markdown("""
 <div class="hero">
  <div class="hero-title">📈 智策股市 AI 決策平台</div>
- <div class="hero-sub">V37.1 Stability Fix｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
+ <div class="hero-sub">V37.2 Master Fix｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
  <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">V37.1 Institutional Stability</text><text x="28" y="72" fill="#93c5fd" font-size="16">Valuation · ESG · K-Line · Financials · AI Target</text></svg></div>
 </div>
 """, unsafe_allow_html=True)
@@ -332,24 +401,45 @@ page=st.radio("主選單",MAIN,index=MAIN.index(st.session_state.page) if st.ses
 st.session_state.page=page
 
 with st.sidebar:
-    st.title("☰ V37.1設定")
+    st.title("☰ V37.2設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
     cols=st.radio("每排顯示",[1,2,3,4],index=1,horizontal=True,key="cols")
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    default=",".join(DEFAULT_MONITOR if sector=="自選" else SECTORS.get(sector,DEFAULT_MONITOR))
-    watch_text=st.text_area("自選監控清單",default,height=100,key="watch_text")
-    typed=st.text_input("目前分析股票",placeholder="例如 台積電、2330、6215",key="typed_symbol")
+    if "watch_text_value" not in st.session_state:
+        st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
+    if sector != "自選" and st.button("載入此類股清單"):
+        st.session_state.watch_text_value = ",".join(SECTORS.get(sector, DEFAULT_MONITOR))
+    watch_text=st.text_area(
+        "自選監控清單（可自行輸入股票）",
+        value=st.session_state.watch_text_value,
+        height=120,
+        key="watch_text_area",
+        help="例如：台積電,聯電,6215,5347 或 2330.TW,2303.TW"
+    )
+    st.session_state.watch_text_value = watch_text
+    typed=st.text_input("目前分析股票（可自行輸入）",placeholder="例如 台積電、2330、6215",key="typed_symbol")
     if st.button("手動刷新"):
         st.cache_data.clear(); st.rerun()
 
 symbols=[clean_symbol(x.strip()) for x in watch_text.split(",") if x.strip()][:mcount] or DEFAULT_MONITOR[:mcount]
-if "active_symbol" not in st.session_state: st.session_state.active_symbol=symbols[0]
-if typed.strip(): st.session_state.active_symbol=clean_symbol(typed)
-available=list(dict.fromkeys([st.session_state.active_symbol]+symbols+DEFAULT_MONITOR))
-active=st.selectbox("全站目前分析股票",available,index=available.index(st.session_state.active_symbol) if st.session_state.active_symbol in available else 0,format_func=display_name,key="global_active_symbol")
+if "active_symbol" not in st.session_state:
+    st.session_state.active_symbol=symbols[0]
+
+# V37.2：主畫面也提供全站股票輸入，避免只能看台積電
+col_input, col_pick = st.columns([1,1])
+with col_input:
+    main_typed=st.text_input("全站股票輸入", value="", placeholder="例如：台積電、2330、6215、和椿", key="main_symbol_input")
+if typed.strip():
+    st.session_state.active_symbol=clean_symbol(typed)
+if main_typed.strip():
+    st.session_state.active_symbol=clean_symbol(main_typed)
+
+available=list(dict.fromkeys([st.session_state.active_symbol]+symbols+DEFAULT_MONITOR+list(TW_STOCKS.values())))
+with col_pick:
+    active=st.selectbox("全站目前分析股票",available,index=available.index(st.session_state.active_symbol) if st.session_state.active_symbol in available else 0,format_func=display_name,key="global_active_symbol")
 st.session_state.active_symbol=active
 
 df_daily=fetch_daily(active,period); q=yf_quote(active); d_daily=signal_cols(add_indicators(df_daily)); scores=score_blocks(d_daily,q); total=ai_total(scores)
@@ -360,8 +450,15 @@ if page=="🏠首頁":
     kpi([("AI市場溫度",f"{temp}/100"),("目前分析",display_name(active)),("更新頻率",refresh_label),("資料來源","Yahoo Finance")])
     cards(mt.sort_values("AI分數",ascending=False,na_position="last"),min(6,mcount),cols)
 elif page=="📊監控":
-    maybe_reload(refresh_sec); st.subheader("📊 即時監控中心")
-    st.caption(f"最後更新：{now_tw()}｜更新頻率：{refresh_label}")
+    st.subheader("📊 即時監控中心")
+    st.markdown("#### 監控設定")
+    page_refresh_label=st.radio("本頁更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=["手動","1秒","3秒","5秒","10秒","30秒","60秒"].index(refresh_label),horizontal=True,key="page_refresh_label")
+    page_refresh_sec=0 if page_refresh_label=="手動" else int(page_refresh_label.replace("秒",""))
+    page_watch=st.text_area("本頁自選監控清單",value=st.session_state.watch_text_value,height=100,key="page_watch_text",help="這裡修改後會同步回左側自選清單")
+    st.session_state.watch_text_value = page_watch
+    symbols=[clean_symbol(x.strip()) for x in page_watch.split(",") if x.strip()][:mcount] or DEFAULT_MONITOR[:mcount]
+    maybe_reload(page_refresh_sec)
+    st.caption(f"最後更新：{now_tw()}｜更新頻率：{page_refresh_label}｜Yahoo Finance 不保證每秒都有新tick")
     mt=monitor_table(symbols); view=st.radio("顯示",["手機卡片","專業表格","排行榜"],horizontal=True,key="view")
     if view=="手機卡片": cards(mt,mcount,cols)
     elif view=="專業表格": st.dataframe(mt,use_container_width=True,hide_index=True)
@@ -381,7 +478,7 @@ elif page=="💎評價":
     st.dataframe(val,use_container_width=True,hide_index=True)
     with st.expander("評價模型與來源說明"):
         st.dataframe(pd.DataFrame(list(inp.items()),columns=["使用數值","值"]),use_container_width=True,hide_index=True)
-        st.info("已補回 DDM、Residual Income、CAP、APV、FCFF、FCFE、DCF、EVA、EBO、PE、PB、PS、PEG、ESG Premium、AI Premium、Super Bull。")
+        st.info("已補回完整模型：DCF、FCFF、FCFE、APV、DDM、Dividend Discount、Gordon Growth、EVA、EBO、Residual Income、Abnormal Earnings Growth、CAP、PE、PB、PS、EV/Sales、EV/EBITDA、PEG、PEGY、Lynch、Graham、NAV、Tobin Q、ESG Premium、AI Premium、Institutional Premium、Industry Cycle、Super Bull。")
 elif page=="🌱ESG":
     st.subheader(f"🌱 ESG中心：{display_name(active)}")
     ag=pd.DataFrame([["MSCI",70],["Sustainalytics",64],["FTSE Russell",69],["S&P Global CSA",67],["台灣公司治理評鑑",71],["AIStock ESG",68]],columns=["評級來源","ESG分數"])
@@ -404,7 +501,7 @@ elif page=="🤖AI":
     ai_target_panel(df_daily,scores)
 elif page=="⚙設定":
     st.subheader("⚙ 系統設定")
-    st.markdown('<div class="explain">V37.1 已修正：不跳首頁、全站選股同步、補齊評價模型、法人分數顯示、永續ESG估價。</div>',unsafe_allow_html=True)
+    st.markdown('<div class="explain">V37.2 已修正：不跳首頁、全站選股同步、補齊評價模型、法人分數顯示、永續ESG估價。</div>',unsafe_allow_html=True)
 
 st.markdown("---")
-st.caption("AIStock V37.1 Stability Fix｜研究與教學用途，非投資建議。")
+st.caption("AIStock V37.2 Master Fix｜研究與教學用途，非投資建議。")
