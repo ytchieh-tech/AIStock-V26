@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V39 Responsive Unified Symbol Final"
+APP_VERSION="V39.1 Single Controller Hotfix"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -79,8 +79,9 @@ def display_name(symbol):
     return symbol
 
 
+
 def set_active_symbol(sym):
-    """V39: only source of truth for the whole app."""
+    """V39.1: single source of truth. No selectbox can overwrite it."""
     s = clean_symbol(sym)
     if not s:
         return st.session_state.get("active_symbol", DEFAULT_MONITOR[0])
@@ -93,7 +94,7 @@ def set_active_symbol(sym):
     return s
 
 def unified_symbol_manager(symbols):
-    """One global stock controller. Typing a symbol immediately switches the whole site."""
+    """One global stock controller. Text input applies immediately; quick buttons switch safely."""
     if "active_symbol" not in st.session_state:
         st.session_state.active_symbol = symbols[0] if symbols else DEFAULT_MONITOR[0]
     if "recent_symbols" not in st.session_state:
@@ -101,22 +102,38 @@ def unified_symbol_manager(symbols):
 
     st.markdown('<div class="v39-symbol-panel">', unsafe_allow_html=True)
     st.markdown('<div class="v39-active">🎯 全站股票管理中心</div>', unsafe_allow_html=True)
-    st.markdown('<div class="v39-hint">輸入股票後會直接切換全站：首頁、K線、評價、ESG永續、法人、財報、AI 都同步，不需要再下拉選第二次。</div>', unsafe_allow_html=True)
+    st.markdown('<div class="v39-hint">只保留一個股票控制器：輸入股票後，全站立即同步到首頁、K線、評價、ESG永續、法人、財報、AI。</div>', unsafe_allow_html=True)
 
-    typed = st.text_input("輸入股票名稱或代碼", value="", placeholder="例如：2301、台積電、聯電、6215、和椿", key="v39_unified_symbol_input")
+    typed = st.text_input(
+        "輸入股票名稱或代碼後按 Enter",
+        value="",
+        placeholder="例如：2301、台積電、聯電、6215、和椿",
+        key="v391_single_symbol_input"
+    )
     if typed.strip():
-        set_active_symbol(typed.strip())
-
-    pool = []
-    for s in [st.session_state.active_symbol] + st.session_state.get("recent_symbols", []) + list(symbols) + DEFAULT_MONITOR + list(TW_STOCKS.values()):
-        if s and s not in pool:
-            pool.append(s)
-
-    picked = st.selectbox("最近/監控股票快速切換", pool, index=pool.index(st.session_state.active_symbol) if st.session_state.active_symbol in pool else 0, format_func=display_name, key="v39_quick_symbol_select")
-    if picked != st.session_state.active_symbol:
-        set_active_symbol(picked)
+        new_symbol = set_active_symbol(typed.strip())
+        # 清空輸入框，避免每次rerun反覆套用；同時立即重跑讓所有模組改用新股票
+        st.session_state["v391_single_symbol_input"] = ""
+        st.rerun()
 
     st.markdown(f'<div class="v39-hint">目前全站分析：<b>{display_name(st.session_state.active_symbol)}</b></div>', unsafe_allow_html=True)
+
+    # 最近使用與監控清單：用按鈕，不用 selectbox，避免 selectbox session_state 把股票切回舊值
+    quick_pool = []
+    for s in st.session_state.get("recent_symbols", []) + list(symbols) + DEFAULT_MONITOR:
+        if s and s not in quick_pool:
+            quick_pool.append(s)
+    quick_pool = quick_pool[:12]
+
+    if quick_pool:
+        st.caption("快速切換")
+        cols = st.columns(3)
+        for i, s in enumerate(quick_pool):
+            label = display_name(s)
+            if cols[i % 3].button(label, key=f"quick_symbol_btn_{i}_{s}"):
+                set_active_symbol(s)
+                st.rerun()
+
     st.markdown('</div>', unsafe_allow_html=True)
     return st.session_state.active_symbol
 
@@ -446,7 +463,7 @@ def sustainability_center(symbol,q):
 st.markdown("""
 <div class="hero">
  <div class="hero-title">📈 智策股市 AI 決策平台</div>
- <div class="hero-sub">V39 Responsive Unified Symbol Final｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
+ <div class="hero-sub">V39.1 Single Controller Hotfix｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
  <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">V37.1 Institutional Stability</text><text x="28" y="72" fill="#93c5fd" font-size="16">Valuation · ESG · K-Line · Financials · AI Target</text></svg></div>
 </div>
 """, unsafe_allow_html=True)
@@ -554,4 +571,4 @@ elif page=="⚙設定":
     st.markdown('<div class="explain">V37.2 已修正：不跳首頁、全站選股同步、補齊評價模型、法人分數顯示、永續ESG估價。</div>',unsafe_allow_html=True)
 
 st.markdown("---")
-st.caption("AIStock V39 Responsive Unified Symbol Final｜研究與教學用途，非投資建議。")
+st.caption("AIStock V39.1 Single Controller Hotfix｜研究與教學用途，非投資建議。")
