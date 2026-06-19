@@ -13,9 +13,160 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V48 Home Banner Fix Final"
+APP_VERSION="V50 AI ESG Institutional Complete Final"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
+
+
+# ================= V50 AI / ESG / 法人完整補齊 =================
+def v50_ai_complete_tables(symbol, df, q, scores):
+    price = effective_price(q, df)
+    total = ai_total(scores)
+    rating, stars, trend = ai_rating(total) if "ai_rating" in globals() else ("中立","★★★☆☆","中性")
+    val, inp = valuation(price, q, scores)
+    con = consensus(val)
+    risk_score = ai_risk_score(scores, df) if "ai_risk_score" in globals() else int(np.clip(100-total,0,100))
+    upside = (con/price-1)*100 if pd.notna(con) and pd.notna(price) and price else np.nan
+    ai_rating_df = pd.DataFrame([
+        ["AI評級", rating],
+        ["星等", stars],
+        ["AI綜合分數", f"{total}/100"],
+        ["目前狀態", trend],
+        ["模型共識價", fmt(con)],
+        ["相對現價空間", "N/A" if pd.isna(upside) else f"{upside:+.1f}%"],
+    ], columns=["項目","結果"])
+    ai_val_df = val.copy() if isinstance(val, pd.DataFrame) else pd.DataFrame()
+    ai_fin_df = pd.DataFrame([
+        ["EPS", q.get("eps")],
+        ["PE", q.get("pe")],
+        ["PB", q.get("pb")],
+        ["財報分數", scores.get("fund",50)],
+        ["財報判斷", "偏強" if scores.get("fund",50)>=65 else ("中性" if scores.get("fund",50)>=45 else "偏弱")],
+    ], columns=["AI財報項目","結果"])
+    ai_inst_df = pd.DataFrame([
+        ["法人分數", scores.get("inst",50)],
+        ["籌碼分數", scores.get("chip",50)],
+        ["主力分數", scores.get("main",50)],
+        ["法人判斷", "偏多" if scores.get("inst",50)>=60 else ("觀望" if scores.get("inst",50)>=45 else "偏空")],
+    ], columns=["AI法人項目","結果"])
+    industry_score = int(np.clip(scores.get("tech",50)*.3 + scores.get("fund",50)*.25 + scores.get("inst",50)*.25 + scores.get("esg",50)*.2,0,100))
+    ai_industry_df = pd.DataFrame([
+        ["產業景氣分數", industry_score],
+        ["產業階段", "成長/擴張" if industry_score>=70 else ("中性循環" if industry_score>=50 else "修正/觀望")],
+        ["AI/高階題材敏感度", "高" if symbol in ["2330.TW","2454.TW","3443.TW","3661.TW","6669.TW","2382.TW","3231.TW","6415.TW"] else "中"],
+        ["產業風險", "高估值震盪" if industry_score>=75 else "需求與庫存循環"],
+    ], columns=["AI產業項目","結果"])
+    ai_news_df = pd.DataFrame([
+        ["AI新聞分析", "尚未串接新聞API", "可串接公開新聞、RSS、公司重大訊息"],
+        ["產業新聞", "代理模式", "以產業分數、價格動能與法人分數代理"],
+        ["公司新聞", "代理模式", "以財報、股價、成交量變化代理"],
+        ["新聞情緒", "中性", "未接即時新聞前不做過度判斷"],
+    ], columns=["項目","狀態","說明"])
+    ai_event_df = pd.DataFrame([
+        ["財報公告", "高", "EPS、毛利率、營益率、現金流是主要觀察"],
+        ["法說會", "高", "公司展望、訂單、產業需求與資本支出"],
+        ["除權息", "中", "殖利率、填息機率與資金流"],
+        ["重大訊息", "高", "併購、處分、投資、訴訟、重大合約"],
+        ["法人買賣超", "中高", "法人連買/連賣與主力集中度"],
+    ], columns=["AI事件","重要性","觀察重點"])
+    ai_concall_df = pd.DataFrame([
+        ["營收展望", "待公司說明", "觀察月營收與法說展望是否一致"],
+        ["毛利率", "待公司說明", "觀察產品組合與匯率影響"],
+        ["資本支出", "待公司說明", "高成長產業需關注CAPEX與折舊"],
+        ["AI/新產品", "待公司說明", "是否帶動EPS與估值上修"],
+        ["庫存/訂單", "待公司說明", "庫存去化與客戶需求是景氣循環關鍵"],
+    ], columns=["AI法說會題目","狀態","追蹤重點"])
+    ai_comp_df = pd.DataFrame([
+        ["同產業估值", "需同業資料庫", "比較 PE、PB、EV/EBITDA、PEG"],
+        ["同產業成長", "需同業資料庫", "比較營收成長、EPS成長、ROE"],
+        ["同產業籌碼", "代理模式", "比較法人分數與主力分數"],
+        ["競爭優勢", "AI推估", "毛利率、ROE、現金流與產業地位"],
+    ], columns=["AI競爭分析","狀態","說明"])
+    ai_risk_df = pd.DataFrame([
+        ["技術風險", "高" if scores.get("tech",50)<45 else "中低", "跌破均線或動能轉弱"],
+        ["估值風險", "高" if pd.notna(upside) and upside<0 else "中", "共識價低於現價時需留意"],
+        ["籌碼風險", "高" if scores.get("inst",50)<45 else "中低", "法人/主力轉弱"],
+        ["財報風險", "高" if scores.get("fund",50)<45 else "中", "EPS與現金流不足"],
+        ["ESG風險", "中高" if scores.get("esg",50)<55 else "中低", "永續揭露不足或治理風險"],
+        ["綜合風險預警", f"{risk_score}/100", "分數越高代表風險越高"],
+    ], columns=["AI風險預警","燈號/分數","說明"])
+    return {
+        "① AI評級": ai_rating_df,
+        "② AI估值": ai_val_df,
+        "③ AI財報": ai_fin_df,
+        "④ AI法人": ai_inst_df,
+        "⑤ AI產業": ai_industry_df,
+        "⑥ AI新聞": ai_news_df,
+        "⑦ AI事件": ai_event_df,
+        "⑧ AI法說會": ai_concall_df,
+        "⑨ AI競爭分析": ai_comp_df,
+        "⑩ AI風險預警": ai_risk_df,
+    }
+
+def v50_ai_research_center(symbol, df, q, scores):
+    st.subheader(f"🤖 AI研究中心完整版：{display_name(symbol)}")
+    tables = v50_ai_complete_tables(symbol, df, q, scores)
+    total = ai_total(scores)
+    risk = ai_risk_score(scores, df) if "ai_risk_score" in globals() else int(np.clip(100-total,0,100))
+    val, inp = valuation(effective_price(q, df), q, scores)
+    con = consensus(val)
+    kpi([("AI評級", tables["① AI評級"].iloc[0,1]),("AI分數",f"{total}/100"),("風險預警",f"{risk}/100"),("模型共識價",fmt(con))])
+    tabs = st.tabs(list(tables.keys()))
+    for tab, (name, data) in zip(tabs, tables.items()):
+        with tab:
+            if data is None or data.empty:
+                st.info(f"{name} 目前資料不足。")
+            else:
+                st.dataframe(data, use_container_width=True, hide_index=True)
+
+def v50_esg_layers(symbol, q, scores):
+    # 4層ESG資料可信度：實際資料不足時明確揭露代理模式
+    levels = pd.DataFrame([
+        ["Level 1", "永續報告書", "公司年度永續報告書、ESG Report、CSR Report", "未上傳/未串接時使用待補", "95%"],
+        ["Level 2", "ESG揭露指標", "GRI、SASB、TCFD、ISSB、CDP、公司治理評鑑", "部分指標可人工登錄", "80%"],
+        ["Level 3", "產業ESG平均", "同產業ESG平均、治理平均、碳排代理", "可作缺漏補值", "60%"],
+        ["Level 4", "代理模式", "AIStock ESG Engine：治理、財務穩定、風險與產業代理", "目前預設模式", "30%"],
+    ], columns=["層級","資料層","資料內容","目前狀態","資料可信度"])
+    score = scores.get("esg", 68)
+    layer_score = pd.DataFrame([
+        ["永續報告書完整度", 30, "尚未串接公司PDF，先以代理模式"],
+        ["ESG揭露完整度", 45, "GRI/SASB/TCFD/ISSB/CDP待補"],
+        ["產業ESG平均", 60, "可用同產業平均補值"],
+        ["代理ESG分數", score, "AIStock ESG Engine"],
+    ], columns=["項目","分數","說明"])
+    return levels, layer_score
+
+def v50_institutional_upgrade_tables(df, scores):
+    margin = margin_short_proxy(df) if "margin_short_proxy" in globals() else pd.DataFrame()
+    lending = securities_lending_proxy(df) if "securities_lending_proxy" in globals() else pd.DataFrame()
+    broker = broker_flow_proxy(df) if "broker_flow_proxy" in globals() else pd.DataFrame()
+    signal = margin_signal_engine(df, scores.get("inst",50), scores.get("main",50)) if "margin_signal_engine" in globals() else pd.DataFrame()
+    margin_center = pd.DataFrame([
+        ["融資增減率", "量價代理", "融資增加但跌破月線＝風險；融資增加且站上月線＝偏多"],
+        ["融資使用率", "待正式資料", "需TWSE/TPEX信用交易資料"],
+        ["融資維持率", "待正式資料", "需券商或交易所資料"],
+        ["融資燈號", "已建立", "併入綜合買賣燈號"],
+    ], columns=["融資中心","狀態","說明"])
+    short_center = pd.DataFrame([
+        ["融券餘額", "量價代理", "正式資料需TWSE/TPEX"],
+        ["融券增減", "量價代理", "融券增加偏空，回補偏多"],
+        ["券資比", "量價代理", "融券/融資比率越高代表軋空或放空壓力"],
+        ["融券燈號", "已建立", "併入綜合買賣燈號"],
+    ], columns=["融券中心","狀態","說明"])
+    lending_center = pd.DataFrame([
+        ["借券餘額", "量價代理", "正式資料需借券交易資料"],
+        ["借券賣出", "量價代理", "借券賣出增加偏空"],
+        ["借券回補", "量價代理", "回補增加偏多"],
+        ["借券燈號", "已建立", "併入綜合買賣燈號"],
+    ], columns=["借券中心","狀態","說明"])
+    broker_center = pd.DataFrame([
+        ["Top20分點買超", "代理模式", "正式分點需券商/資料商API"],
+        ["Top20分點賣超", "代理模式", "正式分點需券商/資料商API"],
+        ["主力集中度", "量價代理", "以前5/前10券商集中度代理"],
+        ["主力成本帶", "待正式資料", "需分點交易成本或籌碼資料"],
+    ], columns=["券商中心","狀態","說明"])
+    return margin, lending, broker, signal, margin_center, short_center, lending_center, broker_center
+# ================= V50 AI / ESG / 法人完整補齊 END =================
 
 st.markdown("""
 <style>
@@ -176,6 +327,55 @@ TW_STOCKS.update({
     "晶心科":"6533.TW","愛普":"6531.TW","旺矽":"6223.TWO","精測":"6510.TWO",
 })
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
+
+# V49：擴充中文名稱與類股清單
+TW_STOCKS.update({
+    # 近期截圖與常用股
+    "汎銓":"6830.TW","台達化":"1309.TW","台灣精銳":"4583.TW","上銀":"2049.TW","亞光":"3019.TW","和大":"1536.TW",
+    "日月光投控":"3711.TW","矽力-KY":"6415.TW","力旺":"3529.TWO","旺矽":"6223.TWO","精測":"6510.TWO",
+    "祥碩":"5269.TW","譜瑞-KY":"4966.TW","材料-KY":"4763.TW","達發":"6526.TW","晶心科":"6533.TW",
+    "愛普":"6531.TW","神達":"3706.TW","華孚":"6235.TW","廣明":"6188.TWO","均豪":"5443.TWO",
+    "均華":"6640.TWO","弘塑":"3131.TWO","由田":"3455.TWO","迅得":"6438.TW","志聖":"2467.TW",
+    "萬潤":"6187.TWO","鈺創":"5351.TWO","鈊象":"3293.TWO","欣銓":"3264.TWO","中美晶":"5483.TWO",
+    "環球晶":"6488.TWO","元太":"8069.TWO","台半":"5425.TWO","朋程":"8255.TWO",
+    # 半導體/AI/電子
+    "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","金寶":"2312.TW",
+    "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","仁寶":"2324.TW","國巨":"2327.TW",
+    "台積電":"2330.TW","精英":"2331.TW","友訊":"2332.TW","旺宏":"2337.TW","華邦電":"2344.TW",
+    "智邦":"2345.TW","佳世達":"2352.TW","宏碁":"2353.TW","英業達":"2356.TW","華碩":"2357.TW",
+    "致茂":"2360.TW","燿華":"2367.TW","金像電":"2368.TW","技嘉":"2376.TW","微星":"2377.TW",
+    "瑞昱":"2379.TW","廣達":"2382.TW","台光電":"2383.TW","群光":"2385.TW","精元":"2387.TW",
+    "研華":"2395.TW","凌陽":"2401.TW","漢唐":"2404.TW","南亞科":"2408.TW","友達":"2409.TW",
+    "中華電":"2412.TW","建準":"2421.TW","偉詮電":"2436.TW","京元電子":"2449.TW","創見":"2451.TW",
+    "聯發科":"2454.TW","義隆":"2458.TW","立隆電":"2472.TW","可成":"2474.TW","宏達電":"2498.TW",
+    "智原":"3035.TW","奇鋐":"3017.TW","欣興":"3037.TW","緯創":"3231.TW","創意":"3443.TW",
+    "健策":"3653.TW","世芯-KY":"3661.TW","緯穎":"6669.TW","川湖":"2059.TW","信驊":"5274.TW",
+    "世界先進":"5347.TWO","和椿":"6215.TWO","和椿科技":"6215.TWO","威剛":"3260.TWO","穩懋":"3105.TWO",
+    "宏捷科":"8086.TWO","群聯":"8299.TWO","M31":"6643.TWO",
+    # 傳產/金融
+    "華城":"1519.TW","亞力":"1514.TW","士電":"1503.TW","華新":"1605.TW","大亞":"1609.TW",
+    "中鋼":"2002.TW","台塑":"1301.TW","南亞":"1303.TW","台化":"1326.TW","長榮":"2603.TW",
+    "陽明":"2609.TW","萬海":"2615.TW","富邦金":"2881.TW","國泰金":"2882.TW","玉山金":"2884.TW",
+    "元大金":"2885.TW","兆豐金":"2886.TW","中信金":"2891.TW","第一金":"2892.TW","華南金":"2880.TW","合庫金":"5880.TW",
+})
+CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
+
+SECTOR_EXTRA = {
+    "半導體": ["2330.TW","2303.TW","2454.TW","2308.TW","3035.TW","3443.TW","3661.TW","2379.TW","5274.TW","5347.TWO","3105.TWO","8086.TWO","8299.TWO","6643.TWO","6415.TW","6533.TW","6531.TW","6223.TWO","6510.TWO"],
+    "AI伺服器": ["6669.TW","2382.TW","3231.TW","2356.TW","2317.TW","2376.TW","2377.TW","3017.TW","3653.TW","2059.TW","3443.TW","3661.TW"],
+    "機器人/自動化": ["6215.TWO","2049.TW","4583.TW","3019.TW","1536.TW","2308.TW","2467.TW","3131.TWO","3455.TWO","6438.TW","5443.TWO","6640.TWO","6187.TWO"],
+    "矽光子/CPO": ["3008.TW","3163.TWO","3234.TWO","3450.TW","4979.TWO","5222.TWO","6533.TW","3081.TWO"],
+    "高價IC設計": ["3661.TW","3443.TW","3035.TW","2454.TW","3529.TWO","5274.TW","5269.TW","4966.TW","6415.TW","6533.TW","6643.TWO"],
+    "PCB/CCL": ["2383.TW","2368.TW","2313.TW","3037.TW","6274.TWO","6213.TW","8046.TW","3189.TWO"],
+    "散熱": ["3017.TW","3653.TW","3324.TWO","8996.TW","2421.TW","6230.TW"],
+    "電力重電": ["1519.TW","1514.TW","1503.TW","1605.TW","1609.TW","2371.TW"],
+    "記憶體": ["2408.TW","2344.TW","2337.TW","3260.TWO","8299.TWO","5351.TWO"],
+    "面板": ["2409.TW","3481.TW","6116.TW","8069.TWO"],
+    "金融": ["2881.TW","2882.TW","2884.TW","2885.TW","2886.TW","2891.TW","2892.TW","2880.TW","5880.TW"],
+    "航運": ["2603.TW","2609.TW","2615.TW","2606.TW","2618.TW"],
+    "ESG高治理": ["2330.TW","2308.TW","2412.TW","2881.TW","2882.TW","1216.TW","1303.TW"],
+    "全市場精選": ["2330.TW","2303.TW","2308.TW","2454.TW","2383.TW","3017.TW","3443.TW","3661.TW","6669.TW","5347.TWO","6215.TWO","6830.TW","6415.TW"],
+}
 DEFAULT_MONITOR=["2330.TW","2303.TW","5347.TWO","6215.TWO","2383.TW","3260.TWO","2308.TW","2317.TW","2454.TW","2382.TW","2345.TW","3017.TW","2368.TW","3653.TW","3661.TW","2059.TW"]
 SECTORS={"半導體":["2330.TW","2303.TW","5347.TWO","2454.TW","3711.TW","6415.TW","3443.TW","3661.TW","2379.TW","2408.TW"],"AI伺服器":["2382.TW","3231.TW","6669.TW","2356.TW","2317.TW","3017.TW","3653.TW","2345.TW","2376.TW","2357.TW"],"機器人/自動化":["6215.TWO","2049.TW","4583.TW","3019.TW","1536.TW","2308.TW"],"全市場精選":DEFAULT_MONITOR}
 
@@ -213,8 +413,23 @@ def clean_symbol(x):
         return su
     return su
 
+@st.cache_data(show_spinner=False, ttl=86400)
+def yahoo_name_lookup(symbol):
+    try:
+        info = yf.Ticker(symbol).info or {}
+        nm = info.get("shortName") or info.get("longName") or ""
+        if nm:
+            # 清掉常見尾字，保留公司名
+            nm = str(nm).replace(" Corporation","").replace(" Co., Ltd.","").replace(" Co Ltd","").strip()
+            return nm[:18]
+    except Exception:
+        pass
+    return ""
+
 def display_name(symbol):
     name = CODE_NAME_MAP.get(symbol)
+    if not name:
+        name = yahoo_name_lookup(symbol)
     return f"{name} / {symbol}" if name else symbol
 
 
@@ -303,7 +518,7 @@ def unified_symbol_manager(symbols):
         if unique_candidates:
             cols = st.columns(4)
             for i, s in enumerate(unique_candidates[:12]):
-                label = display_name(s).replace(" / ", "\\n")
+                label = display_name(s).replace(" / ", " / ")
                 if cols[i % 4].button(label, key=f"v44_symbol_candidate_{i}_{s}"):
                     set_active_symbol(s)
                     st.rerun()
@@ -320,7 +535,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V48 Home Banner Fix Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V50 AI ESG Institutional Complete Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -1392,7 +1607,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V48 Home Banner Fix Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V50 AI ESG Institutional Complete Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1430,8 +1645,14 @@ if "page" not in st.session_state: st.session_state.page="🏠首頁"
 page=st.radio("主選單",MAIN,index=MAIN.index(st.session_state.page) if st.session_state.page in MAIN else 0,horizontal=True,key="stable_page_menu")
 st.session_state.page=page
 
+
+# V49：把擴充類股併入原本SECTORS
+try:
+    SECTORS.update(SECTOR_EXTRA)
+except Exception:
+    pass
 with st.sidebar:
-    st.title("☰ V47設定")
+    st.title("☰ V50設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
@@ -1484,6 +1705,7 @@ if page=="🏠首頁":
 elif page=="📊監控":
     st.subheader("📊 即時監控中心")
     st.markdown("#### 監控設定")
+    st.caption(f"V49類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
     # V45_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
@@ -1524,6 +1746,11 @@ elif page=="💎評價":
         st.info("已補回完整模型：DCF、FCFF、FCFE、APV、DDM、Dividend Discount、Gordon Growth、EVA、EBO、Residual Income、Abnormal Earnings Growth、CAP、PE、PB、PS、EV/Sales、EV/EBITDA、PEG、PEGY、Lynch、Graham、NAV、Tobin Q、ESG Premium、AI Premium、Institutional Premium、Industry Cycle、Super Bull。")
 elif page=="🌱ESG永續":
     st.subheader(f"🌱 ESG永續整合中心：{display_name(active)}")
+    st.markdown("### V50 ESG實際資料層")
+    esg_levels, esg_layer_score = v50_esg_layers(active, q, scores)
+    st.dataframe(esg_levels, use_container_width=True, hide_index=True)
+    st.dataframe(esg_layer_score, use_container_width=True, hide_index=True)
+
     ag=pd.DataFrame([
         ["MSCI",70,"外部評級代理"],
         ["Sustainalytics",64,"外部風險評級代理"],
@@ -1590,6 +1817,23 @@ elif page=="🌱ESG永續":
 
 elif page=="🏦法人":
     st.subheader(f"🏦 法人籌碼中心：{display_name(active)}")
+    st.markdown("### V50 法人籌碼中心升級")
+    v50_margin, v50_lending, v50_broker, v50_signal, v50_margin_center, v50_short_center, v50_lending_center, v50_broker_center = v50_institutional_upgrade_tables(df_daily, scores)
+    v50tabs = st.tabs(["融資中心","融券中心","借券中心","券商中心","綜合買賣燈號"])
+    with v50tabs[0]:
+        st.dataframe(v50_margin_center, use_container_width=True, hide_index=True)
+        if not v50_margin.empty: st.dataframe(v50_margin, use_container_width=True, hide_index=True)
+    with v50tabs[1]:
+        st.dataframe(v50_short_center, use_container_width=True, hide_index=True)
+    with v50tabs[2]:
+        st.dataframe(v50_lending_center, use_container_width=True, hide_index=True)
+        if not v50_lending.empty: st.dataframe(v50_lending, use_container_width=True, hide_index=True)
+    with v50tabs[3]:
+        st.dataframe(v50_broker_center, use_container_width=True, hide_index=True)
+        if not v50_broker.empty: st.dataframe(v50_broker, use_container_width=True, hide_index=True)
+    with v50tabs[4]:
+        if not v50_signal.empty: st.dataframe(v50_signal, use_container_width=True, hide_index=True)
+
     st.markdown("### V47 融資融券買賣燈號")
     st.dataframe(margin_signal_engine(df_daily, scores.get("inst",50), scores.get("main",50)), use_container_width=True, hide_index=True)
     inst_df=institutional_proxy(df_daily)
@@ -1631,8 +1875,8 @@ elif page=="📑中文財報":
 elif page=="__舊永續__":
     sustainability_center(active,q)
 elif page=="🤖AI":
-    st.subheader(f"🤖 AI目標區間：{display_name(active)}")
-    ai_target_panel(df_daily,scores)
+    v50_ai_research_center(active, df_daily, q, scores)
+
 elif page=="⚙設定":
     st.subheader("⚙ 系統設定 / V45多人共用安全")
     st.info("多人共用安全：股票、最近使用、自選清單皆使用 st.session_state，屬於每位使用者自己的瀏覽器工作階段；不會互相切換或覆蓋。")
@@ -1640,6 +1884,6 @@ elif page=="⚙設定":
     st.dataframe(enterprise_feature_checklist(), use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("AIStock V48 Home Banner Fix Final｜研究與教學用途，非投資建議。")
+st.caption("AIStock V50 AI ESG Institutional Complete Final｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
