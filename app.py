@@ -45,7 +45,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V38.1 Valuation & K-Line Fix"
+APP_VERSION="V38.2 Institutional Radar Edition"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -413,6 +413,266 @@ def institutional_proxy(df):
         rows.append([name,dire,int(base*mult[name]*sign),sc])
     return pd.DataFrame(rows,columns=["法人","買賣方向","估計張數","強度"])
 
+
+def rating_from_score(score):
+    score = safe_float(score, 50)
+    if score >= 85: return "★★★★★ 強力買進"
+    if score >= 70: return "★★★★ 買進"
+    if score >= 55: return "★★★ 中立"
+    if score >= 40: return "★★ 減碼"
+    return "★ 賣出"
+
+def bias_text(score):
+    score = safe_float(score, 50)
+    if score >= 70: return "偏多"
+    if score >= 55: return "中性偏多"
+    if score >= 45: return "中性"
+    if score >= 30: return "中性偏空"
+    return "偏空"
+
+def institutional_radar_engine(df, q, scores):
+    """
+    V38.2 法人雷達2.0
+    目前採 AIStock Proxy：Yahoo量價 + 技術分數 + 籌碼代理。
+    未串接 TWSE/TPEX/Fugle/券商分點前，不宣稱為正式法人資料。
+    """
+    if df is None or df.empty or len(df) < 30:
+        price = safe_float(q.get("price"), 100)
+        base = 1000
+        ret20 = 0
+        ret60 = 0
+        vr = 1
+        close = price
+        high60 = price
+    else:
+        d = add_indicators(df).dropna()
+        if d.empty:
+            price = safe_float(q.get("price"), 100)
+            base = 1000
+            ret20 = 0
+            ret60 = 0
+            vr = 1
+            close = price
+            high60 = price
+        else:
+            x = d.iloc[-1]
+            close = safe_float(x.get("Close"), safe_float(q.get("price"), 100))
+            price = safe_float(q.get("price"), close)
+            vol = safe_float(x.get("Volume"), 0)
+            volma = safe_float(x.get("VOL_MA20"), vol if vol else 1)
+            vr = max(vol / volma, 0.2) if volma else 1
+            ret20 = safe_float(x.get("RET20"), 0)
+            ret60 = safe_float(x.get("RET60"), 0)
+            high60 = safe_float(d["High"].tail(60).max(), close)
+            base = max(int(max(vol/1000, 1) * min(max(vr, .4), 3.2) * .07), 1)
+
+    price_mom = 1 if ret20 > 0 else (-1 if ret20 < -0.03 else 0)
+    tech = safe_float(scores.get("tech"), 50)
+    chip = safe_float(scores.get("chip"), 50)
+    inst = safe_float(scores.get("inst"), 50)
+    main_score_base = safe_float(scores.get("main"), 50)
+
+    foreign_score = int(np.clip(50 + ret20*180 + ret60*80 + (tech-50)*.25 + (vr-1)*10, 0, 100))
+    trust_score = int(np.clip(50 + ret20*140 + (tech-50)*.18 + (chip-50)*.20, 0, 100))
+    dealer_score = int(np.clip(50 + ret20*220 + (vr-1)*18 + (tech-50)*.12, 0, 100))
+
+    def flow_row(name, sc, mult):
+        direction = "買超" if sc >= 55 else ("賣超" if sc <= 45 else "中性")
+        sign = 1 if direction == "買超" else (-1 if direction == "賣超" else 0)
+        today = int(base * mult * sign)
+        five = int(today * (2.2 + abs(ret20)*10))
+        twenty = int(today * (5.8 + abs(ret60)*12))
+        streak = max(1, min(12, int(abs(sc-50)/5)+1))
+        streak_txt = f"連買 {streak} 日" if sign > 0 else (f"連賣 {streak} 日" if sign < 0 else "無明顯連續")
+        return [name, direction, today, five, twenty, streak_txt, sc, rating_from_score(sc)]
+
+    inst_df = pd.DataFrame([
+        flow_row("外資", foreign_score, 1.8),
+        flow_row("投信", trust_score, .85),
+        flow_row("自營商", dealer_score, .55)
+    ], columns=["法人","今日買賣超估計","今日張數","5日累計估計","20日累計估計","連買連賣","強度","評級"])
+
+    # 融資融券 / 借券代理
+    margin_change = int(base * np.clip((1.15 - ret20*3) * (1 if vr > .8 else .6), .2, 2.4))
+    short_change = int(base * np.clip((ret20*5 + (vr-1)*.7), -.8, 2.2))
+    short_margin_ratio = float(np.clip(8 + max(short_change,0)/max(abs(margin_change),1)*55 + max(ret20,0)*50, 1, 70))
+    borrow_sell = int(base * np.clip((0.9 - ret20*2 + (vr-1)*.6), .1, 3.0))
+
+    def margin_judge(item, value):
+        if item == "融資增減":
+            if value > base*1.4 and ret20 <= 0.01:
+                return 38, "融資大增但股價不漲，籌碼偏散戶化", "★★ 減碼"
+            if value > 0 and ret20 > 0:
+                return 62, "股價上漲且融資小增，短線偏多但需注意過熱", "★★★ 中立"
+            if value > 0 and ret20 < 0:
+                return 35, "股價下跌但融資增加，可能為攤平賣壓", "★★ 減碼"
+            return 55, "融資變化不大", "★★★ 中立"
+        if item == "融券增減":
+            if value > 0 and ret20 > 0:
+                return 76, "股價上漲且融券增加，軋空機率提高", "★★★★ 買進"
+            if value < 0 and ret20 < 0:
+                return 36, "融券回補但股價仍弱，偏空", "★★ 減碼"
+            return 55, "融券變化中性", "★★★ 中立"
+        if item == "券資比":
+            if value >= 50:
+                return 88, "券資比極高，潛在軋空條件強", "★★★★★ 強力買進"
+            if value >= 30:
+                return 75, "券資比偏高，具軋空題材", "★★★★ 買進"
+            if value < 5:
+                return 52, "空方力道不足，中性", "★★★ 中立"
+            return 60, "券資比正常偏多", "★★★ 中立"
+        if item == "借券賣出":
+            if value > base*2 and close >= high60*.96:
+                return 42, "借券暴增且股價位於高檔，可能有法人空單布局", "★★ 減碼"
+            if value > base*1.4 and ret20 < 0:
+                return 30, "借券增加且股價下跌，偏空", "★ 賣出"
+            if value < base*.6 and ret20 > 0:
+                return 75, "借券下降且股價上漲，空方退場", "★★★★ 買進"
+            return 55, "借券變化中性", "★★★ 中立"
+        return 50, "中性", "★★★ 中立"
+
+    margin_items = [
+        ("融資增減", margin_change, "張"),
+        ("融券增減", short_change, "張"),
+        ("券資比", short_margin_ratio, "%"),
+        ("借券賣出", borrow_sell, "張"),
+    ]
+    margin_rows=[]
+    for item, value, unit in margin_items:
+        sc, judge, rec = margin_judge(item, value)
+        margin_rows.append([item, round(value,2), unit, judge, sc, rec])
+    margin_df = pd.DataFrame(margin_rows, columns=["項目","數值","單位","AI判斷","分數","建議"])
+
+    # 主力 / 券商異常代理
+    main_buy = int(base * np.clip((main_score_base-45)/18, .2, 3.2))
+    main_sell = int(base * np.clip((55-main_score_base)/20, .15, 2.6))
+    main_net = main_buy - main_sell
+    concentration5 = float(np.clip(18 + (main_score_base-50)*.75 + (vr-1)*12, 5, 72))
+    concentration10 = float(np.clip(concentration5 + 12 + abs(ret20)*40, 10, 88))
+    main_cost = close * (1 - np.clip(ret20, -.08, .12)/2)
+    cost_gap = (close/main_cost - 1) * 100 if main_cost else 0
+    main_force_score = int(np.clip(45 + main_net/max(base,1)*8 + concentration5*.35 + max(cost_gap, -10)*1.2, 0, 100))
+
+    brokers = ["凱基台北","元大台北","摩根大通","美林","群益金鼎","富邦","永豐金","國泰"]
+    abnormal_type = "異常買盤" if main_force_score >= 70 else ("異常賣盤" if main_force_score <= 40 else "無明顯異常")
+    broker_df = pd.DataFrame([
+        [brokers[0], "買超" if main_net>=0 else "賣超", int(abs(main_net)*.42), "連續買超" if main_net>=0 else "連續賣超", "主力吸籌" if main_force_score>=70 else ("主力出貨" if main_force_score<=40 else "觀察")],
+        [brokers[1], "買超" if main_net>=0 else "賣超", int(abs(main_net)*.28), "單日大量", abnormal_type],
+        [brokers[2], "賣超" if main_net>=0 else "買超", int(abs(main_net)*.16), "對作/調節", "觀察"],
+    ], columns=["券商分點","方向","估計張數","型態","AI判讀"])
+
+    main_df = pd.DataFrame([
+        ["主力買超", main_buy, "張"],
+        ["主力賣超", -main_sell, "張"],
+        ["主力淨買超", main_net, "張"],
+        ["前5大集中度", round(concentration5,1), "%"],
+        ["前10大集中度", round(concentration10,1), "%"],
+        ["主力平均成本", round(main_cost,2), "元"],
+        ["成本差異", round(cost_gap,2), "%"],
+        ["Main Force Score", main_force_score, "分"],
+    ], columns=["項目","數值","單位"])
+
+    # 風險偵測
+    risks=[]
+    if foreign_score < 45 and ret20 > 0:
+        risks.append(["法人背離","外資偏賣但股價上漲","🟡 注意"])
+    if margin_change > base*1.4 and ret20 <= 0.01:
+        risks.append(["融資過熱","融資大增但股價不漲","🔴 警告"])
+    if main_force_score <= 40 and close >= high60*.95:
+        risks.append(["主力出貨","主力偏賣且股價高檔","🔴 警告"])
+    if borrow_sell > base*2:
+        risks.append(["借券異常","借券賣出偏高","🟡 注意"])
+    if vr > 2.2 and ret20 > 0.08:
+        risks.append(["高檔爆量","量能過熱，注意追高風險","🟡 注意"])
+    if not risks:
+        risks.append(["整體籌碼","未出現重大異常","🟢 正常"])
+    risk_df=pd.DataFrame(risks,columns=["風險項目","說明","燈號"])
+
+    # 綜合分數
+    margin_score = float(margin_df["分數"].mean())
+    broker_score = main_force_score
+    institutional_score = int(np.clip(
+        foreign_score*.18 + trust_score*.13 + dealer_score*.09 +
+        margin_score*.22 + main_force_score*.23 + broker_score*.15, 0, 100
+    ))
+    consensus_txt = rating_from_score(institutional_score)
+    target_base = safe_float(q.get("price"), close)
+    fair = target_base * (1 + (institutional_score-50)/180)
+    target_df=pd.DataFrame([
+        ["法人風險價", fair*.82],
+        ["法人合理價", fair],
+        ["法人樂觀價", fair*1.15],
+        ["法人牛市價", fair*1.32],
+    ], columns=["項目","價格"])
+
+    summary = {
+        "Institutional Score": institutional_score,
+        "法人共識": consensus_txt,
+        "法人偏向": bias_text(institutional_score),
+        "主力分數": main_force_score,
+        "融資融券分數": round(margin_score,1),
+        "資料來源": "AIStock Proxy / Yahoo Finance 量價代理",
+        "可信度": "代理資料：中等；若串接 TWSE/TPEX/券商分點可提高"
+    }
+    return inst_df, margin_df, main_df, broker_df, risk_df, target_df, summary
+
+def render_institutional_radar_v2(active, df_daily, q, scores):
+    st.subheader(f"🏦 法人雷達 2.0：{display_name(active)}")
+    inst_df, margin_df, main_df, broker_df, risk_df, target_df, summary = institutional_radar_engine(df_daily, q, scores)
+
+    kpi([
+        ("Institutional Score", summary["Institutional Score"]),
+        ("法人共識", summary["法人共識"]),
+        ("主力分數", summary["主力分數"]),
+        ("融資融券分數", summary["融資融券分數"]),
+    ])
+    st.caption(f"資料來源：{summary['資料來源']}｜可信度：{summary['可信度']}")
+
+    tabs=st.tabs(["三大法人","融資融券AI","主力籌碼","異常券商","風險燈號","法人目標價","來源說明"])
+    with tabs[0]:
+        st.markdown("#### 三大法人買賣超代理")
+        st.dataframe(inst_df,use_container_width=True,hide_index=True)
+        st.info("今日、5日、20日與連買連賣為 AIStock Proxy 代理估算，非交易所正式三大法人資料。")
+    with tabs[1]:
+        st.markdown("#### 融資融券 / 借券 AI 判斷")
+        st.dataframe(margin_df,use_container_width=True,hide_index=True)
+        st.markdown("""<div class="explain">
+        <b>判斷邏輯摘要</b><br>
+        融資大增但股價不漲 → 減碼警訊。<br>
+        融券增加且股價上漲 → 軋空機率提高，偏多。<br>
+        券資比高於 30% → 偏多；高於 50% → 強力買進。<br>
+        借券賣出暴增且股價在高檔 → 減碼警訊。
+        </div>""", unsafe_allow_html=True)
+    with tabs[2]:
+        st.markdown("#### 主力籌碼中心")
+        st.dataframe(main_df,use_container_width=True,hide_index=True)
+        main_score = safe_float(summary["主力分數"],50)
+        st.info(f"主力評級：{rating_from_score(main_score)}。主力成本與集中度目前為代理模型估算。")
+    with tabs[3]:
+        st.markdown("#### 異常券商進出偵測")
+        st.dataframe(broker_df,use_container_width=True,hide_index=True)
+        st.info("券商分點名稱目前為示範/代理標籤。若未來串接券商分點資料，可改為真實分點買賣超。")
+    with tabs[4]:
+        st.markdown("#### 籌碼風險中心")
+        st.dataframe(risk_df,use_container_width=True,hide_index=True)
+    with tabs[5]:
+        st.markdown("#### 法人目標價模型")
+        st.dataframe(target_df,use_container_width=True,hide_index=True)
+        st.markdown("""<div class="explain">
+        法人合理價 = 現價 × [1 + (Institutional Score - 50) / 180]。<br>
+        法人風險價 = 法人合理價 × 0.82；法人樂觀價 = ×1.15；法人牛市價 = ×1.32。
+        </div>""", unsafe_allow_html=True)
+    with tabs[6]:
+        st.dataframe(pd.DataFrame([
+            ["三大法人","Yahoo Finance量價 + AIStock Proxy；正式資料需 TWSE/TPEX"],
+            ["融資融券","目前為代理模型；正式資料需 TWSE/TPEX 融資融券資料"],
+            ["借券賣出","目前為代理模型；正式資料需交易所借券資料"],
+            ["主力分點","目前為代理模型；正式資料需券商分點來源"],
+            ["異常券商","目前為代理模型；串接分點資料後可顯示真實券商"],
+            ["買賣建議","依分數轉換為 ★★★★★ 強力買進 至 ★ 賣出"],
+        ], columns=["模組","資料來源/限制"]),use_container_width=True,hide_index=True)
+
+
 def row_symbol(symbol):
     df=fetch_daily(symbol,"6mo"); q=yf_quote(symbol)
     if df.empty: return {"股票":display_name(symbol),"價格":None,"漲跌幅":None,"AI分數":0}
@@ -510,7 +770,7 @@ def sustainability_center(symbol,q):
 st.markdown("""
 <div class="hero">
  <div class="hero-title">📈 智策股市 AI 決策平台</div>
- <div class="hero-sub">V38.1 Valuation & K-Line Fix｜全站股票管理 × ESG永續中心 × 法人雷達2.0 × 評價中心2.0 × AI研究中心</div>
+ <div class="hero-sub">V38.2 Institutional Radar Edition｜全站股票管理 × 法人雷達2.0 × 主力籌碼 × 券商異常 × 評價中心2.0 × AI研究中心</div>
  <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">V37.1 Institutional Stability</text><text x="28" y="72" fill="#93c5fd" font-size="16">AI Research Terminal · ESG · Valuation · Institutional Flow</text></svg></div>
 </div>
 """, unsafe_allow_html=True)
@@ -657,11 +917,7 @@ elif page=="🌱ESG永續":
     with tabs[4]:
         st.dataframe(pd.DataFrame([["ESG = 永續量化結果","ESG分數是永續報告書、治理評鑑、環境與社會資料的量化輸出"],["永續報告書 = ESG來源","GRI、SASB、TCFD、ISSB、CDP等揭露會影響ESG代理分數"],["ESG溢價規則","60~69=5%；70~79=10%；80~89=15%；90以上=20%"],["自動更新限制","股價與財報可自動抓；PDF報告目前採半自動管理"]],columns=["項目","說明"]),use_container_width=True,hide_index=True)
 elif page=="🏦法人":
-    st.subheader(f"🏦 法人雷達：{display_name(active)}")
-    kpi([("法人分數",scores["inst"]),("籌碼分數",scores["chip"]),("主力分數",scores["main"]),("主力狀態","偏多" if scores["main"]>=65 else "偏空" if scores["main"]<45 else "中性")])
-    st.dataframe(institutional_proxy(df_daily),use_container_width=True,hide_index=True)
-    with st.expander("法人分數來源與計算"):
-        st.info("法人/籌碼/主力為量價代理：成交量、量比、20日報酬、60日報酬、MA20/MA60趨勢。非交易所正式三大法人資料。")
+    render_institutional_radar_v2(active, df_daily, q, scores)
 elif page=="📑財報":
     financial_center(active,q,df_daily)
 
@@ -676,7 +932,7 @@ elif page=="🤖AI研究":
     tabs=st.tabs(["AI總評","AI目標價","AI解釋","風險中心","產業循環","財報品質","法人分析","情境劇本"])
     with tabs[0]:
         kpi([("AI總分",ai_score),("AI評級",rec),("風險指數",f"{risk}/100"),("模型共識價",fmt(con))])
-        st.info("V38.1 AI研究中心整合技術面、基本面、法人雷達、ESG、完整企業評價模型，輸出研究結論。")
+        st.info("V38.2 AI研究中心整合技術面、基本面、法人雷達、ESG、完整企業評價模型，輸出研究結論。")
     with tabs[1]:
         ai_target_panel(df_daily,scores)
         if pd.notna(con):
@@ -700,7 +956,7 @@ elif page=="🤖AI研究":
         st.dataframe(pd.DataFrame([["熊市情境","20%",fmt(base*.75 if pd.notna(base) else np.nan)],["基準情境","55%",fmt(base if pd.notna(base) else np.nan)],["牛市情境","25%",fmt(base*1.25 if pd.notna(base) else np.nan)]],columns=["劇本","機率","目標價"]),use_container_width=True,hide_index=True)
 elif page=="⚙設定":
     st.subheader("⚙ 系統設定")
-    st.markdown('<div class="explain">V38 已升級：不跳首頁、全站選股同步、補齊評價模型、法人分數顯示、永續ESG估價。</div>',unsafe_allow_html=True)
+    st.markdown('<div class="explain">V38.2 已升級：法人雷達2.0、融資融券AI判斷、主力籌碼、異常券商偵測、法人目標價已加入。</div>',unsafe_allow_html=True)
 
 st.markdown("---")
-st.caption("AIStock V38.1 Valuation & K-Line Fix｜研究與教學用途，非投資建議。")
+st.caption("AIStock V38.2 Institutional Radar Edition｜研究與教學用途，非投資建議。")
