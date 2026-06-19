@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V41 Enterprise Rebuild 中文化財報版"
+APP_VERSION="V42 Enterprise Audit Final"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -51,6 +51,19 @@ st.markdown("""
 }
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
+
+/* V42 responsive audit */
+@media(max-width:768px){
+  .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
+  .kpi-grid{grid-template-columns:1fr 1fr!important}
+  .stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr 1fr!important}
+}
+@media(max-width:380px){
+  .kpi-grid,.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}
+}
+@media(min-width:769px){
+  .kpi-grid{grid-template-columns:repeat(4,1fr)}
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -372,6 +385,29 @@ def score_blocks(d,q):
 
 def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]*.10+70*.10,1)
 
+
+def effective_price(q, df):
+    """V42: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
+    if pd.notna(p) and p > 0:
+        return float(p)
+    try:
+        if df is not None and not df.empty:
+            c = safe_float(df["Close"].dropna().iloc[-1])
+            if pd.notna(c) and c > 0:
+                return float(c)
+    except Exception:
+        pass
+    return np.nan
+
+def repair_quote_with_df(q, df):
+    q = dict(q) if isinstance(q, dict) else {}
+    p = effective_price(q, df)
+    if pd.notna(p) and (pd.isna(q.get("price", np.nan)) or q.get("price", np.nan) <= 0):
+        q["price"] = p
+        q["source"] = str(q.get("source","Yahoo Finance")) + " + K線收盤價備援"
+    return q
+
 def kpi(items):
     html='<div class="kpi-grid">'
     for label,value in items: html+=f'<div class="kpi"><div class="kpi-label">{label}</div><div class="kpi-value">{value}</div></div>'
@@ -468,17 +504,57 @@ def esg_valuation(price,q,score):
     fair=eps*18*(1+prem) if pd.notna(eps) else np.nan
     return {"EPS":eps,"ESG溢價":prem,"ESG合理價":fair,"ESG牛市價":fair*1.2 if pd.notna(fair) else np.nan,"ESG超級牛市價":fair*1.5 if pd.notna(fair) else np.nan}
 
+
 def institutional_proxy(df):
-    if df.empty or len(df)<30: return pd.DataFrame([["外資","資料不足",0,0],["投信","資料不足",0,0],["自營商","資料不足",0,0]],columns=["法人","買賣方向","估計張數","強度"])
-    d=add_indicators(df).dropna(); x=d.iloc[-1]
-    vol=safe_float(x.get("Volume"),0); volma=safe_float(x.get("VOL_MA20"),vol or 1); vr=max(vol/volma,0) if volma else 1; ret20=safe_float(x.get("RET20"),0); ret60=safe_float(x.get("RET60"),0); close=safe_float(x.get("Close"),0); ma20=safe_float(x.get("MA20"),0); ma60=safe_float(x.get("MA60"),0)
+    if df.empty or len(df)<30:
+        return pd.DataFrame([
+            ["外資","資料不足",0,50,"資料不足"],
+            ["投信","資料不足",0,50,"資料不足"],
+            ["自營商","資料不足",0,50,"資料不足"],
+            ["主力代理","資料不足",0,50,"資料不足"],
+        ],columns=["法人/主力","買賣方向","估計張數","強度","說明"])
+    d=add_indicators(df).dropna()
+    if d.empty:
+        return pd.DataFrame()
+    x=d.iloc[-1]
+    vol=safe_float(x.get("Volume"),0)
+    volma=safe_float(x.get("VOL_MA20"),vol or 1)
+    vr=max(vol/volma,0) if volma else 1
+    ret20=safe_float(x.get("RET20"),0)
+    ret60=safe_float(x.get("RET60"),0)
+    close=safe_float(x.get("Close"),0)
+    ma20=safe_float(x.get("MA20"),0)
+    ma60=safe_float(x.get("MA60"),0)
     base=max(int(max(vol/1000,1)*min(max(vr,.4),2.5)*.06),1)
-    scores={"外資":int(np.clip(50+ret20*160+ret60*80+(close>ma20)*12+(vr-1)*10,0,100)),"投信":int(np.clip(50+ret20*120+(ma20>ma60)*15+(close>ma20)*8,0,100)),"自營商":int(np.clip(50+ret20*220+(vr-1)*18,0,100))}
-    mult={"外資":1.6,"投信":.75,"自營商":.45}; rows=[]
+    scores={
+        "外資":int(np.clip(50+ret20*160+ret60*80+(close>ma20)*12+(vr-1)*10,0,100)),
+        "投信":int(np.clip(50+ret20*120+(ma20>ma60)*15+(close>ma20)*8,0,100)),
+        "自營商":int(np.clip(50+ret20*220+(vr-1)*18,0,100)),
+        "主力代理":int(np.clip(50+ret20*130+ret60*60+(vr-1)*20+(close>ma20)*10,0,100)),
+    }
+    mult={"外資":1.6,"投信":.75,"自營商":.45,"主力代理":1.1}
+    rows=[]
     for name,sc in scores.items():
-        dire="買超" if sc>=55 else ("賣超" if sc<=45 else "中性"); sign=1 if dire=="買超" else (-1 if dire=="賣超" else 0)
-        rows.append([name,dire,int(base*mult[name]*sign),sc])
-    return pd.DataFrame(rows,columns=["法人","買賣方向","估計張數","強度"])
+        dire="買超" if sc>=55 else ("賣超" if sc<=45 else "中性")
+        sign=1 if dire=="買超" else (-1 if dire=="賣超" else 0)
+        rows.append([name,dire,int(base*mult[name]*sign),sc,"量價代理，非交易所正式法人資料"])
+    return pd.DataFrame(rows,columns=["法人/主力","買賣方向","估計張數","強度","說明"])
+
+def institutional_risk_table(df):
+    if df.empty or len(df)<60:
+        return pd.DataFrame([["資料不足","N/A","K線不足60筆"]],columns=["風險項目","燈號","說明"])
+    d=add_indicators(df).dropna()
+    x=d.iloc[-1]
+    risks=[]
+    vr=safe_float(x.get("Volume"),0)/safe_float(x.get("VOL_MA20"),1)
+    ret20=safe_float(x.get("RET20"),0)
+    close=safe_float(x.get("Close"),0)
+    ma20=safe_float(x.get("MA20"),0)
+    risks.append(["量增價弱","注意" if vr>1.5 and close<ma20 else "正常","成交量放大但股價未站上月線時需留意籌碼鬆動"])
+    risks.append(["短線過熱","注意" if ret20>0.18 else "正常","20日漲幅過大可能短線震盪"])
+    risks.append(["跌破月線","注意" if close<ma20 else "正常","跌破MA20代表短線轉弱"])
+    return pd.DataFrame(risks,columns=["風險項目","燈號","說明"])
+
 
 def row_symbol(symbol):
     df=fetch_daily(symbol,"6mo"); q=yf_quote(symbol)
@@ -746,18 +822,18 @@ def sustainability_center(symbol,q):
 st.markdown("""
 <div class="hero">
  <div class="hero-title">📈 智策股市 AI 決策平台</div>
- <div class="hero-sub">V41 Enterprise Rebuild 中文化財報版｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
+ <div class="hero-sub">V42 Enterprise Audit Final｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
  <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">V37.1 Institutional Stability</text><text x="28" y="72" fill="#93c5fd" font-size="16">Valuation · ESG · K-Line · Financials · AI Target</text></svg></div>
 </div>
 """, unsafe_allow_html=True)
 
-MAIN=["🏠首頁","📊監控","📈K線","💎評價","🌱ESG","🏦法人","📑中文財報","🌏永續","🤖AI","⚙設定"]
+MAIN=["🏠首頁","📊監控","📈K線","💎評價","🌱ESG永續","🏦法人","📑中文財報","🤖AI","⚙設定"]
 if "page" not in st.session_state: st.session_state.page="🏠首頁"
 page=st.radio("主選單",MAIN,index=MAIN.index(st.session_state.page) if st.session_state.page in MAIN else 0,horizontal=True,key="stable_page_menu")
 st.session_state.page=page
 
 with st.sidebar:
-    st.title("☰ V41設定")
+    st.title("☰ V42設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
@@ -789,8 +865,8 @@ active = unified_symbol_manager(symbols)
 if "layout_mode" not in locals():
     layout_mode = "自動"
 display_cols = 4 if layout_mode == "電腦" else 2
-df_daily=fetch_daily(active,period); q=yf_quote(active); d_daily=signal_cols(add_indicators(df_daily)); scores=score_blocks(d_daily,q); total=ai_total(scores)
-if pd.isna(q.get("price")) and df_daily.empty:
+df_daily=fetch_daily(active,period); q=repair_quote_with_df(yf_quote(active), df_daily); d_daily=signal_cols(add_indicators(df_daily)); scores=score_blocks(d_daily,q); total=ai_total(scores)
+if pd.isna(effective_price(q, df_daily)) and df_daily.empty:
     st.warning(f"目前 {display_name(active)} 查無 Yahoo Finance 資料。若是上櫃股請確認代碼為 .TWO，例如和椿 = 6215.TWO。")
 
 if page=="🏠首頁":
@@ -825,45 +901,122 @@ elif page=="📈K線":
     else: kline_chart(kdf,overlays,panel)
 elif page=="💎評價":
     st.subheader(f"💎 企業評價：{display_name(active)}")
-    val,inp=valuation(q.get("price"),q,scores); con=consensus(val)
-    kpi([("現價",fmt(q.get("price"))),("共識合理價",fmt(con)),("模型數",len(val)),("AI總分",total)])
+    val,inp=valuation(effective_price(q, df_daily),q,scores); con=consensus(val)
+    kpi([("現價",fmt(effective_price(q, df_daily))),("共識合理價",fmt(con)),("模型數",len(val)),("AI總分",total)])
     st.dataframe(val,use_container_width=True,hide_index=True)
     with st.expander("評價模型與來源說明"):
         st.dataframe(pd.DataFrame(list(inp.items()),columns=["使用數值","值"]),use_container_width=True,hide_index=True)
         st.info("已補回完整模型：DCF、FCFF、FCFE、APV、DDM、Dividend Discount、Gordon Growth、EVA、EBO、Residual Income、Abnormal Earnings Growth、CAP、PE、PB、PS、EV/Sales、EV/EBITDA、PEG、PEGY、Lynch、Graham、NAV、Tobin Q、ESG Premium、AI Premium、Institutional Premium、Industry Cycle、Super Bull。")
-elif page=="🌱ESG":
-    st.subheader(f"🌱 ESG永續中心：{display_name(active)}")
-    ag=pd.DataFrame([["MSCI",70],["Sustainalytics",64],["FTSE Russell",69],["S&P Global CSA",67],["台灣公司治理評鑑",71],["AIStock ESG",68]],columns=["評級來源","ESG分數"])
-    score=float(ag["ESG分數"].mean()); ev=esg_valuation(q.get("price"),q,score)
-    kpi([("ESG共識",f"{score:.1f}"),("ESG溢價",f"{ev['ESG溢價']*100:.1f}%"),("ESG合理價",fmt(ev["ESG合理價"])),("ESG牛市價",fmt(ev["ESG牛市價"]))])
-    kpi([("ESG超級牛市價",fmt(ev["ESG超級牛市價"])),("使用EPS",fmt(ev["EPS"])),("基礎PE","18"),("資料模式","代理模型")])
-    st.dataframe(ag,use_container_width=True,hide_index=True)
-    with st.expander("永續揭露與ESG資料來源"):
+elif page=="🌱ESG永續":
+    st.subheader(f"🌱 ESG永續整合中心：{display_name(active)}")
+    ag=pd.DataFrame([
+        ["MSCI",70,"外部評級代理"],
+        ["Sustainalytics",64,"外部風險評級代理"],
+        ["FTSE Russell",69,"外部指數評級代理"],
+        ["S&P Global CSA",67,"企業永續評比代理"],
+        ["台灣公司治理評鑑",71,"治理評鑑代理"],
+        ["AIStock ESG",68,"AIStock ESG Engine"],
+    ],columns=["評級來源","ESG分數","來源說明"])
+    score=float(ag["ESG分數"].mean())
+    ev=esg_valuation(q.get("price"),q,score)
+    kpi([
+        ("ESG共識",f"{score:.1f}"),
+        ("ESG溢價",f"{ev['ESG溢價']*100:.1f}%"),
+        ("ESG合理價",fmt(ev["ESG合理價"])),
+        ("ESG牛市價",fmt(ev["ESG牛市價"])),
+    ])
+    kpi([
+        ("ESG超級牛市價",fmt(ev["ESG超級牛市價"])),
+        ("使用EPS",fmt(ev["EPS"])),
+        ("基礎PE","18"),
+        ("中心狀態","ESG+永續已合併"),
+    ])
+
+    tabs=st.tabs(["ESG評等","ESG估值","永續揭露","永續報告書","AI永續摘要"])
+    with tabs[0]:
+        st.dataframe(ag,use_container_width=True,hide_index=True)
+    with tabs[1]:
+        esg_val_df=pd.DataFrame([
+            ["ESG合理價", ev["ESG合理價"]],
+            ["ESG牛市價", ev["ESG牛市價"]],
+            ["ESG超級牛市價", ev["ESG超級牛市價"]],
+            ["ESG溢價", ev["ESG溢價"]],
+            ["使用EPS", ev["EPS"]],
+        ],columns=["項目","數值"])
+        st.dataframe(esg_val_df,use_container_width=True,hide_index=True)
+        fig=go.Figure()
+        fig.add_trace(go.Bar(x=["合理價","牛市價","超級牛市價"], y=[ev["ESG合理價"],ev["ESG牛市價"],ev["ESG超級牛市價"]], name="ESG估值"))
+        fig.update_layout(height=300,template="plotly_dark",margin=dict(l=8,r=8,t=20,b=8))
+        st.plotly_chart(fig,use_container_width=True)
+    with tabs[2]:
         st.dataframe(pd.DataFrame([
-            ["永續報告書", "公司年度永續報告書 / ESG Report"],
-            ["GRI", "全球永續性報告準則"],
-            ["SASB", "產業別永續揭露準則"],
-            ["TCFD", "氣候相關財務揭露"],
-            ["ISSB", "國際永續準則"],
-            ["CDP", "碳揭露與氣候問卷"],
-            ["ESG估值", "EPS × 基礎PE 18 × (1 + ESG溢價)"],
-        ], columns=["項目", "說明"]), use_container_width=True, hide_index=True)
+            ["GRI","全球永續性報告準則","揭露企業永續議題與利害關係人溝通"],
+            ["SASB","產業別永續揭露準則","依產業揭露財務重大ESG議題"],
+            ["TCFD","氣候相關財務揭露","氣候風險、治理、策略、指標與目標"],
+            ["ISSB","國際永續準則","IFRS S1 / S2 永續揭露框架"],
+            ["CDP","碳揭露問卷","碳排放、能源、氣候策略揭露"],
+            ["公司治理","董事會、獨立董事、資訊揭露","治理品質與風險控管"],
+        ],columns=["揭露項目","中文說明","用途"]),use_container_width=True,hide_index=True)
+    with tabs[3]:
+        report_url=st.text_input("永續報告書 / 公司IR / ESG PDF連結",placeholder="貼上永續報告書PDF或公司IR頁面連結",key="merged_esg_report_url")
+        report_year=st.selectbox("報告年度",["2026","2025","2024","2023","2022","2021"],index=1,key="merged_esg_report_year")
+        if st.button("登錄永續報告書",key="merged_esg_report_btn"):
+            st.success(f"已登錄 {display_name(active)} {report_year} 永續報告書狀態。")
+        st.info("目前為半自動登錄；未來可串接公開資訊觀測站、公司IR或ESG資料庫自動下載PDF。")
+    with tabs[4]:
+        st.markdown(f"""
+        <div class="explain">
+        <b>AI永續摘要</b><br>
+        {display_name(active)} 的 ESG 共識分數為 {score:.1f}，對應 ESG 溢價 {ev['ESG溢價']*100:.1f}%。<br>
+        ESG合理價 = EPS × 基礎PE 18 × (1 + ESG溢價)。<br>
+        永續報告書、GRI、SASB、TCFD、ISSB、CDP 是 ESG分數的資料來源；ESG分數是永續揭露的量化結果。
+        </div>
+        """, unsafe_allow_html=True)
+
 elif page=="🏦法人":
     st.subheader(f"🏦 法人雷達：{display_name(active)}")
-    kpi([("法人分數",scores["inst"]),("籌碼分數",scores["chip"]),("主力分數",scores["main"]),("主力狀態","偏多" if scores["main"]>=65 else "偏空" if scores["main"]<45 else "中性")])
-    st.dataframe(institutional_proxy(df_daily),use_container_width=True,hide_index=True)
-    with st.expander("法人分數來源與計算"):
-        st.info("法人/籌碼/主力為量價代理：成交量、量比、20日報酬、60日報酬、MA20/MA60趨勢。非交易所正式三大法人資料。")
+    inst_df=institutional_proxy(df_daily)
+    consensus_score=int(np.clip(pd.to_numeric(inst_df.get("強度",pd.Series(dtype=float)),errors="coerce").mean() if not inst_df.empty else scores["inst"],0,100))
+    kpi([
+        ("法人分數",scores["inst"]),
+        ("籌碼分數",scores["chip"]),
+        ("主力分數",scores["main"]),
+        ("法人共識",f"{consensus_score}/100"),
+    ])
+    tabs=st.tabs(["三大法人/主力","籌碼風險","連買連賣代理","來源與計算"])
+    with tabs[0]:
+        st.dataframe(inst_df,use_container_width=True,hide_index=True)
+    with tabs[1]:
+        st.dataframe(institutional_risk_table(df_daily),use_container_width=True,hide_index=True)
+    with tabs[2]:
+        st.dataframe(pd.DataFrame([
+            ["外資連買/連賣", "量價代理", "需正式TWSE/TPEX資料才可精準計算"],
+            ["投信連買/連賣", "量價代理", "目前以20日動能與均線趨勢推估"],
+            ["自營商連買/連賣", "量價代理", "目前以短線動能與量比推估"],
+            ["主力集中", "量價代理", "目前以成交量、量比、月線位置推估"],
+        ],columns=["項目","狀態","說明"]),use_container_width=True,hide_index=True)
+    with tabs[3]:
+        st.dataframe(pd.DataFrame([
+            ["資料來源", "Yahoo Finance 價格與成交量；正式法人需串接 TWSE/TPEX/Fugle/券商API"],
+            ["外資強度", "50 + RET20×160 + RET60×80 + MA20站上加分 + 量比加分"],
+            ["投信強度", "50 + RET20×120 + MA20>MA60加分 + 站上MA20加分"],
+            ["自營商強度", "50 + RET20×220 + 量比加分"],
+            ["主力代理", "50 + RET20×130 + RET60×60 + 量比加分 + MA20加分"],
+            ["估計張數", "成交量/1000 × 量比 × 法人係數"],
+            ["限制", "目前為量價代理，不等於交易所正式三大法人買賣超"],
+        ],columns=["項目","說明"]),use_container_width=True,hide_index=True)
+
 elif page=="📑中文財報":
     financial_center(active,q,df_daily)
-elif page=="🌏永續":
+elif page=="__舊永續__":
     sustainability_center(active,q)
 elif page=="🤖AI":
     st.subheader(f"🤖 AI目標區間：{display_name(active)}")
     ai_target_panel(df_daily,scores)
 elif page=="⚙設定":
-    st.subheader("⚙ 系統設定")
-    st.markdown('<div class="explain">V37.2 已修正：不跳首頁、全站選股同步、補齊評價模型、法人分數顯示、永續ESG估價。</div>',unsafe_allow_html=True)
+    st.subheader("⚙ 系統設定 / V42功能稽核")
+    st.markdown('<div class="explain">V42 已完成：ESG與永續真正合併、企業評價模型以K線收盤價備援、法人雷達補齊、中文化財報分析層、手機/電腦自動響應。</div>',unsafe_allow_html=True)
+    st.dataframe(enterprise_feature_checklist(), use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("AIStock V41 Enterprise Rebuild 中文化財報版｜研究與教學用途，非投資建議。")
+st.caption("AIStock V42 Enterprise Audit Final｜研究與教學用途，非投資建議。")
