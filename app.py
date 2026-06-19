@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V51 Stability Repair Final"
+APP_VERSION="V52 Ultimate Professional Final"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -169,7 +169,7 @@ def v50_institutional_upgrade_tables(df, scores):
 # ================= V50 AI / ESG / 法人完整補齊 END =================
 
 
-# ================= V51 修復：K線副圖、中文財報None、名稱顯示 =================
+# ================= V52 穩定修復層：中文財報、K線副圖、顯示備援 =================
 def safe_show(x):
     try:
         if x is None:
@@ -196,7 +196,6 @@ def fin_get_any(df, keys):
                 vals = pd.to_numeric(df.loc[norm_index[nk]], errors="coerce").dropna()
                 if len(vals):
                     return safe_float(vals.iloc[0])
-        # fuzzy contains fallback
         for key in keys:
             nk = normalize_fin_key(key)
             for ni, original in norm_index.items():
@@ -212,52 +211,33 @@ def chinese_financial_analysis(symbol, q, ft):
     income = ft.get("income", pd.DataFrame()) if isinstance(ft, dict) else pd.DataFrame()
     balance = ft.get("balance", pd.DataFrame()) if isinstance(ft, dict) else pd.DataFrame()
     cashflow = ft.get("cashflow", pd.DataFrame()) if isinstance(ft, dict) else pd.DataFrame()
-
-    revenue = fin_get_any(income, ["Total Revenue","Operating Revenue","TotalRevenue","Revenue"])
-    gross = fin_get_any(income, ["Gross Profit","GrossProfit"])
-    op_income = fin_get_any(income, ["Operating Income","OperatingIncome","Total Operating Income As Reported"])
-    net_income = fin_get_any(income, ["Net Income","NetIncome","Net Income Common Stockholders","Normalized Income"])
-    assets = fin_get_any(balance, ["Total Assets","TotalAssets"])
+    revenue = fin_get_any(income, ["Total Revenue","Operating Revenue","Revenue"])
+    gross = fin_get_any(income, ["Gross Profit"])
+    op_income = fin_get_any(income, ["Operating Income","Total Operating Income As Reported"])
+    net_income = fin_get_any(income, ["Net Income","Net Income Common Stockholders","Normalized Income"])
+    assets = fin_get_any(balance, ["Total Assets"])
     equity = fin_get_any(balance, ["Stockholders Equity","Common Stock Equity","Total Equity Gross Minority Interest"])
     ocf = fin_get_any(cashflow, ["Operating Cash Flow","Cash Flow From Continuing Operating Activities"])
     capex = fin_get_any(cashflow, ["Capital Expenditure","Purchase Of PPE"])
     fcf = fin_get_any(cashflow, ["Free Cash Flow"])
     if pd.isna(fcf) and pd.notna(ocf) and pd.notna(capex):
         fcf = ocf + capex
-
     eps = q.get("eps", np.nan) if isinstance(q, dict) else np.nan
     pe = q.get("pe", np.nan) if isinstance(q, dict) else np.nan
     pb = q.get("pb", np.nan) if isinstance(q, dict) else np.nan
-
     summary = pd.DataFrame([
-        ["營業收入", safe_show(revenue)],
-        ["營業毛利", safe_show(gross)],
-        ["營業利益", safe_show(op_income)],
-        ["本期淨利", safe_show(net_income)],
-        ["資產總額", safe_show(assets)],
-        ["股東權益", safe_show(equity)],
-        ["營業活動現金流", safe_show(ocf)],
-        ["自由現金流", safe_show(fcf)],
-        ["EPS", safe_show(eps)],
-        ["PE", safe_show(pe)],
-        ["PB", safe_show(pb)]
+        ["營業收入", safe_show(revenue)],["營業毛利", safe_show(gross)],["營業利益", safe_show(op_income)],
+        ["本期淨利", safe_show(net_income)],["資產總額", safe_show(assets)],["股東權益", safe_show(equity)],
+        ["營業活動現金流", safe_show(ocf)],["自由現金流", safe_show(fcf)],["EPS", safe_show(eps)],
+        ["PE", safe_show(pe)],["PB", safe_show(pb)]
     ], columns=["中文項目","最新數值"])
-
     gm = gross/revenue*100 if pd.notna(gross) and pd.notna(revenue) and revenue else np.nan
     om = op_income/revenue*100 if pd.notna(op_income) and pd.notna(revenue) and revenue else np.nan
     nm = net_income/revenue*100 if pd.notna(net_income) and pd.notna(revenue) and revenue else np.nan
     roe = net_income/equity*100 if pd.notna(net_income) and pd.notna(equity) and equity else np.nan
     roa = net_income/assets*100 if pd.notna(net_income) and pd.notna(assets) and assets else np.nan
     fcf_margin = fcf/revenue*100 if pd.notna(fcf) and pd.notna(revenue) and revenue else np.nan
-    ratios = pd.DataFrame([
-        ["毛利率", safe_show(gm)],
-        ["營益率", safe_show(om)],
-        ["淨利率", safe_show(nm)],
-        ["ROE", safe_show(roe)],
-        ["ROA", safe_show(roa)],
-        ["自由現金流率", safe_show(fcf_margin)]
-    ], columns=["指標","數值%"])
-
+    ratios = pd.DataFrame([["毛利率",safe_show(gm)],["營益率",safe_show(om)],["淨利率",safe_show(nm)],["ROE",safe_show(roe)],["ROA",safe_show(roa)],["自由現金流率",safe_show(fcf_margin)]], columns=["指標","數值%"])
     score=50
     for v, add in [(gm,10),(om,10),(nm,10),(roe,12),(roa,8),(fcf_margin,10)]:
         if pd.notna(v):
@@ -273,8 +253,7 @@ def add_more_indicators(df):
             d[c] = pd.to_numeric(d[c], errors="coerce")
     close=d["Close"]; high=d["High"]; low=d["Low"]; vol=d["Volume"]
     for n in [5,10,20,60,120,240]:
-        if f"MA{n}" not in d.columns:
-            d[f"MA{n}"]=close.rolling(n).mean()
+        d[f"MA{n}"]=close.rolling(n).mean()
     delta=close.diff()
     gain=delta.clip(lower=0).rolling(14).mean()
     loss=(-delta.clip(upper=0)).rolling(14).mean()
@@ -285,8 +264,6 @@ def add_more_indicators(df):
     d["DIF"]=ema12-ema26
     d["MACD"]=d["DIF"].ewm(span=9, adjust=False).mean()
     d["OSC"]=d["DIF"]-d["MACD"]
-    d["MACD_SIGNAL"]=d["MACD"]
-    d["MACD_HIST"]=d["OSC"]
     ll=low.rolling(9).min(); hh=high.rolling(9).max()
     rsv=(close-ll)/(hh-ll).replace(0,np.nan)*100
     d["K"]=rsv.ewm(alpha=1/3, adjust=False).mean()
@@ -296,7 +273,7 @@ def add_more_indicators(df):
         ma=close.rolling(n).mean()
         d[f"BIAS{n}"]=(close-ma)/ma.replace(0,np.nan)*100
     mid=close.rolling(20).mean(); std=close.rolling(20).std()
-    d["BB_MID"]=mid; d["BB_UP"]=mid+2*std; d["BB_LOW"]=mid-2*std; d["BB_DN"]=d["BB_LOW"]
+    d["BB_MID"]=mid; d["BB_UP"]=mid+2*std; d["BB_LOW"]=mid-2*std
     tr=pd.concat([(high-low).abs(),(high-close.shift()).abs(),(low-close.shift()).abs()],axis=1).max(axis=1)
     d["ATR"]=tr.rolling(14).mean(); d["ATR_PCT"]=d["ATR"]/close.replace(0,np.nan)*100
     d["OBV"]=(np.sign(close.diff()).fillna(0)*vol.fillna(0)).cumsum()
@@ -335,58 +312,40 @@ def kline_chart(df, overlays, panel):
         fig.add_trace(go.Scatter(x=dd["Date"],y=dd["BB_LOW"],name="BB下軌",line=dict(width=1,dash="dot")))
     fig.update_layout(height=520,template="plotly_dark",xaxis_rangeslider_visible=False,margin=dict(l=6,r=6,t=20,b=4),legend=dict(orientation="h",font=dict(size=9)),yaxis=dict(side="right"))
     st.plotly_chart(fig,use_container_width=True)
-
     f=go.Figure()
     if panel=="成交量":
-        f.add_trace(go.Bar(x=dd["Date"],y=dd["Volume"],name="VOL"))
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["VOL_MA20"],name="20日均量"))
+        f.add_trace(go.Bar(x=dd["Date"],y=dd["Volume"],name="VOL")); f.add_trace(go.Scatter(x=dd["Date"],y=dd["VOL_MA20"],name="20日均量"))
     elif panel=="MACD":
-        f.add_trace(go.Bar(x=dd["Date"],y=dd["OSC"],name="OSC"))
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["DIF"],name="DIF"))
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["MACD"],name="MACD"))
+        f.add_trace(go.Bar(x=dd["Date"],y=dd["OSC"],name="OSC")); f.add_trace(go.Scatter(x=dd["Date"],y=dd["DIF"],name="DIF")); f.add_trace(go.Scatter(x=dd["Date"],y=dd["MACD"],name="MACD"))
     elif panel=="KD":
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["K"],name="K"))
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["D"],name="D"))
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["J"],name="J"))
-        f.add_hline(y=80,line_dash="dot"); f.add_hline(y=20,line_dash="dot")
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["K"],name="K")); f.add_trace(go.Scatter(x=dd["Date"],y=dd["D"],name="D")); f.add_trace(go.Scatter(x=dd["Date"],y=dd["J"],name="J")); f.add_hline(y=80,line_dash="dot"); f.add_hline(y=20,line_dash="dot")
     elif panel=="RSI":
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["RSI"],name="RSI"))
-        f.add_hline(y=70,line_dash="dot"); f.add_hline(y=30,line_dash="dot")
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["RSI"],name="RSI")); f.add_hline(y=70,line_dash="dot"); f.add_hline(y=30,line_dash="dot")
     elif panel=="BIAS":
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["BIAS20"],name="BIAS20"))
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["BIAS60"],name="BIAS60"))
-        f.add_hline(y=0,line_dash="dot")
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["BIAS20"],name="BIAS20")); f.add_trace(go.Scatter(x=dd["Date"],y=dd["BIAS60"],name="BIAS60")); f.add_hline(y=0,line_dash="dot")
     elif panel=="布林通道":
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["BB_WIDTH"],name="BB寬度%"))
+        f.add_trace(go.Scatter(x=dd["Date"],y=(dd["BB_UP"]-dd["BB_LOW"])/dd["BB_MID"].replace(0,np.nan)*100,name="BB寬度%"))
     elif panel=="OBV":
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["OBV"],name="OBV"))
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["OBV_MA20"],name="OBV_MA20"))
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["OBV"],name="OBV")); f.add_trace(go.Scatter(x=dd["Date"],y=dd["OBV_MA20"],name="OBV_MA20"))
     elif panel=="MFI":
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["MFI"],name="MFI"))
-        f.add_hline(y=80,line_dash="dot"); f.add_hline(y=20,line_dash="dot")
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["MFI"],name="MFI")); f.add_hline(y=80,line_dash="dot"); f.add_hline(y=20,line_dash="dot")
     elif panel=="威廉%R":
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["WILLR"],name="Williams %R"))
-        f.add_hline(y=-20,line_dash="dot"); f.add_hline(y=-80,line_dash="dot")
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["WILLR"],name="Williams %R")); f.add_hline(y=-20,line_dash="dot"); f.add_hline(y=-80,line_dash="dot")
     elif panel=="CCI":
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["CCI"],name="CCI"))
-        f.add_hline(y=100,line_dash="dot"); f.add_hline(y=-100,line_dash="dot")
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["CCI"],name="CCI")); f.add_hline(y=100,line_dash="dot"); f.add_hline(y=-100,line_dash="dot")
     elif panel=="ADX":
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["ADX"],name="ADX"))
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["PLUS_DI"],name="+DI"))
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["MINUS_DI"],name="-DI"))
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["ADX"],name="ADX")); f.add_trace(go.Scatter(x=dd["Date"],y=dd["PLUS_DI"],name="+DI")); f.add_trace(go.Scatter(x=dd["Date"],y=dd["MINUS_DI"],name="-DI"))
     elif panel=="ATR":
         f.add_trace(go.Scatter(x=dd["Date"],y=dd["ATR_PCT"],name="ATR%"))
     elif panel=="ROC":
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["ROC12"],name="ROC12"))
-        f.add_hline(y=0,line_dash="dot")
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["ROC12"],name="ROC12")); f.add_hline(y=0,line_dash="dot")
     elif panel=="Momentum":
-        f.add_trace(go.Scatter(x=dd["Date"],y=dd["MOM10"],name="MOM10"))
-        f.add_hline(y=0,line_dash="dot")
+        f.add_trace(go.Scatter(x=dd["Date"],y=dd["MOM10"],name="MOM10")); f.add_hline(y=0,line_dash="dot")
     else:
         f.add_trace(go.Bar(x=dd["Date"],y=dd["Volume"],name="VOL"))
     f.update_layout(height=260,template="plotly_dark",margin=dict(l=6,r=6,t=24,b=4),legend=dict(orientation="h",font=dict(size=9)),yaxis=dict(side="right"))
     st.plotly_chart(f,use_container_width=True)
-# ================= V51 修復 END =================
+# ================= V52 穩定修復層 END =================
 
 st.markdown("""
 <style>
@@ -597,7 +556,7 @@ SECTOR_EXTRA = {
     "全市場精選": ["2330.TW","2303.TW","2308.TW","2454.TW","2383.TW","3017.TW","3443.TW","3661.TW","6669.TW","5347.TWO","6215.TWO","6830.TW","6415.TW"],
 }
 
-# V51：最後中文名稱覆蓋表。注意：6308.TW目前常見資料源查不到，先標示為「代碼待確認」避免空白。
+# V52：中文名稱最終補強。若資料源無法辨識，明確標示而非空白。
 TW_STOCKS.update({
     "汎銓":"6830.TW",
     "矽力-KY":"6415.TW",
@@ -605,12 +564,12 @@ TW_STOCKS.update({
     "和椿科技":"6215.TWO",
     "和椿":"6215.TWO",
     "金寶":"2312.TW",
-    "台表科":"6278.TW",
-    "代碼待確認6308":"6308.TW",
     "台灣精銳":"4583.TW",
     "上銀":"2049.TW",
     "亞光":"3019.TW",
     "和大":"1536.TW",
+    "日月光投控":"3711.TW",
+    "代碼待確認6308":"6308.TW",
 })
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 CODE_NAME_MAP.update({
@@ -623,6 +582,7 @@ CODE_NAME_MAP.update({
     "2049.TW":"上銀",
     "3019.TW":"亞光",
     "1536.TW":"和大",
+    "3711.TW":"日月光投控",
 })
 DEFAULT_MONITOR=["2330.TW","2303.TW","5347.TWO","6215.TWO","2383.TW","3260.TWO","2308.TW","2317.TW","2454.TW","2382.TW","2345.TW","3017.TW","2368.TW","3653.TW","3661.TW","2059.TW"]
 SECTORS={"半導體":["2330.TW","2303.TW","5347.TWO","2454.TW","3711.TW","6415.TW","3443.TW","3661.TW","2379.TW","2408.TW"],"AI伺服器":["2382.TW","3231.TW","6669.TW","2356.TW","2317.TW","3017.TW","3653.TW","2345.TW","2376.TW","2357.TW"],"機器人/自動化":["6215.TWO","2049.TW","4583.TW","3019.TW","1536.TW","2308.TW"],"全市場精選":DEFAULT_MONITOR}
@@ -667,12 +627,11 @@ def yahoo_name_lookup(symbol):
         info = yf.Ticker(symbol).info or {}
         nm = info.get("shortName") or info.get("longName") or ""
         nm = str(nm).replace(" Corporation","").replace(" Co., Ltd.","").replace(" Co Ltd","").strip()
-        return nm[:20] if nm and nm.lower() != "none" else ""
+        return nm[:20] if nm and nm.lower() not in ["none","nan"] else ""
     except Exception:
         return ""
 
 def display_name(symbol):
-    # V51：先用最後覆蓋表，再用本地字典，再用Yahoo名稱；都沒有就明確標示代碼未確認。
     name = CODE_NAME_MAP.get(symbol)
     if not name:
         name = yahoo_name_lookup(symbol)
@@ -687,7 +646,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V51 Stability Repair Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V52 Ultimate Professional Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -1759,7 +1718,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V51 Stability Repair Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V52 Ultimate Professional Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1775,8 +1734,8 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V51 Stability Repair Final</text>
-    <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Stable K-Line · Chinese Financials · Name Resolver · ESG · AI Research</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V52 Ultimate Professional Final</text>
+    <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
     <g>
@@ -1786,7 +1745,7 @@ st.markdown("""
       <rect x="635" y="55" width="24" height="42" fill="#22c55e"/>
       <rect x="915" y="58" width="24" height="36" fill="#ef4444"/>
     </g>
-    <text x="40" y="158" fill="#dbeafe" font-size="13">V51 clean banner · no legacy V37/V51 text</text>
+    <text x="40" y="158" fill="#dbeafe" font-size="13">No V52 Ultimate Professional Final legacy banner · V48 clean release</text>
   </svg>
 </div>
 
@@ -1804,7 +1763,7 @@ try:
 except Exception:
     pass
 with st.sidebar:
-    st.title("☰ V51設定")
+    st.title("☰ V52設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
@@ -2036,6 +1995,6 @@ elif page=="⚙設定":
     st.dataframe(enterprise_feature_checklist(), use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("AIStock V51 Stability Repair Final｜研究與教學用途，非投資建議。")
+st.caption("AIStock V52 Ultimate Professional Final｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
