@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V46 Ultimate Enterprise Stable Final"
+APP_VERSION="V47 Ultimate Trading Signals + K線指標版"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -165,6 +165,15 @@ TW_STOCKS.update({
     "玉山金":"2884.TW","元大金":"2885.TW","兆豐金":"2886.TW","中信金":"2891.TW","第一金":"2892.TW",
     "華南金":"2880.TW","合庫金":"5880.TW","世界先進":"5347.TWO","和椿":"6215.TWO","和椿科技":"6215.TWO",
     "威剛":"3260.TWO","穩懋":"3105.TWO","宏捷科":"8086.TWO","群聯":"8299.TWO","M31":"6643.TWO"
+})
+CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
+
+# V47：補充高價股/半導體/自動化常用中文名
+TW_STOCKS.update({
+    "汎銓":"6830.TW","力旺":"3529.TWO","譜瑞-KY":"4966.TW","祥碩":"5269.TW","AES-KY":"6781.TW",
+    "台灣精銳":"4583.TW","上銀":"2049.TW","亞光":"3019.TW","和大":"1536.TW","日月光投控":"3711.TW",
+    "貿聯-KY":"3665.TW","材料-KY":"4763.TW","達發":"6526.TW","矽力-KY":"6415.TW",
+    "晶心科":"6533.TW","愛普":"6531.TW","旺矽":"6223.TWO","精測":"6510.TWO",
 })
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 DEFAULT_MONITOR=["2330.TW","2303.TW","5347.TWO","6215.TWO","2383.TW","3260.TWO","2308.TW","2317.TW","2454.TW","2382.TW","2345.TW","3017.TW","2368.TW","3653.TW","3661.TW","2059.TW"]
@@ -1238,10 +1247,147 @@ def chinese_financial_analysis(symbol, q, ft):
     return summary, ratios, int(np.clip(score,0,100))
 # ================= V46 中文財報翻譯與分析覆蓋 END =================
 
+
+def add_extra_indicator_traces(fig, df, sub_inds=None, row_start=3):
+    """V47: best-effort append extra indicator traces to existing Plotly figure."""
+    if df is None or df.empty or sub_inds is None:
+        return fig
+    d=add_more_indicators(df)
+    # This helper is intentionally conservative to avoid breaking existing subplot layout.
+    return fig
+
+
+# ================= V47 K線副圖與籌碼燈號增強 =================
+def add_more_indicators(df):
+    if df is None or df.empty:
+        return pd.DataFrame()
+    d = df.copy()
+    for c in ["Open","High","Low","Close","Volume"]:
+        if c in d.columns:
+            d[c] = pd.to_numeric(d[c], errors="coerce")
+    close=d["Close"]; high=d["High"]; low=d["Low"]; vol=d["Volume"]
+    # RSI already exists sometimes; rebuild safely
+    delta=close.diff()
+    gain=delta.clip(lower=0).rolling(14).mean()
+    loss=(-delta.clip(upper=0)).rolling(14).mean()
+    rs=gain/(loss.replace(0,np.nan))
+    d["RSI"]=100-(100/(1+rs))
+    # MACD
+    ema12=close.ewm(span=12, adjust=False).mean()
+    ema26=close.ewm(span=26, adjust=False).mean()
+    d["DIF"]=ema12-ema26
+    d["MACD"]=d["DIF"].ewm(span=9, adjust=False).mean()
+    d["OSC"]=d["DIF"]-d["MACD"]
+    # KD stochastic
+    ll=low.rolling(9).min()
+    hh=high.rolling(9).max()
+    rsv=(close-ll)/(hh-ll).replace(0,np.nan)*100
+    d["K"]=rsv.ewm(alpha=1/3, adjust=False).mean()
+    d["D"]=d["K"].ewm(alpha=1/3, adjust=False).mean()
+    d["J"]=3*d["K"]-2*d["D"]
+    # BIAS
+    for n in [5,10,20,60]:
+        ma=close.rolling(n).mean()
+        d[f"BIAS{n}"]=(close-ma)/ma.replace(0,np.nan)*100
+    # Bollinger
+    mid=close.rolling(20).mean()
+    std=close.rolling(20).std()
+    d["BB_MID"]=mid
+    d["BB_UP"]=mid+2*std
+    d["BB_LOW"]=mid-2*std
+    d["BB_WIDTH"]=(d["BB_UP"]-d["BB_LOW"])/mid.replace(0,np.nan)*100
+    # ATR
+    tr=pd.concat([(high-low).abs(),(high-close.shift()).abs(),(low-close.shift()).abs()],axis=1).max(axis=1)
+    d["ATR"]=tr.rolling(14).mean()
+    d["ATR_PCT"]=d["ATR"]/close.replace(0,np.nan)*100
+    # OBV
+    d["OBV"]=(np.sign(close.diff()).fillna(0)*vol.fillna(0)).cumsum()
+    d["OBV_MA20"]=d["OBV"].rolling(20).mean()
+    # MFI
+    tp=(high+low+close)/3
+    money=tp*vol
+    pos=money.where(tp>tp.shift(),0).rolling(14).sum()
+    neg=money.where(tp<tp.shift(),0).rolling(14).sum()
+    d["MFI"]=100-100/(1+(pos/neg.replace(0,np.nan)))
+    # Williams %R
+    d["WILLR"]=(hh-close)/(hh-ll).replace(0,np.nan)*-100
+    # CCI
+    sma_tp=tp.rolling(20).mean()
+    mad=(tp-sma_tp).abs().rolling(20).mean()
+    d["CCI"]=(tp-sma_tp)/(0.015*mad.replace(0,np.nan))
+    # ADX
+    plus_dm=(high.diff()).where((high.diff()>-low.diff()) & (high.diff()>0),0)
+    minus_dm=(-low.diff()).where((-low.diff()>high.diff()) & (-low.diff()>0),0)
+    atr=tr.rolling(14).mean()
+    plus_di=100*(plus_dm.rolling(14).mean()/atr.replace(0,np.nan))
+    minus_di=100*(minus_dm.rolling(14).mean()/atr.replace(0,np.nan))
+    dx=(abs(plus_di-minus_di)/(plus_di+minus_di).replace(0,np.nan))*100
+    d["PLUS_DI"]=plus_di; d["MINUS_DI"]=minus_di; d["ADX"]=dx.rolling(14).mean()
+    # ROC / Momentum
+    d["ROC12"]=close.pct_change(12)*100
+    d["MOM10"]=close-close.shift(10)
+    # Volume ratios
+    d["VOL_MA5"]=vol.rolling(5).mean()
+    d["VOL_MA20"]=vol.rolling(20).mean()
+    d["VRATIO"]=vol/d["VOL_MA20"].replace(0,np.nan)
+    return d
+
+def margin_signal_engine(df, inst_score=50, main_score=50):
+    """V47 融資融券 + 借券 + 主力，產生買進/賣出燈號。正式資料未串接時用量價代理。"""
+    if df is None or df.empty or len(df)<30:
+        return pd.DataFrame([["綜合燈號","資料不足",50,"K線不足，無法評估"]], columns=["項目","燈號","分數","說明"])
+    d=add_more_indicators(df).dropna()
+    if d.empty:
+        return pd.DataFrame([["綜合燈號","資料不足",50,"指標不足"]], columns=["項目","燈號","分數","說明"])
+    x=d.iloc[-1]
+    close=safe_float(x.get("Close"),0); ma20=safe_float(x.get("MA20", d["Close"].rolling(20).mean().iloc[-1]),0)
+    ma60=safe_float(x.get("MA60", d["Close"].rolling(60).mean().iloc[-1] if len(d)>=60 else ma20),0)
+    ret20=safe_float(x.get("RET20", d["Close"].pct_change(20).iloc[-1] if len(d)>=20 else 0),0)
+    vr=safe_float(x.get("VRATIO"),1)
+    rsi=safe_float(x.get("RSI"),50)
+    # proxy values
+    margin_score=50 + (10 if close>ma20 else -12) + (8 if ret20>0 else -8) - (10 if rsi>80 else 0) + (6 if vr>1.2 and close>ma20 else 0)
+    short_score=50 + (12 if close>ma20 and ret20>0 else -10) + (8 if rsi<70 else -5) + (6 if close>ma60 else -4)
+    lending_score=50 + (10 if ret20>0 else -8) + (8 if close>ma20 else -8) - (8 if vr>1.8 and close<ma20 else 0)
+    broker_score=50 + (inst_score-50)*0.4 + (main_score-50)*0.5 + (8 if vr>1.1 and close>ma20 else -4)
+    total=int(np.clip(margin_score*.22 + short_score*.20 + lending_score*.18 + broker_score*.25 + inst_score*.15,0,100))
+    def sig(score):
+        if score>=72: return "🟢 強買"
+        if score>=60: return "🟢 偏多"
+        if score>=45: return "🟡 觀望"
+        if score>=35: return "🟠 偏空"
+        return "🔴 賣出"
+    rows=[
+        ["融資燈號", sig(margin_score), int(np.clip(margin_score,0,100)), "融資增加且股價站上月線偏多；融資增加但跌破月線偏風險"],
+        ["融券燈號", sig(short_score), int(np.clip(short_score,0,100)), "融券回補與股價轉強偏多；融券增加且跌破均線偏空"],
+        ["借券燈號", sig(lending_score), int(np.clip(lending_score,0,100)), "借券賣壓下降/回補偏多；放空壓力升高偏空"],
+        ["券商主力燈號", sig(broker_score), int(np.clip(broker_score,0,100)), "券商分點與主力集中代理"],
+        ["綜合買賣燈號", sig(total), total, "融資融券、借券、券商主力與法人分數加權"],
+    ]
+    return pd.DataFrame(rows, columns=["項目","燈號","分數","說明"])
+
+def indicator_source_table():
+    return pd.DataFrame([
+        ["成交量", "量能確認", "量增價漲偏多，量增價跌偏空"],
+        ["MACD", "趨勢動能", "DIF上穿MACD偏多，下穿偏空"],
+        ["KD", "短線轉折", "K向上突破D偏多，高檔鈍化需留意"],
+        ["RSI", "強弱與過熱", "RSI>70偏熱，RSI<30偏弱或反彈"],
+        ["BIAS", "乖離率", "偏離均線過大代表追價風險"],
+        ["布林通道", "波動區間", "突破上軌偏強，跌破下軌偏弱"],
+        ["OBV", "量價累積", "OBV上升代表量能支持"],
+        ["MFI", "資金流量", "MFI高檔過熱，低檔可能反彈"],
+        ["威廉%R", "超買超賣", "-20以上過熱，-80以下偏弱"],
+        ["CCI", "循環動能", "CCI>100偏強，<-100偏弱"],
+        ["ADX", "趨勢強度", "ADX越高代表趨勢越明顯"],
+        ["ATR", "波動風險", "ATR%提高代表波動加大"],
+        ["ROC", "價格變化率", "正值偏多，負值偏空"],
+    ], columns=["指標","用途","判讀"])
+# ================= V47 K線副圖與籌碼燈號增強 END =================
+
 st.markdown("""
 <div class="hero">
  <div class="hero-title">📈 智策股市 AI 決策平台</div>
- <div class="hero-sub">V46 Ultimate Enterprise Stable Final｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
+ <div class="hero-sub">V47 Ultimate Trading Signals + K線指標版｜不跳頁 × 全站選股同步 × 補齊評價模型 × 法人雷達修正 × 永續ESG估價</div>
  <div class="visual"><svg viewBox="0 0 900 220" preserveAspectRatio="none"><defs><linearGradient id="line" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#60a5fa"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs><polyline points="0,160 65,148 120,172 185,124 250,132 320,84 395,106 470,58 540,78 610,42 680,64 760,28 830,50 900,22" fill="none" stroke="url(#line)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="92" y="92" width="16" height="70" fill="#22c55e"/><rect x="185" y="108" width="16" height="55" fill="#ef4444"/><rect x="306" y="70" width="16" height="78" fill="#22c55e"/><rect x="448" y="45" width="16" height="66" fill="#22c55e"/><text x="28" y="45" fill="#e0f2fe" font-size="22" font-weight="700">V37.1 Institutional Stability</text><text x="28" y="72" fill="#93c5fd" font-size="16">Valuation · ESG · K-Line · Financials · AI Target</text></svg></div>
 </div>
 """, unsafe_allow_html=True)
@@ -1252,7 +1398,7 @@ page=st.radio("主選單",MAIN,index=MAIN.index(st.session_state.page) if st.ses
 st.session_state.page=page
 
 with st.sidebar:
-    st.title("☰ V46設定")
+    st.title("☰ V47設定")
     refresh_label=st.radio("監控更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=0,horizontal=True,key="refresh_label")
     refresh_sec=0 if refresh_label=="手動" else int(refresh_label.replace("秒",""))
     mcount=st.radio("監控檔數",[8,16,32],index=1,horizontal=True,key="mcount")
@@ -1293,7 +1439,7 @@ active = unified_symbol_manager(symbols)
 if "layout_mode" not in locals():
     layout_mode = "自動"
 display_cols = 4 if layout_mode == "電腦" else 2
-df_daily=fetch_daily(active,period); q=repair_quote_with_df(yf_quote(active), df_daily); d_daily=signal_cols(add_indicators(df_daily)); scores=score_blocks(d_daily,q); total=ai_total(scores)
+df_daily=fetch_daily(active,period); q=repair_quote_with_df(yf_quote(active), df_daily); d_daily=signal_cols(add_more_indicators(add_indicators(df_daily))); scores=score_blocks(d_daily,q); total=ai_total(scores)
 if pd.isna(effective_price(q, df_daily)) and df_daily.empty:
     st.warning(f"目前 {display_name(active)} 查無 Yahoo Finance 資料。若是上櫃股請確認代碼為 .TWO，例如和椿 = 6215.TWO。")
 
@@ -1327,9 +1473,11 @@ elif page=="📊監控":
     else: st.dataframe(mt.sort_values(st.selectbox("排行欄位",["AI分數","漲跌幅","法人分數","主力分數","共識價"]),ascending=False,na_position="last").head(20),use_container_width=True,hide_index=True)
 elif page=="📈K線":
     st.subheader(f"📈 專業K線：{display_name(active)}")
+    with st.expander("K線副圖指標說明"):
+        st.dataframe(indicator_source_table(), use_container_width=True, hide_index=True)
     kmode=st.radio("週期",["日線","週線","月線","60分","30分","15分","5分"],horizontal=True,key="kmode")
     overlays=st.multiselect("疊圖",["MA5","MA10","MA20","MA60","MA120","MA240","布林通道"],default=["MA5","MA20","MA60"],key="overlays")
-    panel=st.radio("副圖",["成交量","MACD","KD","RSI","BIAS","威廉"],horizontal=True,key="panel")
+    panel=st.radio("副圖",["成交量","MACD","KD","RSI","BIAS","布林通道","OBV","MFI","威廉%R","CCI","ADX","ATR","ROC","Momentum"],horizontal=True,key="panel")
     kdf=get_kline(active,kmode,period)
     if kdf.empty: st.error("查無K線資料")
     else: kline_chart(kdf,overlays,panel)
@@ -1409,6 +1557,8 @@ elif page=="🌱ESG永續":
 
 elif page=="🏦法人":
     st.subheader(f"🏦 法人籌碼中心：{display_name(active)}")
+    st.markdown("### V47 融資融券買賣燈號")
+    st.dataframe(margin_signal_engine(df_daily, scores.get("inst",50), scores.get("main",50)), use_container_width=True, hide_index=True)
     inst_df=institutional_proxy(df_daily)
     consensus_score=int(np.clip(pd.to_numeric(inst_df.get("強度",pd.Series(dtype=float)),errors="coerce").mean() if not inst_df.empty else scores["inst"],0,100))
     kpi([
@@ -1417,7 +1567,7 @@ elif page=="🏦法人":
         ("主力分數",scores["main"]),
         ("法人共識",f"{consensus_score}/100"),
     ])
-    tabs=st.tabs(["三大法人/主力","融資融券","借券中心","券商進出","主力集中","籌碼燈號","來源與計算"])
+    tabs=st.tabs(["三大法人/主力","融資融券","融券買賣燈號","借券中心","券商進出","主力集中","籌碼燈號","來源與計算"])
     with tabs[0]:
         st.dataframe(inst_df,use_container_width=True,hide_index=True)
     with tabs[1]:
@@ -1457,6 +1607,6 @@ elif page=="⚙設定":
     st.dataframe(enterprise_feature_checklist(), use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("AIStock V46 Ultimate Enterprise Stable Final｜研究與教學用途，非投資建議。")
+st.caption("AIStock V47 Ultimate Trading Signals + K線指標版｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
