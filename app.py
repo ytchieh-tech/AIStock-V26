@@ -14,7 +14,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V75.5 Professional Data Edition"
+APP_VERSION="V75.6 Company DNA Center"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -4961,7 +4961,7 @@ def v70_research_institute(symbol, q, df, scores):
 
 # ================= V75 AI研究院 PRO ULTIMATE LAYER =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V75.5 Professional Data Edition"
+APP_VERSION="V75.6 Company DNA Center"
 
 V75_INDUSTRY_ESG_WEIGHTS = {
     "半導體": {"E": 50, "S": 20, "G": 30, "avg": 75},
@@ -5244,7 +5244,7 @@ def v75_ultimate_page(symbol, q, df, scores):
     st.markdown("""
     <div style="padding:26px;border-radius:22px;background:linear-gradient(135deg,#0f172a,#1e3a8a,#0f766e);color:white;margin-bottom:18px;">
       <div style="font-size:34px;font-weight:900;">🏛 AI研究院 Pro</div>
-      <div style="font-size:20px;margin-top:6px;">V75.5 Professional Data Edition</div>
+      <div style="font-size:20px;margin-top:6px;">V75.6 Company DNA Center</div>
       <div style="font-size:15px;margin-top:10px;opacity:.92;">企業評價 × ESG × 法人 × 產業鏈 × AI估值</div>
       <div style="font-size:13px;margin-top:8px;opacity:.78;">Version 75 Ultimate｜研究與教學用途，非投資建議</div>
     </div>
@@ -5288,7 +5288,7 @@ def v75_ultimate_page(symbol, q, df, scores):
 
 # ================= V75.5 PROFESSIONAL DATA EDITION LAYER =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V75.5 Professional Data Edition"
+APP_VERSION="V75.6 Company DNA Center"
 
 V755_MARKET_DB = [
 ("2330","台積電","上市","半導體","晶圓代工","中游"),("2303","聯電","上市","半導體","晶圓代工","中游"),("5347","世界先進","上櫃","半導體","特殊製程晶圓代工","中游"),("2454","聯發科","上市","半導體","IC設計","上游"),("2379","瑞昱","上市","半導體","IC設計","上游"),("3711","日月光投控","上市","半導體","封裝測試","下游"),("3374","精材","上市","半導體","先進封裝","下游"),("2382","廣達","上市","電腦週邊","AI伺服器ODM","中游"),("3231","緯創","上市","電腦週邊","AI伺服器ODM","中游"),("6570","維田","上市","工業電腦","IPC","中游"),("6112","邁達特","上市","資訊服務","系統整合","中下游"),("8112","至上","上市","電子通路","半導體通路","中下游"),("6189","豐藝","上市","電子通路","電子零組件通路","中下游"),("6215","和椿科技","上櫃","自動化","自動化零組件/系統","中游"),("2884","玉山金","上市","金融","銀行/金控","金融服務"),("2891","中信金","上市","金融","銀行/金控","金融服務"),("2882","國泰金","上市","金融","保險/金控","金融服務"),("2603","長榮","上市","航運","貨櫃航運","下游"),("2609","陽明","上市","航運","貨櫃航運","下游"),("2615","萬海","上市","航運","貨櫃航運","下游"),("2002","中鋼","上市","鋼鐵","鋼鐵製造","中游"),("1301","台塑","上市","塑化","石化原料","上中游"),("1216","統一","上市","食品","食品/通路","中下游"),("2727","王品","上市","觀光","餐飲服務","下游"),("2412","中華電","上市","電信","電信服務","下游"),("2207","和泰車","上市","汽車","汽車代理/銷售","下游")]
@@ -5424,7 +5424,7 @@ def v755_institute_score(symbol,q=None,df=None,scores=None):
     scores=scores or {}; tech=v755_num(scores.get('tech',50),50); fund=v755_num(scores.get('fund',50),50); chip=v755_chip_proxy(symbol,q,df,scores); esg=v755_esg_core(symbol,scores); valuation=70 if pd.notna(v755_num((q or {}).get('pe'))) else 55; risk=v755_num(scores.get('risk',50),50); final=tech*.15+fund*.20+chip['total']*.20+esg['total']*.15+valuation*.20+(100-risk)*.10; grade='A+' if final>=85 else 'A' if final>=75 else 'B' if final>=65 else 'C' if final>=50 else 'D'; stance='偏多' if final>=75 else '中立偏多' if final>=65 else '中立' if final>=50 else '偏空'
     return pd.DataFrame([['AI Institute Score',v755_fmt(final),grade,stance],['技術面 15%',v755_fmt(tech),'','K線/指標'],['財報面 20%',v755_fmt(fund),'','EPS/PE/PB'],['法人籌碼 20%',v755_fmt(chip['total']),chip['signal'],'法人+融資融券+主力+大戶散戶'],['ESG 15%',v755_fmt(esg['total']),v755_esg_rating(esg['total']),'產業化ESG'],['估值面 20%',v755_fmt(valuation),'','企業評價/同業比較'],['風險修正 10%',v755_fmt(risk),'','越高扣分越多']],columns=['項目','分數','評級/燈號','說明'])
 def v755_professional_data_page(symbol,q,df,scores):
-    st.markdown('<div style="padding:28px;border-radius:24px;background:linear-gradient(135deg,#111827,#1d4ed8,#059669);color:white;margin-bottom:18px;"><div style="font-size:34px;font-weight:900;">🏛 AI研究院 Pro</div><div style="font-size:20px;margin-top:6px;">V75.5 Professional Data Edition</div><div style="font-size:15px;margin-top:10px;opacity:.92;">補齊 ESG研究院 × 籌碼研究院 × AI共識價 × 全市場資料庫</div></div>', unsafe_allow_html=True)
+    st.markdown('<div style="padding:28px;border-radius:24px;background:linear-gradient(135deg,#111827,#1d4ed8,#059669);color:white;margin-bottom:18px;"><div style="font-size:34px;font-weight:900;">🏛 AI研究院 Pro</div><div style="font-size:20px;margin-top:6px;">V75.6 Company DNA Center</div><div style="font-size:15px;margin-top:10px;opacity:.92;">補齊 ESG研究院 × 籌碼研究院 × AI共識價 × 全市場資料庫</div></div>', unsafe_allow_html=True)
     tabs=st.tabs(['總覽','ESG研究院','籌碼研究院','融資融券','主力/大戶散戶','AI共識價','全市場資料庫','資料可信度'])
     with tabs[0]: st.markdown(f'### {display_name(symbol)}'); st.dataframe(v755_institute_score(symbol,q,df,scores),use_container_width=True,hide_index=True)
     with tabs[1]: st.markdown('### 🌱 ESG研究院 Professional'); st.dataframe(v755_esg_dashboard(symbol,q,scores),use_container_width=True,hide_index=True); st.markdown('#### ESG估值模型'); st.dataframe(v755_esg_valuation(symbol,q,scores),use_container_width=True,hide_index=True); st.markdown('#### ESG產業排名'); st.dataframe(v755_esg_rank(symbol,scores),use_container_width=True,hide_index=True)
@@ -5435,6 +5435,265 @@ def v755_professional_data_page(symbol,q,df,scores):
     with tabs[6]: st.markdown('### 🇹🇼 全市場資料庫雛形'); st.dataframe(v755_market_database(),use_container_width=True,hide_index=True); st.caption('本版先內建核心上市櫃；後續可串 TWSE/TPEx/興櫃/ETF 資料源完整化。')
     with tabs[7]: st.markdown('### 🔎 資料可信度'); st.dataframe(pd.DataFrame([['法人/融資融券','目前代理資料層','中低','可串TWSE/TPEx法人買賣超與融資融券'],['主力/券商','目前量價代理','中低','可串券商分點資料'],['大戶/散戶','目前代理','中低','可串集保股權分散表'],['ESG','產業權重代理','中','可串永續報告書/ESG評級'],['AI共識價','多模型中位數','中','取決於各資料層可信度']],columns=['模組','目前來源','可信度','升級方向']),use_container_width=True,hide_index=True)
 # ================= V75.5 PROFESSIONAL DATA EDITION LAYER END =================
+
+# ================= V75.6 COMPANY DNA CENTER LAYER =================
+APP_BRAND = "AI研究院 Pro"
+APP_VERSION="V75.6 Company DNA Center"
+
+V756_DNA_DB = {
+    "2330": ["電子", "半導體", "晶圓代工", "先進製程", "AI/HPC供應鏈", "中游", "Foundry", "成熟成長期", "🟢 熱絡"],
+    "2303": ["電子", "半導體", "晶圓代工", "成熟製程", "車用/工控/PMIC", "中游", "Foundry", "成熟期", "🟡 中立"],
+    "5347": ["電子", "半導體", "特殊製程晶圓代工", "成熟製程", "車用/工控/PMIC", "中游", "Specialty Foundry", "成熟期", "🟡 中立"],
+    "2454": ["電子", "半導體", "IC設計", "通訊/手機/AI邊緣", "Fabless", "上游", "Fabless IC Design", "成熟成長期", "🟢 熱絡"],
+    "2379": ["電子", "半導體", "IC設計", "網通/音訊/PC", "Fabless", "上游", "Fabless IC Design", "成熟期", "🟡 中立"],
+    "3711": ["電子", "半導體", "封裝測試", "先進封裝", "AI/HPC封裝", "下游", "OSAT", "成長期", "🟢 熱絡"],
+    "3374": ["電子", "半導體", "先進封裝/影像感測", "封裝服務", "AI/影像感測供應鏈", "下游", "Advanced Packaging", "成長期", "🟢 熱絡"],
+    "6739": ["電子", "半導體", "半導體設備/自動化", "製程自動化", "AI工廠/半導體自動化", "上中游", "Automation/Equipment", "成長期", "🟢 熱絡"],
+    "2382": ["電子", "電腦週邊", "AI伺服器ODM", "伺服器整機", "AI資料中心", "中游", "ODM", "成長期", "🟢 熱絡"],
+    "3231": ["電子", "電腦週邊", "AI伺服器ODM", "伺服器整機", "AI資料中心", "中游", "ODM", "成長期", "🟢 熱絡"],
+    "6570": ["電子", "工業電腦", "IPC", "工控設備", "AIoT/邊緣運算", "中游", "Industrial PC", "成長期", "🟡 中立"],
+    "6112": ["服務", "資訊服務", "系統整合/雲端", "企業IT服務", "AI雲端服務", "中下游", "System Integration", "成長期", "🟡 中立"],
+    "6215": ["電子", "自動化", "工業自動化", "機器人/自動化整合", "AI Robot供應鏈", "中游", "Automation Solution", "成長期", "🟢 熱絡"],
+    "8112": ["電子", "電子通路", "半導體通路", "代理/庫存/設計導入", "AI電子供應鏈", "中下游", "Distributor", "成熟期", "🟡 中立"],
+    "6189": ["電子", "電子通路", "電子零組件通路", "代理/庫存/服務", "電子供應鏈", "中下游", "Distributor", "成熟期", "🟡 中立"],
+    "2884": ["金融", "金融控股", "銀行", "數位金融", "財富管理/授信", "金融服務", "Financial Holding", "成熟期", "🟡 中立"],
+    "2891": ["金融", "金融控股", "銀行", "企業金融", "財富管理/授信", "金融服務", "Financial Holding", "成熟期", "🟡 中立"],
+    "2882": ["金融", "金融控股", "保險/銀行", "金融服務", "保險/銀行/投資", "金融服務", "Financial Holding", "成熟期", "🟡 中立"],
+    "2603": ["傳產", "航運", "貨櫃航運", "全球航線", "海運物流", "下游", "Container Shipping", "景氣循環", "🟡 中立"],
+    "2609": ["傳產", "航運", "貨櫃航運", "全球航線", "海運物流", "下游", "Container Shipping", "景氣循環", "🟡 中立"],
+    "2615": ["傳產", "航運", "貨櫃航運", "區域/全球航線", "海運物流", "下游", "Container Shipping", "景氣循環", "🟡 中立"],
+    "2002": ["傳產", "鋼鐵", "一貫鋼廠", "鋼材製造", "基礎建設/製造業", "中游", "Steel Manufacturing", "成熟循環", "🟡 中立"],
+    "1301": ["傳產", "塑化", "石化原料", "塑膠原料", "民生/工業材料", "上中游", "Petrochemical", "成熟循環", "🟡 中立"],
+    "1216": ["民生", "食品", "食品/通路", "食品製造/零售", "民生消費", "中下游", "Food & Retail", "成熟期", "🟡 中立"],
+    "2727": ["民生", "觀光", "餐飲服務", "連鎖餐飲", "消費服務", "下游", "Restaurant Chain", "成熟成長", "🟡 中立"],
+    "2412": ["服務", "電信", "電信服務", "固網/行動/IDC", "數位基礎建設", "下游", "Telecom Operator", "成熟期", "🟡 中立"],
+}
+
+def v756_name(symbol):
+    try:
+        return v755_stock_name(symbol)
+    except Exception:
+        try:
+            return stock_name_only(symbol)
+        except Exception:
+            return str(symbol).upper()
+
+def v756_profile(symbol):
+    s = str(symbol).upper().strip()
+    code = s.split(".")[0]
+    data = V756_DNA_DB.get(code)
+    if data:
+        l1,l2,l3,l4,l5,pos,biz,maturity,cycle = data
+        return {
+            "公司": v756_name(s), "代碼": s, "Level 1": l1, "Level 2": l2, "Level 3": l3, "Level 4": l4, "Level 5": l5,
+            "產業鏈位置": pos, "商業模式": biz, "產業成熟度": maturity, "產業景氣燈號": cycle,
+            "資料層": "公司DNA資料庫"
+        }
+    try:
+        p = v755_profile(symbol)
+    except Exception:
+        try:
+            p = v70_profile(symbol)
+        except Exception:
+            p = {}
+    industry = p.get("產業", "其他")
+    sub = p.get("次產業", "待分類")
+    pos = p.get("產業鏈位置", "待確認")
+    return {
+        "公司": p.get("公司", v756_name(s)), "代碼": s, "Level 1": "待分類", "Level 2": industry, "Level 3": sub,
+        "Level 4": "待分類", "Level 5": "待分類", "產業鏈位置": pos,
+        "商業模式": p.get("商業模式", "待確認"), "產業成熟度": "待確認", "產業景氣燈號": "⚪ 待確認", "資料層": "推估/待擴充"
+    }
+
+def v756_company_dna_table(symbol):
+    p = v756_profile(symbol)
+    rows = [
+        ["公司名稱", p["公司"]],
+        ["股票代號", p["代碼"]],
+        ["Level 1 大類", p["Level 1"]],
+        ["Level 2 產業", p["Level 2"]],
+        ["Level 3 次產業", p["Level 3"]],
+        ["Level 4 細分領域", p["Level 4"]],
+        ["Level 5 投資主題", p["Level 5"]],
+        ["產業鏈位置", p["產業鏈位置"]],
+        ["商業模式", p["商業模式"]],
+        ["產業成熟度", p["產業成熟度"]],
+        ["產業景氣燈號", p["產業景氣燈號"]],
+        ["資料層", p["資料層"]],
+    ]
+    return pd.DataFrame(rows, columns=["項目", "內容"])
+
+def v756_industry_level_table(symbol):
+    p = v756_profile(symbol)
+    return pd.DataFrame([
+        ["Level 1", p["Level 1"], "市場大類，例如電子、金融、傳產、民生、服務"],
+        ["Level 2", p["Level 2"], "主要產業，例如半導體、航運、金融控股"],
+        ["Level 3", p["Level 3"], "次產業，例如晶圓代工、IC設計、貨櫃航運"],
+        ["Level 4", p["Level 4"], "細分領域，例如先進製程、成熟製程、數位金融"],
+        ["Level 5", p["Level 5"], "投資主題，例如AI/HPC、AI Robot、海運物流"],
+    ], columns=["層級", "分類", "說明"])
+
+def v756_chain_position_table(symbol):
+    p = v756_profile(symbol)
+    pos = p["產業鏈位置"]
+    current = f"★ {p['公司']}（{pos}｜{p['Level 3']}）"
+    l2 = p["Level 2"]
+    l3 = p["Level 3"]
+    if "半導體" in l2 and ("晶圓代工" in l3 or "特殊製程" in l3):
+        rows = [
+            ["上游", "設備/材料/IP/EDA", "ASML、AMAT、LAM、Synopsys、Cadence"],
+            ["中游", current, "晶圓製造、製程平台、產能與良率"],
+            ["下游", "IC設計/封測/系統品牌", "NVIDIA、AMD、Apple、Qualcomm、日月光"],
+        ]
+    elif "IC設計" in l3:
+        rows = [
+            ["上游", current, "晶片設計、IP整合、產品定義"],
+            ["中游", "晶圓代工/封裝測試", "台積電、聯電、日月光"],
+            ["下游", "手機/PC/車用/AI/網通", "品牌商、系統廠、終端市場"],
+        ]
+    elif "封裝" in l3 or "檢測" in l3:
+        rows = [
+            ["上游", "IC設計/晶圓代工", "NVIDIA、AMD、台積電、聯發科"],
+            ["下游", current, "封裝、測試、材料分析、模組化"],
+            ["終端", "AI伺服器/手機/車用/工控", "廣達、緯創、Apple、車用客戶"],
+        ]
+    elif "伺服器" in l3:
+        rows = [
+            ["上游", "GPU/CPU/記憶體/散熱/PCB", "NVIDIA、AMD、Intel、Micron"],
+            ["中游", current, "伺服器ODM、整機組裝、交付"],
+            ["下游", "雲端/企業AI客戶", "Microsoft、Amazon、Google、Meta"],
+        ]
+    elif "航運" in l2:
+        rows = [
+            ["上游", "船舶/港口/燃油/貨源", "造船、港口、燃油、貨代"],
+            ["下游", current, "貨櫃運輸、航線調度、運價"],
+            ["終端", "進出口商/零售/製造業", "全球貿易需求"],
+        ]
+    elif "金融" in l2:
+        rows = [
+            ["資金端", "存款/資本市場", "存款、債券、資本市場"],
+            ["金融服務", current, "授信、財富管理、保險、投資"],
+            ["客戶端", "個人/企業/政府", "金融需求、利率循環"],
+        ]
+    else:
+        rows = [
+            ["上游", "原料/零組件/技術來源", "供應與成本"],
+            ["中游", current, "製造、服務、整合或通路"],
+            ["下游", "客戶/終端市場", "需求與價格"],
+        ]
+    return pd.DataFrame(rows, columns=["產業鏈位置", "角色", "代表內容"])
+
+def v756_competitor_mapping(symbol):
+    p = v756_profile(symbol)
+    l2, l3 = p["Level 2"], p["Level 3"]
+    if "晶圓代工" in l3 or "特殊製程" in l3:
+        comps = [["台積電","2330.TW","台灣","晶圓代工"],["聯電","2303.TW","台灣","成熟製程"],["世界先進","5347.TWO","台灣","特殊製程"],["GlobalFoundries","GFS","美國","成熟/特殊製程"],["Tower","TSEM","以色列","特殊製程"],["Samsung Foundry","005930.KS","韓國","晶圓代工"]]
+    elif "IC設計" in l3:
+        comps = [["聯發科","2454.TW","台灣","IC設計"],["瑞昱","2379.TW","台灣","IC設計"],["NVIDIA","NVDA","美國","GPU/AI"],["AMD","AMD","美國","CPU/GPU"],["Qualcomm","QCOM","美國","通訊晶片"],["Broadcom","AVGO","美國","通訊/ASIC"]]
+    elif "封裝" in l3 or "檢測" in l3:
+        comps = [["精材","3374.TW","台灣","先進封裝"],["日月光投控","3711.TW","台灣","封裝測試"],["Amkor","AMKR","美國","封裝測試"],["JCET","600584.SS","中國","封裝測試"],["台積電","2330.TW","台灣","重要客戶/平台"]]
+    elif "伺服器" in l3:
+        comps = [["廣達","2382.TW","台灣","AI伺服器ODM"],["緯創","3231.TW","台灣","AI伺服器ODM"],["Supermicro","SMCI","美國","AI伺服器"],["Dell","DELL","美國","企業伺服器"],["NVIDIA","NVDA","美國","GPU平台"]]
+    elif "航運" in l2:
+        comps = [["長榮","2603.TW","台灣","貨櫃航運"],["陽明","2609.TW","台灣","貨櫃航運"],["萬海","2615.TW","台灣","貨櫃航運"],["Maersk","MAERSK-B.CO","丹麥","全球航運"],["Hapag-Lloyd","HLAG.DE","德國","全球航運"]]
+    elif "金融" in l2:
+        comps = [["玉山金","2884.TW","台灣","銀行/金控"],["中信金","2891.TW","台灣","銀行/金控"],["國泰金","2882.TW","台灣","保險/金控"],["富邦金","2881.TW","台灣","金控"],["兆豐金","2886.TW","台灣","銀行/金控"]]
+    elif "通路" in l3:
+        comps = [["至上","8112.TW","台灣","半導體通路"],["豐藝","6189.TW","台灣","電子通路"],["大聯大","3702.TW","台灣","半導體通路"],["Arrow","ARW","美國","電子通路"],["Avnet","AVT","美國","電子通路"]]
+    else:
+        comps = [["台積電","2330.TW","台灣","科技核心"],["NVIDIA","NVDA","美國","AI核心"],["AMD","AMD","美國","科技同業"],["Intel","INTC","美國","科技同業"]]
+    return pd.DataFrame(comps, columns=["公司", "代碼", "國家", "競爭/關聯角色"])
+
+def v756_peer_compare(symbol):
+    rows = []
+    for _, r in v756_competitor_mapping(symbol).iterrows():
+        q = {}
+        try:
+            q = v755_get_quote(r["代碼"]) if "v755_get_quote" in globals() else {}
+        except Exception:
+            q = {}
+        price = q.get("price", np.nan)
+        eps = q.get("eps", np.nan)
+        pe = q.get("pe", np.nan)
+        pb = q.get("pb", np.nan)
+        rows.append([r["公司"], r["代碼"], r["國家"], r["競爭/關聯角色"], v756_safe_fmt(price), v756_safe_fmt(eps), v756_safe_fmt(pe), v756_safe_fmt(pb)])
+    return pd.DataFrame(rows, columns=["公司", "代碼", "國家", "角色", "現價", "EPS", "PE", "PB"])
+
+def v756_safe_fmt(x, digits=2):
+    try:
+        if x is None or pd.isna(float(x)):
+            return "N/A"
+        return f"{float(x):.{digits}f}"
+    except Exception:
+        return "N/A"
+
+def v756_company_dna_center(symbol, q=None, df=None, scores=None):
+    st.markdown("## 🧬 公司DNA中心")
+    st.caption("V75.6：公司DNA會直接顯示在AI研究院第一頁，包含產業分級、產業鏈位置、全球競爭與同業比較。")
+    c1, c2, c3, c4 = st.columns(4)
+    p = v756_profile(symbol)
+    c1.metric("Level 2 產業", p["Level 2"])
+    c2.metric("Level 3 次產業", p["Level 3"])
+    c3.metric("產業鏈位置", p["產業鏈位置"])
+    c4.metric("景氣燈號", p["產業景氣燈號"])
+    tabs = st.tabs(["公司DNA", "產業分級", "產業鏈位置", "全球競爭", "同業比較"])
+    with tabs[0]:
+        st.dataframe(v756_company_dna_table(symbol), use_container_width=True, hide_index=True)
+    with tabs[1]:
+        st.dataframe(v756_industry_level_table(symbol), use_container_width=True, hide_index=True)
+    with tabs[2]:
+        st.dataframe(v756_chain_position_table(symbol), use_container_width=True, hide_index=True)
+    with tabs[3]:
+        st.dataframe(v756_competitor_mapping(symbol), use_container_width=True, hide_index=True)
+    with tabs[4]:
+        st.dataframe(v756_peer_compare(symbol), use_container_width=True, hide_index=True)
+
+def v756_ai_page(symbol, q, df, scores):
+    st.markdown("""
+    <div style="padding:28px;border-radius:24px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin-bottom:18px;">
+      <div style="font-size:34px;font-weight:900;">🏛 AI研究院 Pro</div>
+      <div style="font-size:20px;margin-top:6px;">V75.6 Company DNA Center</div>
+      <div style="font-size:15px;margin-top:10px;opacity:.92;">公司DNA × 產業分級 × 產業鏈 × 全球競爭 × ESG × 籌碼</div>
+    </div>
+    """, unsafe_allow_html=True)
+    tabs = st.tabs(["🧬公司DNA", "🌱ESG研究院", "🏦籌碼研究院", "🎯AI共識價", "🔎資料可信度"])
+    with tabs[0]:
+        v756_company_dna_center(symbol, q, df, scores)
+    with tabs[1]:
+        if "v755_esg_dashboard" in globals():
+            st.dataframe(v755_esg_dashboard(symbol, q, scores), use_container_width=True, hide_index=True)
+            st.dataframe(v755_esg_valuation(symbol, q, scores), use_container_width=True, hide_index=True)
+            st.markdown("#### ESG產業排名")
+            st.dataframe(v755_esg_rank(symbol, scores), use_container_width=True, hide_index=True)
+        else:
+            st.info("ESG研究院資料層未載入。")
+    with tabs[2]:
+        if "v755_chip_tables" in globals():
+            inst_df, margin_df, main_df, pyramid_df, summary_df = v755_chip_tables(symbol, q, df, scores)
+            st.dataframe(inst_df, use_container_width=True, hide_index=True)
+            st.dataframe(margin_df, use_container_width=True, hide_index=True)
+            st.dataframe(main_df, use_container_width=True, hide_index=True)
+            st.dataframe(pyramid_df, use_container_width=True, hide_index=True)
+            st.dataframe(summary_df, use_container_width=True, hide_index=True)
+        else:
+            st.info("籌碼研究院資料層未載入。")
+    with tabs[3]:
+        if "v755_ai_consensus_full" in globals():
+            st.dataframe(v755_ai_consensus_full(symbol, q, df, scores), use_container_width=True, hide_index=True)
+        elif "v75_ai_consensus_price" in globals():
+            st.dataframe(v75_ai_consensus_price(symbol, q, scores), use_container_width=True, hide_index=True)
+        else:
+            st.info("AI共識價資料層未載入。")
+    with tabs[4]:
+        st.dataframe(pd.DataFrame([
+            ["公司DNA", "內建DNA資料庫", "中", "已顯示在第一頁"],
+            ["產業分級", "Level 1~5產業規則庫", "中", "後續可串交易所產業分類"],
+            ["全球競爭", "依次產業自動配對", "中", "避免不同產業亂比"],
+            ["同業比較", "Yahoo/代理估值資料", "中低~中", "可接財報API提升可信度"],
+            ["ESG/籌碼", "V75.5資料層", "代理/中", "後續可串永續報告書、TWSE、TPEx、集保"],
+        ], columns=["模組", "來源", "可信度", "說明"]), use_container_width=True, hide_index=True)
+# ================= V75.6 COMPANY DNA CENTER LAYER END =================
+
 
 
 
@@ -5464,7 +5723,7 @@ if page=="🏠首頁":
     st.markdown("""
     <div style="padding:30px;border-radius:24px;background:linear-gradient(135deg,#0f172a,#1e40af,#047857);color:white;margin:10px 0 20px 0;">
       <div style="font-size:36px;font-weight:900;">🏛 AI研究院 Pro</div>
-      <div style="font-size:22px;margin-top:6px;">V75.5 Professional Data Edition</div>
+      <div style="font-size:22px;margin-top:6px;">V75.6 Company DNA Center</div>
       <div style="font-size:15px;margin-top:12px;opacity:.94;">企業評價 × ESG × 法人 × 產業鏈 × AI估值</div>
       <div style="font-size:13px;margin-top:8px;opacity:.78;">Version 75 Ultimate</div>
     </div>
@@ -5649,7 +5908,7 @@ elif page=="📑中文財報":
 elif page=="__舊永續__":
     sustainability_center(active,q)
 elif page=="🤖AI":
-    v755_professional_data_page(active, q, df_daily, scores)
+    v756_ai_page(active, q, df_daily, scores)
     st.markdown("### AI研究中心完整模組總覽")
     st.dataframe(ai_feature_checklist(), use_container_width=True, hide_index=True)
     v50_ai_research_center(active, df_daily, q, scores)
