@@ -14,7 +14,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V68 AI Research Institute Edition"
+APP_VERSION="V70 Institutional Edition"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -441,7 +441,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V68 AI Research Institute Edition responsive audit */
+/* V70 Institutional Edition responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -500,7 +500,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V68 AI Research Institute Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V70 Institutional Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -705,7 +705,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V68 AI Research Institute Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V70 Institutional Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -880,7 +880,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V68 AI Research Institute Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V70 Institutional Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1777,7 +1777,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V68 AI Research Institute Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V70 Institutional Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1793,7 +1793,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V68 AI Research Institute Edition</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V70 Institutional Edition</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1832,7 +1832,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V68 AI Research Institute Edition_SIDEBAR_SECTOR_FIX
+    # V70 Institutional Edition_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -4523,6 +4523,443 @@ def v68_research_institute(symbol, q, df, scores):
         ], columns=["模組", "更新狀態", "來源", "說明"]), use_container_width=True, hide_index=True)
 # ================= V68 AI RESEARCH INSTITUTE EDITION LAYER END =================
 
+# ================= V70 INSTITUTIONAL EDITION LAYER =================
+V70_TW_MASTER = [
+    # code, name, market, industry, sub_industry, chain_position, business_model, global_class
+    ("2330", "台積電", "上市", "半導體", "晶圓代工", "中游", "Foundry", "Semiconductor Foundry"),
+    ("2303", "聯電", "上市", "半導體", "晶圓代工", "中游", "Foundry", "Mature Node Foundry"),
+    ("5347", "世界先進", "上櫃", "半導體", "特殊/成熟製程晶圓代工", "中游", "Specialty Foundry", "Specialty Foundry"),
+    ("2454", "聯發科", "上市", "半導體", "IC設計", "上游", "Fabless IC Design", "Fabless Semiconductor"),
+    ("2379", "瑞昱", "上市", "半導體", "IC設計", "上游", "Fabless IC Design", "Fabless Semiconductor"),
+    ("3711", "日月光投控", "上市", "半導體", "封裝測試", "下游", "OSAT", "Semiconductor Packaging & Testing"),
+    ("3374", "精材", "上市", "半導體", "先進封裝/影像感測封裝", "下游", "Advanced Packaging", "Advanced Packaging"),
+    ("6739", "竹陞科技", "上市", "半導體", "設備/自動化", "上中游", "Automation/Equipment", "Semiconductor Equipment"),
+    ("3661", "世芯-KY", "上市", "半導體", "ASIC設計服務", "上游", "ASIC Design Service", "ASIC Design"),
+    ("2382", "廣達", "上市", "電腦週邊", "AI伺服器/ODM", "中游", "ODM", "AI Server ODM"),
+    ("3231", "緯創", "上市", "電腦週邊", "AI伺服器/ODM", "中游", "ODM", "AI Server ODM"),
+    ("2357", "華碩", "上市", "電腦週邊", "品牌/主機板/AI伺服器", "中下游", "Brand + Hardware", "PC & Server Hardware"),
+    ("2376", "技嘉", "上市", "電腦週邊", "主機板/伺服器", "中游", "Hardware", "Server Hardware"),
+    ("6570", "維田", "上市", "工業電腦", "工業電腦/IPC", "中游", "IPC", "Industrial PC"),
+    ("6112", "邁達特", "上市", "資訊服務", "系統整合/雲端", "中下游", "System Integration", "IT Service & Cloud"),
+    ("2395", "研華", "上市", "工業電腦", "工業電腦/IoT", "中游", "IPC/IoT", "Industrial PC"),
+    ("6414", "樺漢", "上市", "工業電腦", "IPC/系統整合", "中下游", "IPC/SI", "Industrial PC"),
+    ("8112", "至上", "上市", "電子通路", "半導體通路", "中下游", "Distributor", "Semiconductor Distributor"),
+    ("6189", "豐藝", "上市", "電子通路", "電子零組件通路", "中下游", "Distributor", "Electronic Component Distributor"),
+    ("6215", "和椿科技", "上櫃", "自動化", "自動化零組件/系統", "中游", "Automation Solution", "Automation"),
+    ("6830", "汎銓", "上市", "半導體", "材料分析/檢測", "中下游", "Testing/Analysis Service", "Semiconductor Analysis"),
+    ("6415", "矽力-KY", "上市", "半導體", "電源管理IC", "上游", "Fabless PMIC", "Power IC Design"),
+]
+V70_GLOBAL_NAME_MAP = {
+    "NVDA": "NVIDIA", "AMD": "AMD", "INTC": "Intel", "AVGO": "Broadcom", "QCOM": "Qualcomm",
+    "TSM": "TSMC ADR", "MU": "Micron", "GFS": "GlobalFoundries", "TSEM": "Tower Semiconductor",
+    "SMCI": "Supermicro", "DELL": "Dell", "005930.KS": "Samsung Electronics", "000660.KS": "SK Hynix",
+    "AMAT": "Applied Materials", "ASML": "ASML", "LRCX": "Lam Research", "SNPS": "Synopsys", "CDNS": "Cadence",
+}
+V70_MASTER_DF = pd.DataFrame(V70_TW_MASTER, columns=["code","name","market","industry","sub_industry","chain_position","business_model","global_class"])
+
+try:
+    for _, r in V70_MASTER_DF.iterrows():
+        sym = f"{r['code']}.TW" if r["market"] == "上市" else f"{r['code']}.TWO"
+        CODE_NAME_MAP[sym] = r["name"]
+        TW_STOCKS[r["name"]] = sym
+    CODE_NAME_MAP.update(V70_GLOBAL_NAME_MAP)
+except Exception:
+    pass
+
+def v70_symbol_candidates(raw):
+    s = str(raw).strip().upper()
+    if not s:
+        return []
+    if s.endswith(".TW") or s.endswith(".TWO") or "." in s and not s.endswith("."):
+        return [s]
+    if s.isdigit():
+        row = V70_MASTER_DF[V70_MASTER_DF["code"] == s]
+        if not row.empty:
+            market = row.iloc[0]["market"]
+            return [f"{s}.TW" if market == "上市" else f"{s}.TWO"]
+        return [f"{s}.TW", f"{s}.TWO"]
+    hit = V70_MASTER_DF[V70_MASTER_DF["name"].str.contains(s, case=False, na=False)]
+    if hit.empty:
+        hit = V70_MASTER_DF[V70_MASTER_DF["name"].str.contains(str(raw).strip(), na=False)]
+    out = []
+    for _, r in hit.head(10).iterrows():
+        out.append(f"{r['code']}.TW" if r["market"] == "上市" else f"{r['code']}.TWO")
+    return out
+
+def stock_name_only(symbol):
+    s = str(symbol).upper().strip()
+    code = s.split(".")[0]
+    row = V70_MASTER_DF[V70_MASTER_DF["code"] == code]
+    if not row.empty:
+        return row.iloc[0]["name"]
+    if s in V70_GLOBAL_NAME_MAP:
+        return V70_GLOBAL_NAME_MAP[s]
+    try:
+        if s in CODE_NAME_MAP:
+            return CODE_NAME_MAP[s]
+    except Exception:
+        pass
+    try:
+        nm = yahoo_name_lookup(s)
+        return nm or s
+    except Exception:
+        return s
+
+def display_name(symbol):
+    s = str(symbol).upper().strip()
+    return f"{stock_name_only(s)} / {s}"
+
+def v70_profile(symbol):
+    s = str(symbol).upper().strip()
+    code = s.split(".")[0]
+    row = V70_MASTER_DF[V70_MASTER_DF["code"] == code]
+    if row.empty:
+        return {
+            "公司": stock_name_only(s), "代碼": s, "市場": "海外/待分類", "產業": "科技產業",
+            "次產業": "待分類", "產業鏈位置": "待確認", "商業模式": "待確認",
+            "全球分類": "Global Technology", "競爭組": "global_tech",
+            "AI關聯度": "中", "資料可信度": "中低"
+        }
+    r = row.iloc[0]
+    comp_group = "global_tech"
+    sub = str(r["sub_industry"])
+    if "晶圓代工" in sub:
+        comp_group = "foundry"
+    elif "IC設計" in sub or "ASIC" in sub or "電源管理" in sub:
+        comp_group = "fabless"
+    elif "封裝" in sub or "檢測" in sub or "材料分析" in sub:
+        comp_group = "osat_packaging"
+    elif "AI伺服器" in sub or "伺服器" in sub:
+        comp_group = "ai_server"
+    elif "工業電腦" in sub or "系統整合" in sub:
+        comp_group = "industrial_pc"
+    elif "通路" in sub:
+        comp_group = "distributor"
+    elif "自動化" in sub or "設備" in sub:
+        comp_group = "automation_equipment"
+    return {
+        "公司": r["name"], "代碼": s, "市場": r["market"], "產業": r["industry"],
+        "次產業": r["sub_industry"], "產業鏈位置": r["chain_position"],
+        "商業模式": r["business_model"], "全球分類": r["global_class"],
+        "競爭組": comp_group, "AI關聯度": "高" if r["industry"] in ["半導體","電腦週邊"] else "中",
+        "資料可信度": "高"
+    }
+
+def v70_num(x, default=np.nan):
+    try:
+        if x is None or x == "N/A" or str(x).strip() in ["", "None", "nan"]:
+            return default
+        return float(x)
+    except Exception:
+        return default
+
+def v70_fmt(x, digits=2):
+    try:
+        if x is None or pd.isna(x):
+            return "N/A"
+        return f"{float(x):.{digits}f}"
+    except Exception:
+        return str(x)
+
+def v70_get_quote_any(symbol):
+    if "v66_get_quote_any" in globals():
+        return v66_get_quote_any(symbol)
+    try:
+        return get_quote(symbol) if "get_quote" in globals() else {}
+    except Exception:
+        return {}
+
+def v70_resolve_eps(q):
+    price = v70_num(q.get("price"))
+    eps = v70_num(q.get("eps"))
+    pe = v70_num(q.get("pe"))
+    if pd.notna(eps) and eps > 0:
+        return eps, "Yahoo/原始EPS"
+    if pd.notna(price) and pd.notna(pe) and pe > 0:
+        return price / pe, "現價/PE反推EPS"
+    return np.nan, "EPS缺資料"
+
+def v70_competitors(symbol):
+    p = v70_profile(symbol)
+    g = p["競爭組"]
+    data = {
+        "foundry": [
+            ["台積電","2330.TW","台灣","先進/成熟製程晶圓代工","同產業"],
+            ["聯電","2303.TW","台灣","成熟製程晶圓代工","同產業"],
+            ["世界先進","5347.TWO","台灣","特殊/成熟製程代工","同產業"],
+            ["Samsung Foundry","005930.KS","韓國","先進製程/晶圓代工","國際同業"],
+            ["Intel Foundry","INTC","美國","IDM/Foundry","國際同業"],
+            ["GlobalFoundries","GFS","美國","成熟/特殊製程","國際同業"],
+            ["Tower Semiconductor","TSEM","以色列","特殊製程代工","國際同業"],
+        ],
+        "fabless": [
+            ["聯發科","2454.TW","台灣","Fabless IC設計","同產業"],
+            ["瑞昱","2379.TW","台灣","Fabless IC設計","同產業"],
+            ["NVIDIA","NVDA","美國","GPU/AI平台","國際同業"],
+            ["AMD","AMD","美國","CPU/GPU","國際同業"],
+            ["Qualcomm","QCOM","美國","通訊晶片","國際同業"],
+            ["Broadcom","AVGO","美國","通訊/ASIC","國際同業"],
+        ],
+        "osat_packaging": [
+            ["精材","3374.TW","台灣","先進封裝/影像感測封裝","本地同業"],
+            ["日月光投控","3711.TW","台灣","封裝測試龍頭","同產業"],
+            ["Amkor","AMKR","美國","封裝測試","國際同業"],
+            ["JCET","600584.SS","中國","封裝測試","國際同業"],
+            ["TSMC","2330.TW","台灣","先進封裝重要客戶/平台","上下游關係"],
+        ],
+        "ai_server": [
+            ["廣達","2382.TW","台灣","AI伺服器ODM","同產業"],
+            ["緯創","3231.TW","台灣","AI伺服器ODM","同產業"],
+            ["英業達","2356.TW","台灣","伺服器ODM","同產業"],
+            ["Supermicro","SMCI","美國","AI伺服器品牌/整機","國際同業"],
+            ["Dell","DELL","美國","企業伺服器","國際同業"],
+            ["NVIDIA","NVDA","美國","GPU/AI平台","上游核心"],
+        ],
+        "industrial_pc": [
+            ["研華","2395.TW","台灣","工業電腦龍頭","同產業"],
+            ["樺漢","6414.TW","台灣","IPC/系統整合","同產業"],
+            ["維田","6570.TW","台灣","工業電腦/IPC","同產業"],
+            ["邁達特","6112.TW","台灣","系統整合/雲端","相關同業"],
+            ["Siemens","SIE.DE","德國","工業自動化","國際同業"],
+            ["Schneider","SU.PA","法國","能源管理/自動化","國際同業"],
+        ],
+        "distributor": [
+            ["至上","8112.TW","台灣","半導體通路","同產業"],
+            ["豐藝","6189.TW","台灣","電子零組件通路","同產業"],
+            ["大聯大","3702.TW","台灣","半導體通路龍頭","同產業"],
+            ["Arrow","ARW","美國","電子通路","國際同業"],
+            ["Avnet","AVT","美國","電子通路","國際同業"],
+        ],
+        "automation_equipment": [
+            ["和椿科技","6215.TWO","台灣","自動化零組件/系統","同產業"],
+            ["竹陞科技","6739.TW","台灣","半導體自動化/設備","同產業"],
+            ["上銀","2049.TW","台灣","傳動/自動化","同產業"],
+            ["ASML","ASML","荷蘭","半導體設備","國際上游"],
+            ["Applied Materials","AMAT","美國","半導體設備","國際上游"],
+        ],
+        "global_tech": [
+            ["台積電","2330.TW","台灣","晶圓代工","科技核心"],
+            ["NVIDIA","NVDA","美國","AI GPU","科技核心"],
+            ["AMD","AMD","美國","CPU/GPU","科技同業"],
+            ["Intel","INTC","美國","CPU/Foundry","科技同業"],
+            ["Samsung","005930.KS","韓國","記憶體/Foundry","科技同業"],
+        ],
+    }
+    return data.get(g, data["global_tech"]), p
+
+def v70_chain_map(symbol):
+    p = v70_profile(symbol)
+    g = p["競爭組"]
+    current = f"★ {p['公司']}（目前位置：{p['產業鏈位置']} / {p['次產業']}）"
+    if g == "foundry":
+        rows = [
+            ["上游", "設備/材料/IP/EDA", "ASML、AMAT、LAM、Synopsys、Cadence", "供應製程設備與設計工具"],
+            ["中游", current, "晶圓代工/特殊製程", "將IC設計轉為晶圓製造"],
+            ["下游", "IC設計/品牌/系統廠", "NVIDIA、AMD、Apple、Qualcomm、車用/工控客戶", "終端需求牽動稼動率"],
+        ]
+    elif g == "fabless":
+        rows = [
+            ["上游", current, "IC設計/Fabless", "設計晶片，不自建晶圓廠"],
+            ["中游", "晶圓代工/封測", "台積電、聯電、日月光", "製造與封裝"],
+            ["下游", "品牌/系統/終端市場", "手機、AI伺服器、車用、網通", "終端需求決定出貨"],
+        ]
+    elif g == "osat_packaging":
+        rows = [
+            ["上游", "IC設計/晶圓代工", "NVIDIA、AMD、台積電、聯發科", "晶片設計與晶圓來源"],
+            ["下游", current, "封裝測試/先進封裝", "晶圓切割、封裝、測試、模組化"],
+            ["終端", "AI伺服器/手機/車用/工控", "廣達、緯創、Apple、車用客戶", "終端應用拉動封裝需求"],
+        ]
+    elif g == "ai_server":
+        rows = [
+            ["上游", "GPU/CPU/記憶體/散熱/PCB", "NVIDIA、AMD、Intel、Micron、台光電", "關鍵零組件"],
+            ["中游", current, "AI伺服器ODM/硬體整合", "組裝、設計、交付"],
+            ["下游", "雲端/企業客戶", "Microsoft、Amazon、Google、Meta、企業AI", "CAPEX與AI需求"],
+        ]
+    elif g == "industrial_pc":
+        rows = [
+            ["上游", "CPU/面板/工控零組件", "Intel、AMD、零組件廠", "硬體供應"],
+            ["中游", current, "IPC/系統整合", "工控產品與解決方案"],
+            ["下游", "智慧製造/醫療/交通/能源", "企業與政府專案", "專案與訂單能見度"],
+        ]
+    else:
+        rows = [
+            ["上游", "原廠/零組件", "半導體原廠、電子零組件", "供應與價格"],
+            ["中游", current, "通路/系統/整合", "庫存管理、設計導入、客戶服務"],
+            ["下游", "品牌/EMS/終端客戶", "企業客戶、系統廠", "需求與景氣循環"],
+        ]
+    return pd.DataFrame(rows, columns=["產業鏈位置", "角色", "代表公司/內容", "說明"])
+
+def v70_quote_row(name, sym, country, role, relation):
+    q = v70_get_quote_any(sym)
+    eps, eps_source = v70_resolve_eps(q)
+    return {
+        "公司": name, "代碼": sym, "國家": country, "角色": role, "關係": relation,
+        "現價": v70_fmt(q.get("price")), "EPS": v70_fmt(eps), "PE": v70_fmt(q.get("pe")),
+        "PB": v70_fmt(q.get("pb")), "EPS來源": eps_source, "資料層": q.get("pe_source", "Yahoo/推算/代理")
+    }
+
+def v70_competitor_table(symbol):
+    comps, p = v70_competitors(symbol)
+    return pd.DataFrame([v70_quote_row(*c) for c in comps])
+
+def v70_target_price(symbol, q=None, scores=None):
+    scores = scores or {}
+    q = v70_get_quote_any(symbol)
+    price = v70_num(q.get("price"))
+    eps, eps_source = v70_resolve_eps(q)
+    comp_df = v70_competitor_table(symbol)
+    pe_vals = []
+    for x in comp_df["PE"].tolist():
+        v = v70_num(x)
+        if pd.notna(v) and 0 < v < 300:
+            pe_vals.append(v)
+    industry_pe = float(np.nanmedian(pe_vals)) if pe_vals else v70_num(q.get("pe"), 18)
+    if pd.isna(industry_pe) or industry_pe <= 0:
+        industry_pe = 18
+    ai_score = v70_num(scores.get("ai", scores.get("tech", 60)), 60)
+    ai_adj = 1 + max(-0.2, min(0.25, (ai_score - 60) / 200))
+    pe_cases = [
+        ("保守價", max(6, industry_pe * 0.85)),
+        ("基準價", max(6, industry_pe * 1.00)),
+        ("樂觀價", max(6, industry_pe * 1.18)),
+    ]
+    rows = []
+    for label, pe in pe_cases:
+        target = eps * pe * ai_adj if pd.notna(eps) else np.nan
+        upside = (target / price - 1) * 100 if pd.notna(target) and pd.notna(price) and price else np.nan
+        formula = f"EPS({v70_fmt(eps)}) × PE({v70_fmt(pe)}) × AI係數({v70_fmt(ai_adj)})"
+        rows.append([label, v70_fmt(target), v70_fmt(pe), v70_fmt(ai_adj), v70_fmt(upside, 1)+"%" if pd.notna(upside) else "N/A", eps_source, formula])
+    return pd.DataFrame(rows, columns=["情境", "AI目標價", "使用PE", "AI係數", "相對現價", "EPS來源", "計算公式"])
+
+def v70_valuation_vs_competitors(symbol, q=None, scores=None):
+    comp = v70_competitor_table(symbol)
+    rows = []
+    for _, r in comp.iterrows():
+        eps = v70_num(r["EPS"])
+        pe = v70_num(r["PE"])
+        proxy_fair = eps * pe if pd.notna(eps) and pd.notna(pe) else np.nan
+        rows.append([
+            r["公司"], r["代碼"], r["國家"], r["角色"], r["現價"], r["EPS"], r["PE"], r["PB"],
+            v70_fmt(proxy_fair), r["資料層"], "代理合理價=EPS×PE；正式評價以評價中心模型為主"
+        ])
+    return pd.DataFrame(rows, columns=["公司", "代碼", "國家", "角色", "現價", "EPS", "PE", "PB", "代理合理價", "資料層", "說明"])
+
+def v70_investment_consensus(symbol, q=None, scores=None):
+    scores = scores or {}
+    tech = v70_num(scores.get("tech", 50), 50)
+    fund = v70_num(scores.get("fund", 50), 50)
+    inst = v70_num(scores.get("inst", 50), 50)
+    risk = v70_num(scores.get("risk", 50), 50)
+    q = v70_get_quote_any(symbol)
+    valuation = 70 if pd.notna(v70_num(q.get("pe"))) else 55
+    final = tech*0.22 + fund*0.22 + inst*0.18 + valuation*0.18 + (100-risk)*0.10 + 60*0.10
+    status = "偏多" if final >= 70 else ("中立偏多" if final >= 60 else ("中立" if final >= 50 else "偏弱"))
+    return pd.DataFrame([
+        ["AI投資共識", f"{final:.1f}/100", status, "技術+財報+法人+估值+風險整合"],
+        ["技術面", f"{tech:.1f}/100", "K線/均線/指標", "自動重算"],
+        ["財報面", f"{fund:.1f}/100", "EPS/PE/PB/財報品質", "自動/半自動"],
+        ["法人籌碼", f"{inst:.1f}/100", "法人/主力/融資融券", "代理或串接資料"],
+        ["估值面", f"{valuation:.1f}/100", "PE/PB/同業比較", "自動重算"],
+        ["風險修正", f"{risk:.1f}/100", "越高扣分越多", "自動/代理"],
+    ], columns=["項目", "分數", "狀態", "說明"])
+
+def v70_data_credibility():
+    return pd.DataFrame([
+        ["股價/K線", "Yahoo Finance", "高", "每次查詢或刷新更新"],
+        ["EPS/PE/PB", "Yahoo Finance + 反推備援", "中", "缺EPS時用現價/PE反推，會標示來源"],
+        ["企業評價", "模型計算", "中", "DCF/FCFF/FCFE/EBO/PE/PB等模型"],
+        ["競爭對手", "公司DNA資料庫", "中", "先分類再比較，避免錯配"],
+        ["產業鏈", "公司DNA + 產業鏈規則庫", "中", "標示自家公司位於上游/中游/下游"],
+        ["新聞/重大訊息", "Google News / MOPS / TWSE連結層", "中低→高", "未接API為連結層；接API後可信度提升"],
+        ["ESG/永續", "永續報告書/代理模型", "30%~95%", "依資料層級標示"],
+    ], columns=["資料", "來源", "可信度", "說明"])
+
+def v70_company_dna_card(symbol):
+    p = v70_profile(symbol)
+    df = pd.DataFrame([
+        ["公司", p["公司"]],
+        ["代碼", p["代碼"]],
+        ["市場", p["市場"]],
+        ["產業", p["產業"]],
+        ["次產業", p["次產業"]],
+        ["產業鏈位置", p["產業鏈位置"]],
+        ["商業模式", p["商業模式"]],
+        ["全球分類", p["全球分類"]],
+        ["AI關聯度", p["AI關聯度"]],
+        ["資料可信度", p["資料可信度"]],
+    ], columns=["項目", "內容"])
+    return df
+
+def v70_ticker_database_view():
+    df = V70_MASTER_DF.copy()
+    df["symbol"] = df.apply(lambda r: f"{r['code']}.TW" if r["market"]=="上市" else f"{r['code']}.TWO", axis=1)
+    return df[["symbol","code","name","market","industry","sub_industry","chain_position","business_model","global_class"]]
+
+def v70_news_links(symbol):
+    name = stock_name_only(symbol)
+    code = str(symbol).split(".")[0]
+    return pd.DataFrame([
+        ["Google News", f"{name} 最新新聞", f"https://news.google.com/search?q={name}%20{code}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant", "連結層"],
+        ["Yahoo Finance", f"{symbol} Yahoo Finance", f"https://finance.yahoo.com/quote/{symbol}", "價格/新聞"],
+        ["TWSE OpenAPI", "證交所 OpenAPI", "https://openapi.twse.com.tw/", "正式資料來源"],
+        ["MOPS公開資訊觀測站", "重大訊息/財報/法說會", "https://mops.twse.com.tw/mops/web/index", "正式資料來源"],
+    ], columns=["來源", "內容", "連結", "資料層"])
+
+def v70_research_institute(symbol, q, df, scores):
+    st.markdown(f"## 🏛️ AI研究院 Institutional：{display_name(symbol)}")
+    st.caption("V70：先判斷公司DNA與產業鏈位置，再做全球競爭、企業評價比較、AI目標價與投資共識。")
+
+    tabs = st.tabs([
+        "公司DNA", "產業定位", "全球競爭", "企業評價比較",
+        "AI目標價", "AI投資共識", "新聞/重大訊息", "資料可信度", "台股資料庫"
+    ])
+
+    with tabs[0]:
+        st.markdown("### 🧬 公司DNA")
+        st.dataframe(v70_company_dna_card(symbol), use_container_width=True, hide_index=True)
+        st.info("V70邏輯：先判斷產業、次產業、商業模式與產業鏈位置，再選擇正確競爭對手。")
+
+    with tabs[1]:
+        st.markdown("### 🧭 產業定位與產業鏈位置")
+        st.dataframe(v70_chain_map(symbol), use_container_width=True, hide_index=True)
+
+    with tabs[2]:
+        st.markdown("### 🌍 全球競爭對手")
+        p = v70_profile(symbol)
+        st.caption(f"本公司競爭組：{p['競爭組']}；全球分類：{p['全球分類']}")
+        st.dataframe(v70_competitor_table(symbol), use_container_width=True, hide_index=True)
+
+    with tabs[3]:
+        st.markdown("### 💎 企業評價 × 同業比較")
+        st.dataframe(v70_valuation_vs_competitors(symbol, q, scores), use_container_width=True, hide_index=True)
+
+    with tabs[4]:
+        st.markdown("### 🎯 AI目標價")
+        st.dataframe(v70_target_price(symbol, q, scores), use_container_width=True, hide_index=True)
+        st.caption("若EPS缺資料，V70會用 現價/PE 反推EPS，避免目標價整列 N/A。")
+
+    with tabs[5]:
+        st.markdown("### 📌 AI投資共識")
+        st.dataframe(v70_investment_consensus(symbol, q, scores), use_container_width=True, hide_index=True)
+        with st.expander("什麼是AI投資共識？", expanded=False):
+            st.markdown("AI投資共識是把技術面、財報面、法人籌碼、估值面與風險修正整合成一個分數。它不是保證價格，而是幫助使用者看出模型綜合判斷。")
+
+    with tabs[6]:
+        st.markdown("### 📰 新聞 / 重大訊息")
+        st.dataframe(v70_news_links(symbol), use_container_width=True, hide_index=True)
+        st.caption("目前為連結層；後續可接 RSS / NewsAPI / MOPS API 變成自動新聞表。")
+
+    with tabs[7]:
+        st.markdown("### 🔎 資料可信度儀表板")
+        st.dataframe(v70_data_credibility(), use_container_width=True, hide_index=True)
+
+    with tabs[8]:
+        st.markdown("### 🇹🇼 台股主資料庫雛形")
+        st.dataframe(v70_ticker_database_view(), use_container_width=True, hide_index=True)
+        st.caption("V70先內建常用核心公司；後續可串 TWSE/TPEx OpenAPI 擴充成全上市櫃。")
+# ================= V70 INSTITUTIONAL EDITION LAYER END =================
+
+
 
 
 
@@ -4554,7 +4991,7 @@ elif page=="📊監控":
     st.subheader("📊 即時監控中心")
     st.markdown("#### 監控設定")
     st.caption(f"V49類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
-    # V68 AI Research Institute Edition_PAGE_SECTOR_FIX
+    # V70 Institutional Edition_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
         page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
@@ -4726,7 +5163,7 @@ elif page=="📑中文財報":
 elif page=="__舊永續__":
     sustainability_center(active,q)
 elif page=="🤖AI":
-    v68_research_institute(active, q, df_daily, scores)
+    v70_research_institute(active, q, df_daily, scores)
     st.markdown("### AI研究中心完整模組總覽")
     st.dataframe(ai_feature_checklist(), use_container_width=True, hide_index=True)
     v50_ai_research_center(active, df_daily, q, scores)
@@ -4747,6 +5184,6 @@ st.markdown("---")
 with st.expander("🧾 計算透明化中心", expanded=False):
     transparency_audit_center(active, q, df_daily, scores)
 
-st.caption("AIStock V68 AI Research Institute Edition｜研究與教學用途，非投資建議。")
+st.caption("AIStock V70 Institutional Edition｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
