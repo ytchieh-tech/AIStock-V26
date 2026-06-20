@@ -16,8 +16,9 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V80 Enterprise Valuation Institute"
-APP_NAME="AI企業價值研究院"
+APP_VERSION="V81 Methodology Edition"
+APP_NAME="🏛 AI企業價值研究院"
+V81_SLOGAN="找出企業真正價值，而非追逐市場情緒"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
 
@@ -443,7 +444,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V80 Enterprise Valuation Institute responsive audit */
+/* V81 Methodology Edition responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -502,7 +503,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V80 Enterprise Valuation Institute：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V81 Methodology Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -707,7 +708,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V80 Enterprise Valuation Institute.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V81 Methodology Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -882,7 +883,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V80 Enterprise Valuation Institute: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V81 Methodology Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1777,9 +1778,9 @@ st.markdown("""
   <div style="display:flex;align-items:center;gap:10px;">
     <div style="font-size:1.5rem;">📈</div>
     <div>
-      <div style="font-weight:950;font-size:1.15rem;">AI企業價值研究院</div>
+      <div style="font-weight:950;font-size:1.15rem;">🏛 AI企業價值研究院</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V80 Enterprise Valuation Institute｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V81 Methodology Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1795,7 +1796,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V80 Enterprise Valuation Institute</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V81 Methodology Edition</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1818,7 +1819,7 @@ if "page" not in st.session_state: st.session_state.page="🏠首頁"
 # V60_PAGE_TARGET_HELPER: APP快捷入口目標保存在 session_state；若原始選單未吃到，仍可由各頁判斷使用。
 
 # ================= V76.1 TRANSPARENCY + NAME FIX LAYER =================
-APP_VERSION="V80 Enterprise Valuation Institute"
+APP_VERSION="V81 Methodology Edition"
 
 # 補充 V76 未覆蓋股票中文名稱與產業DNA，避免回退 Yahoo 英文名稱或待分類。
 V761_EXTRA_ROWS = [
@@ -1996,7 +1997,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V80 Enterprise Valuation Institute_SIDEBAR_SECTOR_FIX
+    # V81 Methodology Edition_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -2434,7 +2435,7 @@ def esg_feature_checklist():
 
 def v58_release_notes():
     return pd.DataFrame([
-        ["正式版定位", "AI企業價值研究院：研究與教學用途，非投資建議"],
+        ["正式版定位", "🏛 AI企業價值研究院：研究與教學用途，非投資建議"],
         ["多人共用", "每位使用者的股票、最近使用、自選股由 st.session_state 隔離"],
         ["資料源", "Yahoo Finance 為主要資料源；TWSE/TPEX/MOPS可作後續擴充"],
         ["代碼解析", "自動測試上市 .TW 與上櫃 .TWO，優先採用有價格資料者"],
@@ -5139,7 +5140,7 @@ def v70_research_institute(symbol, q, df, scores):
 
 # ================= V76 NAME RESOLVER + SECTOR COMPLETE LAYER =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V80 Enterprise Valuation Institute"
+APP_VERSION="V81 Methodology Edition"
 
 V76_ROWS = [
 ("2330","台積電","上市","電子","半導體","晶圓代工","先進製程","AI/HPC","中游"),("2303","聯電","上市","電子","半導體","晶圓代工","成熟製程","車用/工控","中游"),("5347","世界先進","上櫃","電子","半導體","特殊製程晶圓代工","成熟製程","車用/工控","中游"),("6770","力積電","上市","電子","半導體","晶圓代工/記憶體","成熟製程","記憶體/代工","中游"),("2408","南亞科","上市","電子","半導體","DRAM","記憶體","AI/伺服器記憶體","上中游"),("2344","華邦電","上市","電子","半導體","記憶體","NOR/DRAM","車用/工控","上中游"),("2337","旺宏","上市","電子","半導體","記憶體","NOR Flash","車用/工控","上中游"),
@@ -5271,7 +5272,7 @@ def v76_calc_transparency(symbol,q=None,df=None,scores=None):
     return pd.DataFrame(rows,columns=['模型','使用價格','狀態','公式/方法','使用數值與說明'])
 
 def v76_ai_page(symbol,q,df,scores):
-    st.markdown('## 🏛 V80 Enterprise Valuation Institute.3')
+    st.markdown('## 🏛 V81 Methodology Edition.3')
     tabs=st.tabs(['🧬公司DNA','🌱ESG排名','🌍競爭/同業','🔍計算透明'])
     with tabs[0]: st.dataframe(v76_company_dna_df(symbol),use_container_width=True,hide_index=True)
     with tabs[1]: st.dataframe(v76_esg_rank(symbol),use_container_width=True,hide_index=True)
@@ -5281,7 +5282,7 @@ def v76_ai_page(symbol,q,df,scores):
 
 # ================= V76.3 OFFICIAL MASTER + TRANSPARENCY FIX =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V80 Enterprise Valuation Institute"
+APP_VERSION="V81 Methodology Edition"
 
 V763_FALLBACK_MASTER = [
     # code,name,market,level1,level2,level3,level4,level5,chain
@@ -5612,14 +5613,14 @@ def v763_master_panel():
 def v762_banner():
     st.markdown("""
     <div style="padding:28px;border-radius:22px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin:12px 0 22px 0;">
-      <div style="font-size:34px;font-weight:900;">📈 AI企業價值研究院</div>
-      <div style="font-size:20px;font-weight:800;margin-top:8px;">V80 Enterprise Valuation Institute</div>
+      <div style="font-size:34px;font-weight:900;">📈 🏛 AI企業價值研究院</div>
+      <div style="font-size:20px;font-weight:800;margin-top:8px;">V81 Methodology Edition</div>
       <div style="font-size:15px;margin-top:8px;opacity:.92;">官方代碼中文表 × 產業DNA × ESG股價溢價 × 計算透明</div>
     </div>
     """, unsafe_allow_html=True)
 
 def v76_ai_page(symbol, q, df, scores):
-    st.markdown("## 🏛 V80 Enterprise Valuation Institute.3")
+    st.markdown("## 🏛 V81 Methodology Edition.3")
     tabs = st.tabs(["🧬公司DNA","🌱ESG排名","🌍競爭/同業","🔍計算透明"])
     with tabs[0]:
         st.dataframe(v76_company_dna_df(symbol), use_container_width=True, hide_index=True)
@@ -5640,7 +5641,7 @@ def v762_master_panel():
 
 # ================= V77 DNA + COMPETITOR + TRANSPARENCY LAYER =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V80 Enterprise Valuation Institute"
+APP_VERSION="V81 Methodology Edition"
 
 def v77_fmt(x, digits=2):
     try:
@@ -5984,8 +5985,8 @@ def v763_master_panel():
 def v77_banner():
     st.markdown("""
     <div style="padding:30px;border-radius:24px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin:10px 0 22px 0;">
-      <div style="font-size:36px;font-weight:900;">📈 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;margin-top:8px;">V80 Enterprise Valuation Institute</div>
+      <div style="font-size:36px;font-weight:900;">📈 🏛 AI企業價值研究院</div>
+      <div style="font-size:22px;font-weight:800;margin-top:8px;">V81 Methodology Edition</div>
       <div style="font-size:15px;margin-top:8px;opacity:.92;">公司DNA × 全球競爭資料庫 × ESG股價溢價 × AI共識價透明化</div>
     </div>
     """, unsafe_allow_html=True)
@@ -6009,8 +6010,8 @@ def v756_ai_page(symbol, q, df, scores): return v77_ai_page(symbol, q, df, score
 # ================= V77 DNA + COMPETITOR + TRANSPARENCY LAYER END =================
 
 # ================= V80 ENTERPRISE VALUATION INSTITUTE LAYER =================
-APP_BRAND = "AI企業價值研究院"
-APP_VERSION="V80 Enterprise Valuation Institute"
+APP_BRAND = "🏛 AI企業價值研究院"
+APP_VERSION="V81 Methodology Edition"
 
 def v80_num(x, default=np.nan):
     try:
@@ -6257,8 +6258,8 @@ def v80_decision_center(symbol, q=None, scores=None):
 def v80_banner():
     st.markdown("""
     <div style="padding:30px;border-radius:24px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin:10px 0 22px 0;">
-      <div style="font-size:36px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;margin-top:8px;">V80 Enterprise Valuation Institute</div>
+      <div style="font-size:36px;font-weight:900;">🏛 🏛 AI企業價值研究院</div>
+      <div style="font-size:22px;font-weight:800;margin-top:8px;">V81 Methodology Edition</div>
       <div style="font-size:15px;margin-top:8px;opacity:.92;">企業價值 × 產業研究 × 全球競爭 × ESG × 法人資金 × AI共識價</div>
     </div>
     """, unsafe_allow_html=True)
@@ -6316,7 +6317,7 @@ elif page=="📊監控":
     st.caption(f"V76類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
     with st.expander("🧭 V76 類股快速入口", expanded=False):
         v76_sector_panel()
-    # V80 Enterprise Valuation Institute_PAGE_SECTOR_FIX
+    # V81 Methodology Edition_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
         page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
@@ -6510,6 +6511,6 @@ st.markdown("---")
 with st.expander("🧾 計算透明化中心", expanded=False):
     transparency_audit_center(active, q, df_daily, scores)
 
-st.caption("AI研究院 Pro V80 Enterprise Valuation Institute｜研究與教學用途，非投資建議。")
+st.caption("AI研究院 Pro V81 Methodology Edition｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
