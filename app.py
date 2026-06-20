@@ -14,7 +14,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V64 Clean UX + Signal Audit Edition"
+APP_VERSION="V65 AI Research Data Edition"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -441,7 +441,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V64 Clean UX + Signal Audit Edition responsive audit */
+/* V65 AI Research Data Edition responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -500,7 +500,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V64 Clean UX + Signal Audit Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V65 AI Research Data Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -705,7 +705,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V64 Clean UX + Signal Audit Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V65 AI Research Data Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -880,7 +880,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V64 Clean UX + Signal Audit Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V65 AI Research Data Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1777,7 +1777,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V64 Clean UX + Signal Audit Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V65 AI Research Data Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1793,7 +1793,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V64 Clean UX + Signal Audit Edition</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V65 AI Research Data Edition</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1832,7 +1832,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V64 Clean UX + Signal Audit Edition_SIDEBAR_SECTOR_FIX
+    # V65 AI Research Data Edition_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -3547,6 +3547,203 @@ def kline_chart(df, overlays, panel):
         if signals is not None and not signals.empty: st.dataframe(signals.tail(40), use_container_width=True, hide_index=True)
 # ================= V64 CLEAN UX + SIGNAL AUDIT EDITION LAYER END =================
 
+# ================= V65 AI RESEARCH DATA EDITION LAYER =================
+V65_NAME_MAP = {
+    "2330.TW": "台積電", "2303.TW": "聯電", "2454.TW": "聯發科",
+    "2317.TW": "鴻海", "2382.TW": "廣達", "2412.TW": "中華電",
+    "2379.TW": "瑞昱", "2408.TW": "南亞科", "3374.TW": "精材",
+    "6739.TW": "竹陞科技", "8112.TW": "至上", "6189.TW": "豐藝",
+    "6215.TWO": "和椿科技", "6830.TW": "汎銓", "6415.TW": "矽力-KY",
+    "5347.TWO": "世界先進", "3711.TW": "日月光投控", "3661.TW": "世芯-KY",
+    "6112.TW": "邁達特", "2357.TW": "華碩", "2376.TW": "技嘉", "3231.TW": "緯創",
+}
+try:
+    CODE_NAME_MAP.update(V65_NAME_MAP)
+except Exception:
+    CODE_NAME_MAP = V65_NAME_MAP.copy()
+try:
+    TW_STOCKS.update({"邁達特":"6112.TW", "精材":"3374.TW", "竹陞科技":"6739.TW"})
+except Exception:
+    pass
+
+def stock_name_only(symbol):
+    s = str(symbol).upper().strip()
+    code = s.split(".")[0]
+    if s in V65_NAME_MAP:
+        return V65_NAME_MAP[s]
+    try:
+        if s in CODE_NAME_MAP:
+            return CODE_NAME_MAP[s]
+    except Exception:
+        pass
+    for full, nm in V65_NAME_MAP.items():
+        if full.split(".")[0] == code:
+            return nm
+    try:
+        nm = yahoo_name_lookup(s)
+        return nm or s
+    except Exception:
+        return s
+
+def display_name(symbol):
+    s = str(symbol).upper().strip()
+    return f"{stock_name_only(s)} / {s}"
+
+def v65_peer_group(symbol):
+    s = str(symbol).upper()
+    code = s.split(".")[0]
+    tech_peers = ["2330.TW", "2303.TW", "5347.TWO", "2454.TW", "2379.TW", "3711.TW"]
+    ai_server_peers = ["2382.TW", "3231.TW", "6669.TW", "2357.TW", "2376.TW"]
+    electronics_peers = ["8112.TW", "6189.TW", "6112.TW", "3374.TW", "6739.TW"]
+    if code in ["2382","3231","6669","2357","2376"]:
+        return ai_server_peers
+    if code in ["8112","6189","6112","3374","6739"]:
+        return electronics_peers
+    return tech_peers
+
+def v65_safe_metric(q, key, default=np.nan):
+    try:
+        val = q.get(key, default)
+        if val is None:
+            return default
+        return val
+    except Exception:
+        return default
+
+def v65_ai_news_table(symbol, q, scores):
+    name = stock_name_only(symbol)
+    price = v65_safe_metric(q, "price", np.nan)
+    pe = v65_safe_metric(q, "pe", np.nan)
+    pb = v65_safe_metric(q, "pb", np.nan)
+    ai = scores.get("ai", ai_total(scores) if "ai_total" in globals() else 60)
+    rows = [
+        ["公司新聞代理", f"{name} 近期股價與估值變化", "Yahoo Finance / 價格資料", f"現價={price}, PE={pe}, PB={pb}", "中", "由價格與估值資料推估，尚未接新聞API"],
+        ["AI題材新聞", "AI伺服器、半導體、電子通路、設備鏈題材追蹤", "產業代理詞庫", f"AI分數={ai}/100", "中低", "未串即時新聞前，用產業關鍵字代理"],
+        ["風險新聞", "重大跌幅、估值過高、財報缺漏、籌碼轉弱", "系統風險引擎", f"風險分={scores.get('risk', 50)}/100", "中", "用量價與財報可得性推估"],
+        ["後續可擴充", "可接 RSS / NewsAPI / Google News / 公開資訊觀測站重大訊息", "外部API", "需API或爬蟲權限", "高", "接入後可顯示真實新聞標題與連結"],
+    ]
+    return pd.DataFrame(rows, columns=["類別", "內容", "資料來源", "代入資訊", "可信度", "說明"])
+
+def v65_ai_industry_table(symbol, q, scores):
+    peers = v65_peer_group(symbol)
+    rows = []
+    for p in peers:
+        nm = stock_name_only(p)
+        try:
+            qq = get_quote(p) if "get_quote" in globals() else {}
+        except Exception:
+            qq = {}
+        rows.append([
+            nm, p,
+            v65_safe_metric(qq, "price", "N/A"),
+            v65_safe_metric(qq, "pe", "N/A"),
+            v65_safe_metric(qq, "pb", "N/A"),
+            "同業/供應鏈代理",
+        ])
+    return pd.DataFrame(rows, columns=["同業公司", "代碼", "現價", "PE", "PB", "資料層"])
+
+def v65_ai_competition_table(symbol, q, scores):
+    peers = v65_ai_industry_table(symbol, q, scores)
+    rows = []
+    base_pe = v65_safe_metric(q, "pe", np.nan)
+    base_pb = v65_safe_metric(q, "pb", np.nan)
+    for _, r in peers.iterrows():
+        rows.append([
+            r["同業公司"], r["代碼"],
+            r["PE"], r["PB"],
+            "估值比較",
+            "PE / PB / AI分數 / 法人分數綜合比較",
+        ])
+    out = pd.DataFrame(rows, columns=["競爭對手", "代碼", "PE", "PB", "比較項目", "說明"])
+    return out
+
+def v65_ai_event_table(symbol, q, scores):
+    name = stock_name_only(symbol)
+    price = v65_safe_metric(q, "price", np.nan)
+    eps = v65_safe_metric(q, "eps", np.nan)
+    pe = v65_safe_metric(q, "pe", np.nan)
+    rows = [
+        ["財報事件", f"{name} 最新EPS/PE/PB變化", f"EPS={eps}, PE={pe}", "Yahoo Finance", "中"],
+        ["估值事件", "股價高於/低於模型共識合理價", f"現價={price}", "企業評價模型", "中"],
+        ["籌碼事件", "法人分數、主力分數、融資融券燈號變化", f"法人={scores.get('inst', 50)}, 主力={scores.get('main', 50)}", "籌碼代理", "代理"],
+        ["風險事件", "估值過熱、資料缺漏、技術轉弱", f"風險={scores.get('risk', 50)}", "AI風險引擎", "代理"],
+    ]
+    return pd.DataFrame(rows, columns=["事件類別", "事件內容", "目前數值", "資料來源", "可信度"])
+
+def v65_ai_conference_table(symbol, q, scores):
+    name = stock_name_only(symbol)
+    rows = [
+        ["營收展望", "營收成長率、產品組合、接單能見度", "需法說會逐字稿/API", "目前以財報與產業代理"],
+        ["毛利率", "毛利率變化、匯率、產品組合", "需法說會逐字稿/API", "目前以財報代理"],
+        ["CAPEX", "資本支出與產能擴充", "需法說會逐字稿/API", "目前未接即時法說資料"],
+        ["AI摘要", f"{name} 法說會摘要可由公開資訊觀測站或公司IR資料接入", "MOPS / 公司IR", "後續可擴充"],
+    ]
+    return pd.DataFrame(rows, columns=["主題", "追蹤內容", "理想資料來源", "目前狀態"])
+
+def v65_ai_risk_table(symbol, q, scores):
+    risk = scores.get("risk", 50)
+    pe = v65_safe_metric(q, "pe", np.nan)
+    pb = v65_safe_metric(q, "pb", np.nan)
+    rows = [
+        ["估值風險", "PE/PB偏高時風險升高", f"PE={pe}, PB={pb}", "中"],
+        ["技術風險", "均線轉弱、MACD翻黑、跌破布林下軌", f"技術分={scores.get('tech', 50)}", "中"],
+        ["籌碼風險", "法人轉賣、主力分數下降、融資融券偏空", f"法人分={scores.get('inst', 50)}", "代理"],
+        ["資料風險", "Yahoo/MOPS/ESG資料缺漏會降低可信度", f"風險指數={risk}/100", "中"],
+    ]
+    return pd.DataFrame(rows, columns=["風險類型", "判斷邏輯", "目前資料", "可信度"])
+
+def v65_ai_research_center(symbol, q, df, scores):
+    st.markdown(f"## 🤖 AI研究中心資料版：{display_name(symbol)}")
+    st.caption("V65：新聞、產業、競爭、事件、法說會、風險預警先以可取得資料與代理資料層呈現；若未串即時新聞/API，會明確標示可信度。")
+    tabs = st.tabs([
+        "①AI評級", "②AI估值", "③AI財報", "④AI法人", "⑤AI產業",
+        "⑥AI新聞", "⑦AI事件", "⑧AI法說會", "⑨AI競爭分析", "⑩AI風險預警", "資料來源"
+    ])
+    with tabs[0]:
+        st.dataframe(pd.DataFrame([
+            ["AI總分", f"{ai_total(scores) if 'ai_total' in globals() else scores.get('ai', 60):.1f}/100", "技術、財報、法人、ESG、風險加權"],
+            ["目前狀態", "偏多" if scores.get("tech", 50) >= 65 else "中立", "依分數區間判斷"],
+            ["模型共識價", v65_safe_metric(q, "fair", "N/A"), "企業評價模型或代理共識"],
+        ], columns=["項目", "結果", "說明"]), use_container_width=True, hide_index=True)
+    with tabs[1]:
+        if "valuation_transparency_table" in globals():
+            st.dataframe(valuation_transparency_table(symbol, q, df, scores), use_container_width=True, hide_index=True)
+        else:
+            st.info("估值透明化表可於評價中心查看。")
+    with tabs[2]:
+        st.dataframe(pd.DataFrame([
+            ["EPS", v65_safe_metric(q, "eps", "N/A"), "Yahoo Finance"],
+            ["PE", v65_safe_metric(q, "pe", "N/A"), "Yahoo Finance"],
+            ["PB", v65_safe_metric(q, "pb", "N/A"), "Yahoo Finance"],
+            ["財報品質", f"{scores.get('fund', 50)}/100", "財報可得性與獲利能力代理"],
+        ], columns=["財報項目", "目前數值", "資料來源"]), use_container_width=True, hide_index=True)
+    with tabs[3]:
+        if "institutional_transparency_table" in globals():
+            st.dataframe(institutional_transparency_table(symbol, df, scores), use_container_width=True, hide_index=True)
+        else:
+            st.dataframe(pd.DataFrame([["法人分數", scores.get("inst", 50), "量價/法人代理"]], columns=["項目","分數","說明"]), use_container_width=True, hide_index=True)
+    with tabs[4]:
+        st.dataframe(v65_ai_industry_table(symbol, q, scores), use_container_width=True, hide_index=True)
+    with tabs[5]:
+        st.dataframe(v65_ai_news_table(symbol, q, scores), use_container_width=True, hide_index=True)
+    with tabs[6]:
+        st.dataframe(v65_ai_event_table(symbol, q, scores), use_container_width=True, hide_index=True)
+    with tabs[7]:
+        st.dataframe(v65_ai_conference_table(symbol, q, scores), use_container_width=True, hide_index=True)
+    with tabs[8]:
+        st.dataframe(v65_ai_competition_table(symbol, q, scores), use_container_width=True, hide_index=True)
+    with tabs[9]:
+        st.dataframe(v65_ai_risk_table(symbol, q, scores), use_container_width=True, hide_index=True)
+    with tabs[10]:
+        st.dataframe(pd.DataFrame([
+            ["Yahoo Finance", "價格、EPS、PE、PB、部分財報", "中", "台股部分財報欄位可能缺漏"],
+            ["MOPS公開資訊觀測站", "正式財報、重大訊息、法說會", "高", "需後續串接"],
+            ["新聞/RSS/API", "即時新聞標題與連結", "高", "需API或爬蟲權限"],
+            ["代理模型", "產業、競爭、事件、風險推估", "中低", "明確標示為代理，不宣稱即時新聞"],
+        ], columns=["資料層", "用途", "可信度", "備註"]), use_container_width=True, hide_index=True)
+# ================= V65 AI RESEARCH DATA EDITION LAYER END =================
+
+
 
 
 
@@ -3574,7 +3771,7 @@ elif page=="📊監控":
     st.subheader("📊 即時監控中心")
     st.markdown("#### 監控設定")
     st.caption(f"V49類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
-    # V64 Clean UX + Signal Audit Edition_PAGE_SECTOR_FIX
+    # V65 AI Research Data Edition_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
         page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
@@ -3746,6 +3943,7 @@ elif page=="📑中文財報":
 elif page=="__舊永續__":
     sustainability_center(active,q)
 elif page=="🤖AI":
+    v65_ai_research_center(active, q, df_daily, scores)
     st.markdown("### AI研究中心完整模組總覽")
     st.dataframe(ai_feature_checklist(), use_container_width=True, hide_index=True)
     v50_ai_research_center(active, df_daily, q, scores)
@@ -3766,6 +3964,6 @@ st.markdown("---")
 with st.expander("🧾 計算透明化中心", expanded=False):
     transparency_audit_center(active, q, df_daily, scores)
 
-st.caption("AIStock V64 Clean UX + Signal Audit Edition｜研究與教學用途，非投資建議。")
+st.caption("AIStock V65 AI Research Data Edition｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
