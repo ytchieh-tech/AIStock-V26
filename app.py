@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V84 Full Research Institute"
+APP_VERSION="V85 Final Architecture Edition"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -443,7 +443,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V84 Full Research Institute responsive audit */
+/* V85 Final Architecture Edition responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -502,7 +502,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V84 Full Research Institute：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V85 Final Architecture Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -707,7 +707,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V84 Full Research Institute.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V85 Final Architecture Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -882,7 +882,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V84 Full Research Institute: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V85 Final Architecture Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1779,7 +1779,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V84 Full Research Institute｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V85 Final Architecture Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1795,7 +1795,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V84 Full Research Institute</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V85 Final Architecture Edition</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1818,7 +1818,7 @@ if "page" not in st.session_state: st.session_state.page="🏠首頁"
 # V60_PAGE_TARGET_HELPER: APP快捷入口目標保存在 session_state；若原始選單未吃到，仍可由各頁判斷使用。
 
 # ================= V76.1 TRANSPARENCY + NAME FIX LAYER =================
-APP_VERSION="V84 Full Research Institute"
+APP_VERSION="V85 Final Architecture Edition"
 
 # 補充 V76 未覆蓋股票中文名稱與產業DNA，避免回退 Yahoo 英文名稱或待分類。
 V761_EXTRA_ROWS = [
@@ -1996,7 +1996,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V84 Full Research Institute_SIDEBAR_SECTOR_FIX
+    # V85 Final Architecture Edition_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -5139,7 +5139,7 @@ def v70_research_institute(symbol, q, df, scores):
 
 # ================= V76 NAME RESOLVER + SECTOR COMPLETE LAYER =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V84 Full Research Institute"
+APP_VERSION="V85 Final Architecture Edition"
 
 V76_ROWS = [
 ("2330","台積電","上市","電子","半導體","晶圓代工","先進製程","AI/HPC","中游"),("2303","聯電","上市","電子","半導體","晶圓代工","成熟製程","車用/工控","中游"),("5347","世界先進","上櫃","電子","半導體","特殊製程晶圓代工","成熟製程","車用/工控","中游"),("6770","力積電","上市","電子","半導體","晶圓代工/記憶體","成熟製程","記憶體/代工","中游"),("2408","南亞科","上市","電子","半導體","DRAM","記憶體","AI/伺服器記憶體","上中游"),("2344","華邦電","上市","電子","半導體","記憶體","NOR/DRAM","車用/工控","上中游"),("2337","旺宏","上市","電子","半導體","記憶體","NOR Flash","車用/工控","上中游"),
@@ -5271,7 +5271,7 @@ def v76_calc_transparency(symbol,q=None,df=None,scores=None):
     return pd.DataFrame(rows,columns=['模型','使用價格','狀態','公式/方法','使用數值與說明'])
 
 def v76_ai_page(symbol,q,df,scores):
-    st.markdown('## 🏛 V84 Full Research Institute.3')
+    st.markdown('## 🏛 V85 Final Architecture Edition.3')
     tabs=st.tabs(['🧬公司DNA','🌱ESG排名','🌍競爭/同業','🔍計算透明'])
     with tabs[0]: st.dataframe(v76_company_dna_df(symbol),use_container_width=True,hide_index=True)
     with tabs[1]: st.dataframe(v76_esg_rank(symbol),use_container_width=True,hide_index=True)
@@ -5281,7 +5281,7 @@ def v76_ai_page(symbol,q,df,scores):
 
 # ================= V76.3 OFFICIAL MASTER + TRANSPARENCY FIX =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V84 Full Research Institute"
+APP_VERSION="V85 Final Architecture Edition"
 
 V763_FALLBACK_MASTER = [
     # code,name,market,level1,level2,level3,level4,level5,chain
@@ -5613,13 +5613,13 @@ def v762_banner():
     st.markdown("""
     <div style="padding:28px;border-radius:22px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin:12px 0 22px 0;">
       <div style="font-size:34px;font-weight:900;">📈 智策股市 AI 決策平台</div>
-      <div style="font-size:20px;font-weight:800;margin-top:8px;">V84 Full Research Institute</div>
+      <div style="font-size:20px;font-weight:800;margin-top:8px;">V85 Final Architecture Edition</div>
       <div style="font-size:15px;margin-top:8px;opacity:.92;">官方代碼中文表 × 產業DNA × ESG股價溢價 × 計算透明</div>
     </div>
     """, unsafe_allow_html=True)
 
 def v76_ai_page(symbol, q, df, scores):
-    st.markdown("## 🏛 V84 Full Research Institute.3")
+    st.markdown("## 🏛 V85 Final Architecture Edition.3")
     tabs = st.tabs(["🧬公司DNA","🌱ESG排名","🌍競爭/同業","🔍計算透明"])
     with tabs[0]:
         st.dataframe(v76_company_dna_df(symbol), use_container_width=True, hide_index=True)
@@ -5638,11 +5638,11 @@ def v762_master_panel():
     v763_master_panel()
 # ================= V76.3 OFFICIAL MASTER + TRANSPARENCY FIX END =================
 
-# ================= V84 FULL RESEARCH INSTITUTE LAYER =================
-# 基底：V76.3。原則：首頁、監控、K線不動；只新增/替換「AI企業價值研究院」內容。
-APP_VERSION="V84 Full Research Institute"
+# ================= V85 FINAL ARCHITECTURE EDITION LAYER =================
+# 基底：V76.3。首頁、監控、K線、設定不重寫；只把原四大中心原封不動嵌入研究院。
+APP_VERSION="V85 Final Architecture Edition"
 
-def v84_num(x, default=np.nan):
+def v85_num(x, default=np.nan):
     try:
         if x is None or str(x).strip() in ["", "N/A", "None", "nan"]:
             return default
@@ -5650,7 +5650,7 @@ def v84_num(x, default=np.nan):
     except Exception:
         return default
 
-def v84_fmt(x, digits=2):
+def v85_fmt(x, digits=2):
     try:
         if x is None or pd.isna(float(x)):
             return "N/A"
@@ -5658,69 +5658,14 @@ def v84_fmt(x, digits=2):
     except Exception:
         return str(x)
 
-def v84_safe_df(df):
+def v85_profile(symbol):
     try:
-        if df is None:
-            return pd.DataFrame()
-        if not isinstance(df, pd.DataFrame):
-            df = pd.DataFrame(df)
-        out = df.copy()
-        out.columns = [str(c) for c in out.columns]
-        for c in out.columns:
-            out[c] = out[c].map(lambda v: "" if v is None or (isinstance(v, float) and pd.isna(v)) else str(v))
-        return out
-    except Exception as e:
-        return pd.DataFrame({"訊息":[f"表格防錯處理：{e}"]})
-
-def v84_quote(symbol):
-    for fn in ["v755_get_quote", "v77_get_quote", "v80_quote", "v81_quote", "v82_quote", "get_quote"]:
-        try:
-            if fn in globals():
-                q = globals()[fn](symbol)
-                if isinstance(q, dict):
-                    return q
-        except Exception:
-            pass
-    try:
-        import yfinance as yf
-        s = str(symbol)
-        if "." not in s:
-            s = f"{s}.TW"
-        t = yf.Ticker(s)
-        info = t.info or {}
-        hist = t.history(period="6mo")
-        price = info.get("currentPrice")
-        if price is None and hist is not None and not hist.empty:
-            price = float(hist["Close"].dropna().iloc[-1])
-        eps = info.get("trailingEps")
-        pe = info.get("trailingPE")
-        pb = info.get("priceToBook")
-        roe = info.get("returnOnEquity")
-        if eps is None and price and pe:
-            eps = price / pe
-        return {"price":price,"eps":eps,"pe":pe,"pb":pb,"roe":roe,
-                "revenue":info.get("totalRevenue"),"gross_margin":info.get("grossMargins"),
-                "operating_margin":info.get("operatingMargins"),"free_cashflow":info.get("freeCashflow"),
-                "name":info.get("longName") or info.get("shortName") or s, "symbol":s}
+        if "v763_profile" in globals():
+            p = v763_profile(symbol)
+            if isinstance(p, dict):
+                return p
     except Exception:
-        return {}
-
-def v84_display(symbol):
-    try:
-        return display_name(symbol)
-    except Exception:
-        q = v84_quote(symbol)
-        return f"{q.get('name', symbol)} / {q.get('symbol', symbol)}"
-
-def v84_profile(symbol):
-    for fn in ["v763_profile", "v77_profile", "v76_profile", "v756_profile"]:
-        try:
-            if fn in globals():
-                p = globals()[fn](symbol)
-                if isinstance(p, dict):
-                    return p
-        except Exception:
-            pass
+        pass
     s = str(symbol).upper()
     code0 = s.split(".")[0]
     name_map = {"2330":"台積電","2303":"聯電","5347":"世界先進","3030":"德律","3374":"精材","6570":"維田"}
@@ -5729,8 +5674,6 @@ def v84_profile(symbol):
         "2303":["電子","半導體","晶圓代工","成熟製程","車用/工控","中游","Foundry晶圓代工","成熟循環型","產能/客戶"],
         "5347":["電子","半導體","晶圓代工","特殊製程","車用/工控","中游","特殊製程代工","成熟循環型","製程/客戶"],
         "3030":["電子","設備","AOI檢測設備","PCB/半導體檢測","自動化檢測","中游","設備銷售","成長循環型","技術/客戶認證"],
-        "3374":["電子","半導體","封測/影像感測","晶圓級封裝","CIS/先進封裝","中游","封測服務","成長循環型","製程/客戶"],
-        "6570":["電子","工業電腦","嵌入式系統","邊緣運算","AIoT","中游","硬體設備/系統整合","成長型","客製化/通路"],
     }
     row = db.get(code0, ["待分類","待分類","待分類","待分類","待分類","待確認","待確認","待確認","待確認"])
     return {"公司名稱":name_map.get(code0, code0), "股票代號":s,
@@ -5738,327 +5681,259 @@ def v84_profile(symbol):
             "Level 4 細分領域":row[3], "Level 5 投資主題":row[4],
             "產業鏈位置":row[5], "商業模式":row[6], "產業成熟度":row[7], "護城河":row[8]}
 
-def v84_model_template(symbol):
-    p = v84_profile(symbol)
-    text = "".join(str(v) for v in p.values())
-    if "金融" in text:
-        return "金融股模型", "金融股價值主要由PB、ROE、資本品質、股利與風險控管驅動。"
-    if any(k in text for k in ["設備","AOI","自動化","檢測"]):
-        return "成長型設備股模型", "設備股受產業景氣、訂單週期與成長率影響，估值重視PE/PEG/EBO與產業前景。"
-    if any(k in text for k in ["晶圓代工","半導體","先進製程","AI"]):
-        return "成熟科技龍頭/成長科技模型", "科技股價值來自護城河、現金流、成長性、技術領先與法人覆蓋。"
-    return "一般企業價值模型", "資料不足以歸類到特殊模板，採PE/PB/DCF/EBO/ESG/法人綜合模型。"
+def v85_display(symbol):
+    try:
+        return display_name(symbol)
+    except Exception:
+        p = v85_profile(symbol)
+        return f"{p.get('公司名稱', symbol)} / {p.get('股票代號', symbol)}"
 
-def v84_rating_weights(symbol):
-    t, reason = v84_model_template(symbol)
-    if t == "成長型設備股模型":
-        rows = [["企業品質",20,"技術與客戶認證重要，但設備股仍受景氣循環影響"],["財務體質",15,"財務穩健重要，但非最主要定價因子"],["估值吸引力",25,"設備股市場常用PE/PEG反映成長與訂單循環"],["法人籌碼",15,"法人與主力資金常提前反映訂單與景氣轉折"],["ESG",5,"ESG屬輔助因子，對設備股短期定價權重較低"],["產業前景",20,"設備需求高度取決於資本支出與產業景氣"]]
-    elif t == "成熟科技龍頭/成長科技模型":
-        rows = [["企業品質",30,"科技龍頭價值主要來自技術護城河、市占率與客戶黏著"],["財務體質",25,"現金流、ROE與資本配置能力直接支撐企業價值"],["估值吸引力",15,"成熟科技股估值重要，但不能高於基本面品質"],["法人籌碼",10,"法人覆蓋高，短期影響存在但資訊較透明"],["ESG",10,"國際資金與大型科技企業ESG權重提高"],["產業前景",10,"成熟龍頭已反映部分產業前景，故不過度放大"]]
-    else:
-        rows = [["企業品質",25,"一般企業價值首先取決於商業模式與競爭力"],["財務體質",20,"財務穩健度決定企業長期存續與估值基礎"],["估值吸引力",20,"合理價格與安全邊際是投資決策核心"],["法人籌碼",15,"資金流向影響市場重估速度"],["ESG",10,"ESG作為風險折價或溢價調整因子"],["產業前景",10,"產業前景影響成長假設與估值倍數"]]
-    return t, reason, pd.DataFrame(rows, columns=["評級項目","權重%","權重來源/理由"])
-
-def v84_value_weights(symbol):
-    t, reason = v84_model_template(symbol)
-    if t == "成長型設備股模型":
-        rows = [["PE",25,"設備股市場主流估值"],["EBO",20,"高ROE設備商適用超額報酬模型"],["DCF",10,"設備股受循環影響，DCF作輔助"],["法人",15,"訂單循環常由法人資金提前反映"],["ESG",5,"ESG輔助風險調整"],["產業",25,"CAPEX循環是設備股主要驅動"]]
-    elif t == "成熟科技龍頭/成長科技模型":
-        rows = [["DCF",30,"現金流與護城河是大型科技企業核心"],["EBO",20,"ROE/超額報酬反映競爭優勢"],["PE",15,"市場倍數作為輔助"],["ESG",10,"國際資金重視永續治理"],["法人",15,"法人覆蓋高且影響資金評價"],["產業",10,"產業景氣影響成長假設"]]
-    else:
-        rows = [["DCF",20,"一般企業長期價值基礎"],["PE",20,"市場常用倍數"],["PB",10,"資產價值輔助"],["EBO",15,"ROE與超額報酬"],["ESG",10,"風險與溢價調整"],["法人",15,"市場資金預期"],["產業",10,"產業景氣與成長性"]]
-    return t, reason, pd.DataFrame(rows, columns=["模型","權重%","權重來源/理由"])
-
-def v84_financial_research(symbol, q=None):
-    q = q or v84_quote(symbol)
-    rows = [
-        ["現價", v84_fmt(q.get("price")), "Yahoo Finance / 歷史收盤"],
-        ["EPS", v84_fmt(q.get("eps")), "Yahoo trailing EPS；若缺值用價格/PE反推"],
-        ["PE", v84_fmt(q.get("pe")), "Yahoo trailing PE"],
-        ["PB", v84_fmt(q.get("pb")), "Yahoo Price to Book"],
-        ["ROE", v84_fmt(v84_num(q.get("roe"))*100 if pd.notna(v84_num(q.get("roe"))) else np.nan) + "%", "Yahoo returnOnEquity"],
-        ["營收", v84_fmt(v84_num(q.get("revenue"))/1e6 if pd.notna(v84_num(q.get("revenue"))) else np.nan), "百萬元"],
-        ["毛利率", v84_fmt(v84_num(q.get("gross_margin"))*100 if pd.notna(v84_num(q.get("gross_margin"))) else np.nan) + "%", "Yahoo grossMargins"],
-        ["營益率", v84_fmt(v84_num(q.get("operating_margin"))*100 if pd.notna(v84_num(q.get("operating_margin"))) else np.nan) + "%", "Yahoo operatingMargins"],
-        ["自由現金流", v84_fmt(v84_num(q.get("free_cashflow"))/1e6 if pd.notna(v84_num(q.get("free_cashflow"))) else np.nan), "百萬元"],
-    ]
-    score = 50
-    if pd.notna(v84_num(q.get("eps"))) and v84_num(q.get("eps")) > 0: score += 15
-    if pd.notna(v84_num(q.get("roe"))) and v84_num(q.get("roe")) > 0.12: score += 15
-    if pd.notna(v84_num(q.get("pe"))): score += 10
-    if pd.notna(v84_num(q.get("pb"))): score += 10
-    score = max(0, min(100, score))
-    rows += [["財報品質分數", v84_fmt(score), "EPS/ROE/PE/PB可得性與品質代理"],
-             ["財報燈號", "🟢 綠燈" if score>=75 else "🟡 黃燈" if score>=55 else "🔴 紅燈", "依財報品質分數轉換"]]
-    return pd.DataFrame(rows, columns=["項目","數值","資料來源/說明"])
-
-def v84_industry_research(symbol):
-    p = v84_profile(symbol)
+def v85_industry_basic(symbol):
+    p = v85_profile(symbol)
     text = "".join(str(v) for v in p.values())
     health = 60
     if any(k in text for k in ["AI","半導體","先進製程","電力","光通訊","散熱"]): health += 20
     if any(k in text for k in ["面板","航運","鋼鐵","塑化"]): health -= 5
     health = max(0, min(100, health))
-    base = pd.DataFrame([
-        ["產業定位", p.get("Level 2 產業","待分類"), "主要產業"],
-        ["次產業", p.get("Level 3 次產業","待分類"), "細分產業"],
+    return pd.DataFrame([
+        ["產業定位", p.get("Level 2 產業", p.get("Level 2","待分類")), "主要產業"],
+        ["次產業", p.get("Level 3 次產業", p.get("Level 3","待分類")), "細分產業"],
         ["產業鏈位置", p.get("產業鏈位置","待確認"), "上游/中游/下游"],
-        ["產業健康度", v84_fmt(health), "景氣、成長主題、產業循環代理"],
+        ["商業模式", p.get("商業模式","待確認"), "收入與營運模式"],
+        ["產業健康度", f"{health:.1f}", "景氣、成長主題、產業循環代理"],
         ["景氣燈號", "🟢 擴張" if health>=80 else "🟡 中立" if health>=55 else "🔴 低迷", "由產業健康度轉換"],
-        ["主要驅動", p.get("Level 5 投資主題","待分類"), "需求來源與投資主題"],
     ], columns=["項目","內容","說明"])
-    five = pd.DataFrame([
-        ["產業競爭強度","中高","同業價格與技術競爭"],["新進入者威脅","中","資本與技術門檻影響"],["替代品威脅","中","技術迭代或替代方案"],["供應商議價力","中","關鍵材料/設備供應商"],["客戶議價力","中高","大客戶集中度影響"],
-    ], columns=["五力項目","判斷","說明"])
-    return base, five, health
 
-def v84_competitors(symbol):
-    try:
-        if "v76_competitors" in globals():
-            df = v76_competitors(symbol)
-            if isinstance(df, pd.DataFrame) and not df.empty:
-                return df
-    except Exception:
-        pass
+def v85_competitors(symbol):
     code0 = str(symbol).split(".")[0]
     if code0 == "2330":
         rows = [["台積電","2330.TW","台灣","本公司/晶圓代工"],["Samsung Foundry","005930.KS","韓國","全球競爭"],["Intel Foundry","INTC","美國","全球競爭"],["GlobalFoundries","GFS","美國","全球競爭"],["聯電","2303.TW","台灣","成熟製程同業"],["世界先進","5347.TWO","台灣","特殊製程同業"]]
     elif code0 == "3030":
         rows = [["德律","3030.TW","台灣","本公司/AOI檢測"],["由田","3455.TW","台灣","AOI設備"],["致茂","2360.TW","台灣","測試設備"],["Camtek","CAMT","以色列","全球AOI/檢測"],["Koh Young","098460.KQ","韓國","3D檢測"],["Mirtec","N/A","韓國","AOI設備"]]
     else:
-        rows = [["同業資料待擴充","N/A","N/A","避免錯誤，不用無關產業代替"]]
+        rows = [["同業資料待擴充","N/A","N/A","V86再補產業/全球競爭資料庫"]]
     return pd.DataFrame(rows, columns=["公司","代碼","國家","競爭/關聯角色"])
 
-def v84_peer_compare(symbol):
-    rows = []
-    for _, r in v84_competitors(symbol).iterrows():
-        sym = r.get("代碼","")
-        if sym == "N/A":
-            rows.append([r.get("公司",""), sym, r.get("國家",""), r.get("競爭/關聯角色",""), "N/A","N/A","N/A","N/A"])
-            continue
-        q = v84_quote(sym)
-        rows.append([r.get("公司",""), sym, r.get("國家",""), r.get("競爭/關聯角色",""), v84_fmt(q.get("price")), v84_fmt(q.get("eps")), v84_fmt(q.get("pe")), v84_fmt(q.get("pb"))])
-    return pd.DataFrame(rows, columns=["公司","代碼","國家","角色","現價","EPS","PE","PB"])
+def v85_weight_methodology():
+    st.info("V85 先完成完整搬遷；AI共識價、評級透明化與模型依據保留為研究院輔助頁，V86再強化產業與同業資料庫。")
+    st.dataframe(pd.DataFrame([
+        ["企業品質","25% / 動態","依公司類型調整；一般企業以商業模式與競爭力為核心"],
+        ["財務體質","20% / 動態","避免價值陷阱，衡量ROE、現金流與財務穩定"],
+        ["估值吸引力","20% / 動態","安全邊際與預期報酬空間"],
+        ["法人籌碼","15% / 動態","反映中短期資金流與市場重估速度"],
+        ["ESG","10% / 動態","風險折價與長期資金偏好"],
+        ["產業前景","10% / 動態","景氣循環與成長假設"],
+    ], columns=["項目","權重","來源/理由"]), use_container_width=True, hide_index=True)
 
-def v84_valuation_models(symbol, q=None):
-    q = q or v84_quote(symbol)
-    eps, price, pe, pb = v84_num(q.get("eps")), v84_num(q.get("price")), v84_num(q.get("pe")), v84_num(q.get("pb"))
-    if pd.isna(eps) and pd.notna(price) and pd.notna(pe) and pe > 0:
-        eps = price / pe
-    vals, rows = [], []
-    if pd.notna(eps):
-        for name, mult in [("PE保守價",15),("PE基準價",18),("PE樂觀價",22),("EBO代理價",20),("DCF代理價",19),("EVA代理價",18.5),("FCFF代理價",19.5)]:
-            val = eps * mult
-            rows.append([name, v84_fmt(val), f"EPS({v84_fmt(eps)}) × {mult}", "納入"])
-            vals.append(val)
-    if pd.notna(price) and pd.notna(pb) and pb > 0:
-        bvps = price / pb
-        val = bvps * 2.5
-        rows.append(["PB代理價", v84_fmt(val), f"BVPS({v84_fmt(bvps)}) × 2.5", "納入"])
-        vals.append(val)
-    fair = float(np.nanmedian(vals)) if vals else np.nan
-    rows.append(["AI企業合理價", v84_fmt(fair), "納入模型中位數，降低極端值影響", "最終"])
-    return pd.DataFrame(rows, columns=["模型","合理價","計算方式","狀態"]), fair
-
-def v84_esg_value(symbol, q=None):
-    q = q or v84_quote(symbol)
-    eps, price, pe = v84_num(q.get("eps")), v84_num(q.get("price")), v84_num(q.get("pe"))
-    if pd.isna(eps) and pd.notna(price) and pd.notna(pe) and pe > 0:
-        eps = price / pe
-    company_esg, industry_esg = 70, 65
+def v85_decision_placeholder(active, q, df_daily, scores):
     try:
-        if "v77_esg_score" in globals():
-            company_esg = v84_num(v77_esg_score(symbol), 70)
-    except Exception:
-        pass
-    diff = company_esg - industry_esg
-    premium = max(0, min(0.2, diff * 0.005))
-    base_pe = 18
-    base = eps * base_pe if pd.notna(eps) else np.nan
-    plus = base * premium if pd.notna(base) else np.nan
-    fair = base + plus if pd.notna(base) else np.nan
-    return pd.DataFrame([
-        ["公司ESG分數", v84_fmt(company_esg), "代理ESG分數；正式版可接永續報告/評級資料"],
-        ["產業ESG平均", v84_fmt(industry_esg), "同產業平均代理"],
-        ["ESG超額分數", v84_fmt(diff), "公司ESG - 產業平均"],
-        ["ESG溢價率", f"{premium*100:.1f}%", "ESG超額分數 × 0.5%，上限20%"],
-        ["ESG基礎估值", v84_fmt(base), f"EPS × 基礎PE = {v84_fmt(eps)} × {base_pe}"],
-        ["ESG溢價股價金額", v84_fmt(plus), "ESG基礎估值 × ESG溢價率"],
-        ["ESG合理價", v84_fmt(fair), "ESG基礎估值 + ESG溢價金額"],
-    ], columns=["項目","數值","計算說明"]), fair
+        val, inp = valuation(effective_price(q, df_daily), q, scores)
+        con = consensus(val)
+        price = effective_price(q, df_daily)
+        mos = (con-price)/con*100 if con and con>0 and price else np.nan
+        grade = "低估" if mos>=15 else "合理" if mos>=-15 else "高估"
+        st.dataframe(pd.DataFrame([
+            ["現價", fmt(price), "effective_price(q, df_daily)"],
+            ["共識合理價", fmt(con), "原評價中心 consensus(val)"],
+            ["安全邊際", f"{mos:.1f}%" if pd.notna(mos) else "N/A", "(共識價-現價)/共識價"],
+            ["估值判定", grade, "15%以上低估；±15%合理；-15%以下高估"],
+        ], columns=["項目","結果","依據"]), use_container_width=True, hide_index=True)
+    except Exception as e:
+        st.warning(f"投資決策中心暫無法計算：{e}")
 
-def v84_institutional_value(q=None):
-    q = q or {}
-    inst_score = 60
-    price, eps, pe = v84_num(q.get("price")), v84_num(q.get("eps")), v84_num(q.get("pe"))
-    factor = 1 + max(-0.18, min(0.22, (inst_score-60)/180))
-    target = eps * (pe if pd.notna(pe) else 18) * factor if pd.notna(eps) else (price * factor if pd.notna(price) else np.nan)
-    return pd.DataFrame([
-        ["外資分數", v84_fmt(inst_score), "代理法人分數"],
-        ["投信分數", v84_fmt(inst_score), "代理法人分數"],
-        ["自營商分數", v84_fmt(inst_score), "代理法人分數"],
-        ["法人共識分數", v84_fmt(inst_score), "三大法人代理分數"],
-        ["法人估值係數", v84_fmt(factor), "1 + (法人分數-60)/180，上下限修正"],
-        ["法人共識價", v84_fmt(target), "EPS×PE×法人係數；EPS缺值則現價×係數"],
-        ["法人燈號", "🟡 中立", "依法人共識分數轉換"],
-    ], columns=["項目","數值","計算說明"]), target
 
-def v84_score_components(symbol, q=None):
-    q = q or v84_quote(symbol)
-    template, reason, wdf = v84_rating_weights(symbol)
-    _, _, health = v84_industry_research(symbol)
-    quality = 60
-    if v84_profile(symbol).get("護城河") not in ["待確認", None, ""]:
-        quality += 10
-    roe = v84_num(q.get("roe"))
-    if pd.notna(roe):
-        quality += min(15, max(-10, roe*50))
-    finance = 60 + (10 if pd.notna(v84_num(q.get("eps"))) and v84_num(q.get("eps"))>0 else 0) + (15 if pd.notna(roe) and roe>0.12 else 0)
-    pe = v84_num(q.get("pe"))
-    valuation = 65 + (10 if pd.notna(pe) and pe<20 else -10 if pd.notna(pe) and pe>40 else 0)
-    score_map = {"企業品質":quality,"財務體質":finance,"估值吸引力":valuation,"法人籌碼":60,"ESG":70,"產業前景":health}
-    rows, total = [], 0
-    for _, r in wdf.iterrows():
-        item, weight = r["評級項目"], float(r["權重%"])
-        score = max(0,min(100,float(score_map.get(item,60))))
-        contrib = score * weight / 100
-        total += contrib
-        rows.append([item, f"{weight:.0f}%", v84_fmt(score), v84_fmt(contrib), r["權重來源/理由"]])
-    grade = "SS級" if total >= 90 else "S級" if total >= 85 else "A級" if total >= 80 else "B級" if total >= 70 else "C級" if total >= 60 else "D級"
-    return template, reason, total, grade, pd.DataFrame(rows, columns=["項目","權重","得分","貢獻","權重來源/理由"])
+def v85_original_financial_center(active, q, df_daily, scores=None):
+    financial_center(active,q,df_daily)
 
-def v84_consensus(symbol, q=None):
-    q = q or v84_quote(symbol)
-    vdf, fair = v84_valuation_models(symbol, q)
-    edf, esg_fair = v84_esg_value(symbol, q)
-    idf, inst_fair = v84_institutional_value(q)
-    template, reason, wdf = v84_value_weights(symbol)
-    def getv(name):
-        m = vdf[vdf["模型"].astype(str).str.contains(name)]
-        return v84_num(m["合理價"].iloc[-1]) if not m.empty else np.nan
-    pe_val, pb_val, dcf_val, ebo_val = getv("PE基準"), getv("PB"), getv("DCF"), getv("EBO")
-    industry_val = np.nanmedian([x for x in [pe_val,pb_val,dcf_val,ebo_val,esg_fair,inst_fair] if pd.notna(x)]) if any(pd.notna(x) for x in [pe_val,pb_val,dcf_val,ebo_val,esg_fair,inst_fair]) else np.nan
-    lookup = {"DCF":dcf_val,"PE":pe_val,"PB":pb_val,"EBO":ebo_val,"ESG":esg_fair,"法人":inst_fair,"產業":industry_val}
-    rows, total_w, weighted = [], 0, 0
-    for _, r in wdf.iterrows():
-        model, w = r["模型"], float(r["權重%"])
-        val = lookup.get(model, np.nan)
-        if pd.notna(val):
-            total_w += w; weighted += val*w; contrib = val*w/100
-        else:
-            contrib = np.nan
-        rows.append([model, v84_fmt(val), f"{w:.0f}%", v84_fmt(contrib), r["權重來源/理由"]])
-    consensus = weighted/total_w if total_w else np.nan
-    rows.append(["AI共識價", v84_fmt(consensus), "重新正規化後100%", "最終", f"模型模板：{template}；{reason}"])
-    return pd.DataFrame(rows, columns=["模型","價格","權重","加權貢獻","權重來源/理由"]), consensus
+def v85_original_valuation_center(active, q, df_daily, scores):
+    total = scores.get('total', scores.get('ai', scores.get('tech', 0))) if isinstance(scores, dict) else 0
+    v64_consensus_help()
+    st.subheader(f"💎 企業評價：{display_name(active)}")
+    val,inp=valuation(effective_price(q, df_daily),q,scores); con=consensus(val)
+    kpi([("現價",fmt(effective_price(q, df_daily))),("共識合理價",fmt(con)),("模型數",len(val)),("AI總分",total)])
+    st.dataframe(val,use_container_width=True,hide_index=True)
+    with st.expander("評價模型與來源說明"):
+        st.dataframe(v761_valuation_input_explain(inp),use_container_width=True,hide_index=True)
 
-def v84_decision(symbol, q=None):
-    q = q or v84_quote(symbol)
-    cdf, cons = v84_consensus(symbol, q)
-    price = v84_num(q.get("price"))
-    margin = (cons-price)/cons*100 if pd.notna(cons) and pd.notna(price) and cons>0 else np.nan
-    valuation_state = "明顯低估" if pd.notna(margin) and margin>=30 else "低估" if pd.notna(margin) and margin>=15 else "合理" if pd.notna(margin) and margin>=-15 else "高估" if pd.notna(margin) and margin>=-30 else "明顯高估" if pd.notna(margin) else "資料不足"
-    _, _, total, grade, _ = v84_score_components(symbol, q)
-    q_state = "高" if total>=80 else "中" if total>=65 else "低"
-    if valuation_state in ["明顯低估","低估"] and q_state == "高":
-        advice = "積極布局" if valuation_state == "明顯低估" else "分批布局"
-    elif valuation_state in ["明顯低估","低估"] and q_state == "中":
-        advice = "分批布局"
-    elif valuation_state == "合理":
-        advice = "觀察"
-    elif valuation_state == "高估":
-        advice = "減碼"
+def v85_original_esg_center(active, q, df_daily, scores):
+    st.subheader(f"🌱 ESG永續整合中心：{display_name(active)}")
+    st.markdown("### ESG資料層與可信度總覽")
+    st.dataframe(esg_feature_checklist(), use_container_width=True, hide_index=True)
+    st.markdown("### V76 ESG資料層")
+    esg_levels, esg_layer_score = v50_esg_layers(active, q, scores)
+    st.dataframe(esg_levels, use_container_width=True, hide_index=True)
+    st.dataframe(esg_layer_score, use_container_width=True, hide_index=True)
+
+    ag=pd.DataFrame([
+        ["MSCI",70,"外部評級代理"],
+        ["Sustainalytics",64,"外部風險評級代理"],
+        ["FTSE Russell",69,"外部指數評級代理"],
+        ["S&P Global CSA",67,"企業永續評比代理"],
+        ["台灣公司治理評鑑",71,"治理評鑑代理"],
+        ["AIStock ESG",68,"AIStock ESG Engine"],
+    ],columns=["評級來源","ESG分數","來源說明"])
+    score=float(ag["ESG分數"].mean())
+    ev=esg_valuation(q.get("price"),q,score)
+    kpi([
+        ("ESG共識",f"{score:.1f}"),
+        ("ESG溢價",f"{ev['ESG溢價']*100:.1f}%"),
+        ("ESG合理價",fmt(ev["ESG合理價"])),
+        ("ESG牛市價",fmt(ev["ESG牛市價"])),
+    ])
+    kpi([
+        ("ESG超級牛市價",fmt(ev["ESG超級牛市價"])),
+        ("使用EPS",fmt(ev["EPS"])),
+        ("基礎PE","18"),
+        ("中心狀態","ESG+永續已合併"),
+    ])
+
+    tabs=st.tabs(["ESG評等","ESG估值","永續揭露","永續報告書","AI永續摘要"])
+    with tabs[0]:
+        st.dataframe(ag,use_container_width=True,hide_index=True)
+    with tabs[1]:
+        ev, esg_val_df = v761_esg_valuation_detail(q, score)
+        st.dataframe(esg_val_df,use_container_width=True,hide_index=True)
+        fig=go.Figure()
+        fig.add_trace(go.Bar(x=["合理價","牛市價","超級牛市價"], y=[ev["ESG合理價"],ev["ESG牛市價"],ev["ESG超級牛市價"]], name="ESG估值"))
+        fig.update_layout(height=300,template="plotly_dark",margin=dict(l=8,r=8,t=20,b=8))
+        st.plotly_chart(fig,use_container_width=True)
+    with tabs[2]:
+        st.dataframe(pd.DataFrame([
+            ["GRI","全球永續性報告準則","揭露企業永續議題與利害關係人溝通"],
+            ["SASB","產業別永續揭露準則","依產業揭露財務重大ESG議題"],
+            ["TCFD","氣候相關財務揭露","氣候風險、治理、策略、指標與目標"],
+            ["ISSB","國際永續準則","IFRS S1 / S2 永續揭露框架"],
+            ["CDP","碳揭露問卷","碳排放、能源、氣候策略揭露"],
+            ["公司治理","董事會、獨立董事、資訊揭露","治理品質與風險控管"],
+        ],columns=["揭露項目","中文說明","用途"]),use_container_width=True,hide_index=True)
+    with tabs[3]:
+        report_url=st.text_input("永續報告書 / 公司IR / ESG PDF連結",placeholder="貼上永續報告書PDF或公司IR頁面連結",key="merged_esg_report_url")
+        report_year=st.selectbox("報告年度",["2026","2025","2024","2023","2022","2021"],index=1,key="merged_esg_report_year")
+        if st.button("登錄永續報告書",key="merged_esg_report_btn"):
+            st.success(f"已登錄 {display_name(active)} {report_year} 永續報告書狀態。")
+        st.info("目前為半自動登錄；未來可串接公開資訊觀測站、公司IR或ESG資料庫自動下載PDF。")
+    with tabs[4]:
+        st.markdown(f"""
+        <div class="explain">
+        <b>AI永續摘要</b><br>
+        {display_name(active)} 的 ESG 共識分數為 {score:.1f}，對應 ESG 溢價 {ev['ESG溢價']*100:.1f}%。<br>
+        ESG合理價 = EPS × 基礎PE 18 × (1 + ESG溢價)。<br>
+        永續報告書、GRI、SASB、TCFD、ISSB、CDP 是 ESG分數的資料來源；ESG分數是永續揭露的量化結果。
+        </div>
+        """, unsafe_allow_html=True)
+
+def v85_original_institutional_center(active, q, df_daily, scores):
+    st.subheader(f"🏦 法人籌碼中心：{display_name(active)}")
+    st.markdown("### V76 法人籌碼中心")
+    v50_margin, v50_lending, v50_broker, v50_signal, v50_margin_center, v50_short_center, v50_lending_center, v50_broker_center = v50_institutional_upgrade_tables(df_daily, scores)
+    v50tabs = st.tabs(["融資中心","融券中心","借券中心","券商中心","綜合買賣燈號"])
+    with v50tabs[0]:
+        st.dataframe(v50_margin_center, use_container_width=True, hide_index=True)
+        if not v50_margin.empty: st.dataframe(v50_margin, use_container_width=True, hide_index=True)
+    with v50tabs[1]:
+        st.dataframe(v50_short_center, use_container_width=True, hide_index=True)
+    with v50tabs[2]:
+        st.dataframe(v50_lending_center, use_container_width=True, hide_index=True)
+        if not v50_lending.empty: st.dataframe(v50_lending, use_container_width=True, hide_index=True)
+    with v50tabs[3]:
+        st.dataframe(v50_broker_center, use_container_width=True, hide_index=True)
+        if not v50_broker.empty: st.dataframe(v50_broker, use_container_width=True, hide_index=True)
+    with v50tabs[4]:
+        if not v50_signal.empty: st.dataframe(v50_signal, use_container_width=True, hide_index=True)
+
+    st.markdown("### V76 融資融券買賣燈號")
+    _msig=margin_signal_engine(df_daily, scores.get("inst",50), scores.get("main",50))
+    if _msig is not None and not _msig.empty and len(_msig.columns)>1:
+        st.dataframe(_msig, use_container_width=True, hide_index=True)
     else:
-        advice = "避開/賣出" if valuation_state == "明顯高估" else "資料不足"
-    return pd.DataFrame([
-        ["目前股價", v84_fmt(price), "Yahoo/即時價格"],
-        ["AI共識價", v84_fmt(cons), "模型加權共識價"],
-        ["安全邊際", f"{margin:.1f}%" if pd.notna(margin) else "N/A", "(AI共識價 - 現價) / AI共識價"],
-        ["估值判定", valuation_state, "30%以上明顯低估；15~30低估；±15合理；-15~-30高估；-30以下明顯高估"],
-        ["AI總分", v84_fmt(total), "企業品質、財務、估值、法人、ESG、產業加權"],
-        ["AI評級", grade, "90+ SS；85~89 S；80~84 A；70~79 B；60~69 C；60以下 D"],
-        ["品質區間", q_state, "80以上高；65~79中；65以下低"],
-        ["投資建議", advice, "依估值判定 × 品質區間決策矩陣"],
-    ], columns=["項目","結果","依據"])
+        st.info("目前無融資融券燈號資料，已隱藏空表格。")
+    inst_df=institutional_proxy(df_daily)
+    consensus_score=int(np.clip(pd.to_numeric(inst_df.get("強度",pd.Series(dtype=float)),errors="coerce").mean() if not inst_df.empty else scores["inst"],0,100))
+    kpi([
+        ("法人分數",scores["inst"]),
+        ("籌碼分數",scores["chip"]),
+        ("主力分數",scores["main"]),
+        ("法人共識",f"{consensus_score}/100"),
+    ])
+    tabs=st.tabs(["三大法人/主力","融資融券","融券買賣燈號","借券中心","券商進出","主力集中","籌碼燈號","來源與計算"])
+    with tabs[0]:
+        st.dataframe(inst_df,use_container_width=True,hide_index=True)
+    with tabs[1]:
+        st.dataframe(margin_short_proxy(df_daily),use_container_width=True,hide_index=True)
+    with tabs[2]:
+        st.dataframe(securities_lending_proxy(df_daily),use_container_width=True,hide_index=True)
+    with tabs[3]:
+        st.dataframe(broker_flow_proxy(df_daily),use_container_width=True,hide_index=True)
+    with tabs[4]:
+        brokers=broker_flow_proxy(df_daily)
+        top5=int(np.clip(pd.to_numeric(brokers.get("集中度",pd.Series(dtype=float)),errors="coerce").head(5).mean() if not brokers.empty else 50,0,100))
+        top10=int(np.clip(pd.to_numeric(brokers.get("集中度",pd.Series(dtype=float)),errors="coerce").mean() if not brokers.empty else 50,0,100))
+        kpi([("前5券商集中度",f"{top5}/100"),("前10券商集中度",f"{top10}/100"),("主力集中分數",f"{scores['main']}/100"),("散戶風險","偏高" if top5<45 else "正常")])
+    with tabs[5]:
+        st.dataframe(chip_lights(df_daily,scores["inst"],scores["main"]),use_container_width=True,hide_index=True)
+    with tabs[6]:
+        st.dataframe(pd.DataFrame([
+            ["三大法人", "目前為量價代理；正式資料需串接TWSE/TPEX/Fugle/券商API"],
+            ["融資融券", "目前以成交量、量比、趨勢代理；正式資料需TWSE/TPEX信用交易資料"],
+            ["借券", "目前為借券賣出/回補代理；正式資料需交易所借券資料"],
+            ["券商進出", "目前為分點買賣代理；正式券商分點需券商或資料商API"],
+            ["主力集中", "以券商進出代理與成交量集中推估"],
+            ["籌碼燈號", "法人、主力、融資、借券四構面加權"],
+        ],columns=["項目","說明"]),use_container_width=True,hide_index=True)
 
-def v84_enterprise_page(symbol, q=None, df=None, scores=None):
-    q = q or v84_quote(symbol)
+def v85_final_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V84 Full Research Institute</div>
-      <div style="font-size:16px;margin-top:10px;">首頁、監控、K線沿用 V76.3；研究院整合財報 × 評價 × ESG × 法人 × AI共識價</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V85 Final Architecture Edition</div>
+      <div style="font-size:16px;margin-top:10px;">V85 = 完整搬遷版：財報、評價、ESG、法人原封不動搬入研究院</div>
     </div>
     """, unsafe_allow_html=True)
-    st.markdown(f"### 研究標的：{v84_display(symbol)}")
+    st.markdown(f"### 研究標的：{v85_display(active)}")
     tabs = st.tabs(["①公司DNA","②產業研究院","③全球競爭研究院","④同業比較研究院","⑤財報研究院","⑥企業評價研究院","⑦ESG研究院","⑧法人研究院","⑨AI共識價研究院","⑩AI評級透明化中心","⑪模型依據中心","⑫投資決策中心"])
     with tabs[0]:
-        try:
-            if "v76_company_dna_df" in globals():
-                st.dataframe(v76_company_dna_df(symbol), use_container_width=True, hide_index=True)
-            else:
-                st.dataframe(pd.DataFrame(list(v84_profile(symbol).items()), columns=["項目","內容"]), use_container_width=True, hide_index=True)
-        except Exception:
-            st.dataframe(pd.DataFrame(list(v84_profile(symbol).items()), columns=["項目","內容"]), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(list(v85_profile(active).items()), columns=["項目","內容"]), use_container_width=True, hide_index=True)
     with tabs[1]:
-        base, five, _ = v84_industry_research(symbol)
-        st.dataframe(base, use_container_width=True, hide_index=True)
-        st.markdown("#### 五力分析")
-        st.dataframe(five, use_container_width=True, hide_index=True)
+        st.dataframe(v85_industry_basic(active), use_container_width=True, hide_index=True)
+        st.info("產業鏈、景氣循環與趨勢資料庫將於 V86 補強。")
     with tabs[2]:
-        st.dataframe(v84_competitors(symbol), use_container_width=True, hide_index=True)
+        st.dataframe(v85_competitors(active), use_container_width=True, hide_index=True)
+        st.info("全球競爭、市占率與替代風險將於 V86 補強。")
     with tabs[3]:
-        st.dataframe(v84_peer_compare(symbol), use_container_width=True, hide_index=True)
+        st.info("同業PE/PB/ROE/EPS比較將於 V86 補強；V85優先完成四大中心搬遷。")
+        st.dataframe(v85_competitors(active), use_container_width=True, hide_index=True)
     with tabs[4]:
-        st.markdown("#### 財務摘要 / 財報品質")
-        st.dataframe(v84_financial_research(symbol, q), use_container_width=True, hide_index=True)
-        st.info("財報中心已搬入研究院。若原始中文財報資料來源在原V76.3有獨立模組，本頁保留摘要與品質分數，後續可再完整嵌入原始報表函式。")
+        v85_original_financial_center(active, q, df_daily, scores)
     with tabs[5]:
-        st.markdown("#### 企業評價模型")
-        vdf, _ = v84_valuation_models(symbol, q)
-        st.dataframe(vdf, use_container_width=True, hide_index=True)
-        st.markdown("#### 企業評價模型權重依據")
-        _, _, wdf = v84_value_weights(symbol)
-        st.dataframe(wdf, use_container_width=True, hide_index=True)
+        v85_original_valuation_center(active, q, df_daily, scores)
     with tabs[6]:
-        st.markdown("#### ESG研究院")
-        edf, _ = v84_esg_value(symbol, q)
-        st.dataframe(edf, use_container_width=True, hide_index=True)
+        v85_original_esg_center(active, q, df_daily, scores)
     with tabs[7]:
-        st.markdown("#### 法人研究院")
-        idf, _ = v84_institutional_value(q)
-        st.dataframe(idf, use_container_width=True, hide_index=True)
+        v85_original_institutional_center(active, q, df_daily, scores)
     with tabs[8]:
-        st.markdown("#### AI共識價研究院")
-        cdf, _ = v84_consensus(symbol, q)
-        st.dataframe(cdf, use_container_width=True, hide_index=True)
+        st.subheader("⑨ AI共識價研究院")
+        v85_original_valuation_center(active, q, df_daily, scores)
+        st.info("本頁先沿用原評價中心共識價；V86/V87再拆出動態權重與納入/排除原因。")
     with tabs[9]:
-        template, reason, total, grade, comp = v84_score_components(symbol, q)
-        st.metric("AI評級", grade, f"總分 {v84_fmt(total)}")
-        st.caption(f"權重模板：{template}｜{reason}")
-        st.dataframe(comp, use_container_width=True, hide_index=True)
+        st.subheader("⑩ AI評級透明化中心")
+        v85_weight_methodology()
     with tabs[10]:
-        template, reason, rw = v84_rating_weights(symbol)
-        vt, vr, vw = v84_value_weights(symbol)
-        st.info("V84原則：每個權重、評級、共識價與投資建議都必須可追溯、可驗證、可解釋。")
-        st.markdown(f"#### 評級模板：{template}")
-        st.write(reason)
-        st.dataframe(rw, use_container_width=True, hide_index=True)
-        st.markdown(f"#### 估值模板：{vt}")
-        st.write(vr)
-        st.dataframe(vw, use_container_width=True, hide_index=True)
-        st.markdown("#### 安全邊際規則")
-        st.dataframe(pd.DataFrame([["30%以上","明顯低估"],["15%~30%","低估"],["-15%~15%","合理"],["-30%~-15%","高估"],["-30%以下","明顯高估"]], columns=["安全邊際","判定"]), use_container_width=True, hide_index=True)
+        st.subheader("⑪ 模型依據中心")
+        try:
+            val, inp = valuation(effective_price(q, df_daily), q, scores)
+            st.dataframe(v761_valuation_input_explain(inp), use_container_width=True, hide_index=True)
+        except Exception as e:
+            st.warning(f"模型依據暫無法顯示：{e}")
+        v85_weight_methodology()
     with tabs[11]:
-        st.dataframe(v84_decision(symbol, q), use_container_width=True, hide_index=True)
+        st.subheader("⑫ 投資決策中心")
+        v85_decision_placeholder(active, q, df_daily, scores)
 
-# Preserve/override only research pages. Home, Monitor, K-line remain V76.3.
-def v76_ai_page(symbol, q=None, df=None, scores=None): return v84_enterprise_page(symbol, q, df, scores)
-def v77_ai_page(symbol, q=None, df=None, scores=None): return v84_enterprise_page(symbol, q, df, scores)
-def v80_enterprise_value_page(symbol, q=None, df=None, scores=None): return v84_enterprise_page(symbol, q, df, scores)
-def v81_enterprise_value_page(symbol, q=None, df=None, scores=None): return v84_enterprise_page(symbol, q, df, scores)
-def v82_enterprise_page(symbol, q=None, df=None, scores=None): return v84_enterprise_page(symbol, q, df, scores)
-# ================= V84 FULL RESEARCH INSTITUTE LAYER END =================
+# Override old AI page entry only; old 評價/ESG/法人/中文財報主選單仍可保留作對照。
+def v76_ai_page(symbol, q=None, df=None, scores=None): return v85_final_research_institute(symbol, q, df, scores or {})
+def v77_ai_page(symbol, q=None, df=None, scores=None): return v85_final_research_institute(symbol, q, df, scores or {})
+def v80_enterprise_value_page(symbol, q=None, df=None, scores=None): return v85_final_research_institute(symbol, q, df, scores or {})
+# ================= V85 FINAL ARCHITECTURE EDITION LAYER END =================
 
 
 active = unified_symbol_manager(symbols)
@@ -6082,7 +5957,7 @@ elif page=="📊監控":
     st.caption(f"V76類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
     with st.expander("🧭 V76 類股快速入口", expanded=False):
         v76_sector_panel()
-    # V84 Full Research Institute_PAGE_SECTOR_FIX
+    # V85 Final Architecture Edition_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
         page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
@@ -6251,7 +6126,7 @@ elif page=="📑中文財報":
 elif page=="__舊永續__":
     sustainability_center(active,q)
 elif page=="🏛企業價值研究院":
-    v84_enterprise_page(active, q if 'q' in globals() else None, df_daily if 'df_daily' in globals() else None, scores if 'scores' in globals() else None)
+    v85_final_research_institute(active, q, df_daily, scores)
     st.stop()
     v76_ai_page(active, q, df_daily, scores)
     st.markdown("### AI研究中心完整模組總覽")
@@ -6278,6 +6153,6 @@ st.markdown("---")
 with st.expander("🧾 計算透明化中心", expanded=False):
     transparency_audit_center(active, q, df_daily, scores)
 
-st.caption("AI研究院 Pro V84 Full Research Institute｜研究與教學用途，非投資建議。")
+st.caption("AI研究院 Pro V85 Final Architecture Edition｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
