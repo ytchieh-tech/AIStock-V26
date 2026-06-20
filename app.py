@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V76.3 Official Master"
+APP_VERSION="V77 DNA Competitor Transparency"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -443,7 +443,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V76.3 Official Master responsive audit */
+/* V77 DNA Competitor Transparency responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -502,7 +502,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V76.3 Official Master：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V77 DNA Competitor Transparency：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -707,7 +707,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V76.3 Official Master.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V77 DNA Competitor Transparency.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -882,7 +882,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V76.3 Official Master: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V77 DNA Competitor Transparency: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1779,7 +1779,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V76.3 Official Master｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V77 DNA Competitor Transparency｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1795,7 +1795,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V76.3 Official Master</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V77 DNA Competitor Transparency</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1806,7 +1806,7 @@ st.markdown("""
       <rect x="635" y="55" width="24" height="42" fill="#22c55e"/>
       <rect x="915" y="58" width="24" height="36" fill="#ef4444"/>
     </g>
-    <text x="40" y="158" fill="#dbeafe" font-size="13">V53 clean banner</text>
+    <text x="40" y="158" fill="#dbeafe" font-size="13">V77 clean banner</text>
   </svg>
 </div>
 
@@ -1818,7 +1818,7 @@ if "page" not in st.session_state: st.session_state.page="🏠首頁"
 # V60_PAGE_TARGET_HELPER: APP快捷入口目標保存在 session_state；若原始選單未吃到，仍可由各頁判斷使用。
 
 # ================= V76.1 TRANSPARENCY + NAME FIX LAYER =================
-APP_VERSION="V76.3 Official Master"
+APP_VERSION="V77 DNA Competitor Transparency"
 
 # 補充 V76 未覆蓋股票中文名稱與產業DNA，避免回退 Yahoo 英文名稱或待分類。
 V761_EXTRA_ROWS = [
@@ -1996,7 +1996,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V76.3 Official Master_SIDEBAR_SECTOR_FIX
+    # V77 DNA Competitor Transparency_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -5139,7 +5139,7 @@ def v70_research_institute(symbol, q, df, scores):
 
 # ================= V76 NAME RESOLVER + SECTOR COMPLETE LAYER =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V76.3 Official Master"
+APP_VERSION="V77 DNA Competitor Transparency"
 
 V76_ROWS = [
 ("2330","台積電","上市","電子","半導體","晶圓代工","先進製程","AI/HPC","中游"),("2303","聯電","上市","電子","半導體","晶圓代工","成熟製程","車用/工控","中游"),("5347","世界先進","上櫃","電子","半導體","特殊製程晶圓代工","成熟製程","車用/工控","中游"),("6770","力積電","上市","電子","半導體","晶圓代工/記憶體","成熟製程","記憶體/代工","中游"),("2408","南亞科","上市","電子","半導體","DRAM","記憶體","AI/伺服器記憶體","上中游"),("2344","華邦電","上市","電子","半導體","記憶體","NOR/DRAM","車用/工控","上中游"),("2337","旺宏","上市","電子","半導體","記憶體","NOR Flash","車用/工控","上中游"),
@@ -5271,7 +5271,7 @@ def v76_calc_transparency(symbol,q=None,df=None,scores=None):
     return pd.DataFrame(rows,columns=['模型','使用價格','狀態','公式/方法','使用數值與說明'])
 
 def v76_ai_page(symbol,q,df,scores):
-    st.markdown('## 🏛 V76.3 Official Master.3')
+    st.markdown('## 🏛 V77 DNA Competitor Transparency.3')
     tabs=st.tabs(['🧬公司DNA','🌱ESG排名','🌍競爭/同業','🔍計算透明'])
     with tabs[0]: st.dataframe(v76_company_dna_df(symbol),use_container_width=True,hide_index=True)
     with tabs[1]: st.dataframe(v76_esg_rank(symbol),use_container_width=True,hide_index=True)
@@ -5281,7 +5281,7 @@ def v76_ai_page(symbol,q,df,scores):
 
 # ================= V76.3 OFFICIAL MASTER + TRANSPARENCY FIX =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V76.3 Official Master"
+APP_VERSION="V77 DNA Competitor Transparency"
 
 V763_FALLBACK_MASTER = [
     # code,name,market,level1,level2,level3,level4,level5,chain
@@ -5613,13 +5613,13 @@ def v762_banner():
     st.markdown("""
     <div style="padding:28px;border-radius:22px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin:12px 0 22px 0;">
       <div style="font-size:34px;font-weight:900;">📈 智策股市 AI 決策平台</div>
-      <div style="font-size:20px;font-weight:800;margin-top:8px;">V76.3 Official Master</div>
+      <div style="font-size:20px;font-weight:800;margin-top:8px;">V77 DNA Competitor Transparency</div>
       <div style="font-size:15px;margin-top:8px;opacity:.92;">官方代碼中文表 × 產業DNA × ESG股價溢價 × 計算透明</div>
     </div>
     """, unsafe_allow_html=True)
 
 def v76_ai_page(symbol, q, df, scores):
-    st.markdown("## 🏛 V76.3 Official Master.3")
+    st.markdown("## 🏛 V77 DNA Competitor Transparency.3")
     tabs = st.tabs(["🧬公司DNA","🌱ESG排名","🌍競爭/同業","🔍計算透明"])
     with tabs[0]:
         st.dataframe(v76_company_dna_df(symbol), use_container_width=True, hide_index=True)
@@ -5638,6 +5638,377 @@ def v762_master_panel():
     v763_master_panel()
 # ================= V76.3 OFFICIAL MASTER + TRANSPARENCY FIX END =================
 
+# ================= V77 DNA + COMPETITOR + TRANSPARENCY LAYER =================
+APP_BRAND = "AI研究院 Pro"
+APP_VERSION="V77 DNA Competitor Transparency"
+
+def v77_fmt(x, digits=2):
+    try:
+        if x is None or pd.isna(float(x)):
+            return "N/A"
+        return f"{float(x):.{digits}f}"
+    except Exception:
+        return str(x)
+
+def v77_safe_df(df):
+    """防止 Streamlit / PyArrow 因 mixed type、dict、list、None 造成 ArrowInvalid。"""
+    try:
+        if df is None:
+            return pd.DataFrame()
+        if not isinstance(df, pd.DataFrame):
+            df = pd.DataFrame(df)
+        out = df.copy()
+        out.columns = [str(c) for c in out.columns]
+        for c in out.columns:
+            out[c] = out[c].map(lambda v: "" if v is None or (isinstance(v, float) and pd.isna(v)) else str(v))
+        return out
+    except Exception as e:
+        return pd.DataFrame({"訊息":[f"表格轉換失敗：{e}"]})
+
+def v77_dataframe(df, **kwargs):
+    return st.dataframe(v77_safe_df(df), **kwargs)
+
+# 攔截所有 st.dataframe，避免 PyArrow 錯誤造成右側 log 爆量
+try:
+    if not hasattr(st, "_v77_original_dataframe"):
+        st._v77_original_dataframe = st.dataframe
+        def _v77_streamlit_dataframe(data=None, *args, **kwargs):
+            try:
+                if isinstance(data, pd.DataFrame):
+                    data = v77_safe_df(data)
+                return st._v77_original_dataframe(data, *args, **kwargs)
+            except Exception as e:
+                st.warning(f"表格顯示已防錯處理：{e}")
+                try:
+                    return st._v77_original_dataframe(v77_safe_df(data), *args, **kwargs)
+                except Exception:
+                    return None
+        st.dataframe = _v77_streamlit_dataframe
+except Exception:
+    pass
+
+# V77 DNA Master：在 V76.3 基礎上補齊更多常見股票與產業鏈
+V77_DNA_EXTRA = [
+    ("1513","中興電","上市","電子","電力重電","電力設備","變壓器/開關設備","電網/AI電力","中游"),
+    ("1504","東元","上市","電子","電力重電","馬達/機電","馬達/機電系統","AI資料中心/電力","中游"),
+    ("1519","華城","上市","電子","電力重電","變壓器","重電設備","電網/AI電力","中游"),
+    ("1605","華新","上市","傳產","電線電纜","電纜/銅線","電線電纜","電網/基建","中游"),
+    ("2357","華碩","上市","電子","電腦週邊","品牌電腦/伺服器","品牌/系統","AI PC/伺服器","中下游"),
+    ("2324","仁寶","上市","電子","電腦週邊","NB/伺服器ODM","ODM","AI PC/伺服器","中游"),
+    ("2353","宏碁","上市","電子","電腦週邊","品牌電腦","品牌/通路","AI PC","下游"),
+    ("2360","致茂","上市","電子","測試設備","電源/半導體測試","測試設備","AI/電動車/半導體","上中游"),
+    ("2368","金像電","上市","電子","PCB","伺服器PCB","高階PCB","AI Server","中游"),
+    ("2376","技嘉","上市","電子","電腦週邊","主機板/伺服器","板卡/伺服器","AI PC/AI伺服器","中游"),
+    ("2388","威盛","上市","電子","IC設計","CPU/AI邊緣","AIoT平台","AI Edge","上游"),
+    ("2393","億光","上市","電子","LED","LED封裝","光電元件","車用/顯示","中游"),
+    ("3008","大立光","上市","電子","光學","手機鏡頭","光學鏡頭","高階光學/AI視覺","中游"),
+    ("3023","信邦","上市","電子","連接線束","線束/連接器","工業/車用線束","EV/工控/AI","中游"),
+    ("3036","文曄","上市","電子","電子通路","半導體通路","代理/設計導入","半導體供應鏈","中下游"),
+    ("3046","建碁","上市","電子","工業電腦","迷你電腦/IPC","邊緣運算設備","AIoT/工業電腦","中游"),
+    ("3533","嘉澤","上市","電子","連接器","CPU Socket/連接器","高階連接器","AI Server","上游"),
+    ("3540","曜越","上櫃","電子","散熱","散熱/機殼/電源","PC散熱與電源","電競/AI PC","中游"),
+    ("3596","智易","上市","電子","網通","網通設備","寬頻/路由器/交換器","AI資料中心/家庭網路","中游"),
+    ("3715","定穎投控","上市","電子","PCB","車用/高階PCB","PCB製造","車用/AI Server","中游"),
+    ("4979","華星光","上櫃","電子","光通訊","光收發模組","光通訊模組","AI資料中心/光通訊","上游"),
+    ("5388","中磊","上市","電子","網通","網通設備","寬頻/企業網通","家庭網路/電信設備","中游"),
+    ("6176","瑞儀","上市","電子","光電","背光模組","顯示光學","面板/車用顯示","中游"),
+    ("6274","台燿","上市","電子","PCB/CCL","銅箔基板","高速材料","AI Server/網通","上游"),
+    ("6488","環球晶","上市","電子","半導體材料","矽晶圓","半導體矽晶圓","半導體上游","上游"),
+    ("6669","緯穎","上市","電子","AI伺服器","雲端伺服器","伺服器整機","AI資料中心","中游"),
+    ("6805","富世達","上市","電子","機構件","摺疊/伺服器機構件","精密機構","AI Server/消費電子","中游"),
+    ("8210","勤誠","上市","電子","機構件","伺服器機殼","機構件","AI Server","中游"),
+    ("8299","群聯","上市","電子","記憶體控制IC","NAND控制IC","控制晶片/模組","AI/邊緣儲存","上游"),
+]
+
+def v77_master_df():
+    try:
+        base = v763_master_df() if "v763_master_df" in globals() else pd.DataFrame()
+    except Exception:
+        base = pd.DataFrame()
+    extra = pd.DataFrame(V77_DNA_EXTRA, columns=["code","name","market","level1","level2","level3","level4","level5","chain"])
+    if base is None or base.empty:
+        out = extra
+    else:
+        out = pd.concat([base, extra], ignore_index=True)
+    out["code"] = out["code"].astype(str).str.zfill(4)
+    out = out.drop_duplicates("code", keep="last").reset_index(drop=True)
+    return out
+
+def v77_row(x):
+    code = str(x).upper().strip().replace(" ","").split(".")[0]
+    df = v77_master_df()
+    r = df[df["code"].astype(str)==code]
+    return None if r.empty else r.iloc[0]
+
+def v77_symbol(x):
+    s = str(x).upper().strip().replace(" ","")
+    if s.endswith(".TW") or s.endswith(".TWO"):
+        return s
+    r = v77_row(s)
+    if r is not None:
+        return f"{r['code']}.TW" if str(r["market"]) == "上市" else f"{r['code']}.TWO"
+    return f"{s}.TW" if s.isdigit() and len(s)==4 else s
+
+def v77_name(x):
+    r = v77_row(x)
+    if r is not None:
+        return str(r["name"])
+    return str(x).upper().strip()
+
+def clean_symbol(x): return v77_symbol(x)
+def display_name(symbol): 
+    s = v77_symbol(symbol)
+    return f"{v77_name(s)} / {s}"
+def stock_name_only(symbol): return v77_name(symbol)
+def v755_stock_name(symbol): return v77_name(symbol)
+def v756_name(symbol): return v77_name(symbol)
+def v76_tw_name(symbol): return v77_name(symbol)
+def v763_name(symbol): return v77_name(symbol)
+def v76_normalize_symbol(symbol): return v77_symbol(symbol)
+def v763_symbol(symbol): return v77_symbol(symbol)
+
+def v77_profile(symbol):
+    s = v77_symbol(symbol)
+    r = v77_row(s)
+    if r is None:
+        return {
+            "公司":v77_name(s),"代碼":s,"市場":"待確認",
+            "Level 1":"待分類","Level 2":"待分類","Level 3":"待分類","Level 4":"待分類","Level 5":"待分類",
+            "產業":"待分類","次產業":"待分類","產業鏈位置":"待確認","商業模式":"待確認",
+            "產業成熟度":"待確認","產業景氣燈號":"⚪ 待確認","資料層":"未覆蓋"
+        }
+    return {
+        "公司":r["name"],"代碼":s,"市場":r["market"],
+        "Level 1":r["level1"],"Level 2":r["level2"],"Level 3":r["level3"],"Level 4":r["level4"],"Level 5":r["level5"],
+        "產業":r["level2"],"次產業":r["level3"],"產業鏈位置":r["chain"],"商業模式":r["level3"],
+        "產業成熟度":"成長期" if ("AI" in str(r["level5"]) or "電網" in str(r["level5"]) or "光通訊" in str(r["level5"])) else "成熟/循環",
+        "產業景氣燈號":"🟢 熱絡" if ("AI" in str(r["level5"]) or "電網" in str(r["level5"]) or "光通訊" in str(r["level5"])) else "🟡 中立",
+        "資料層":"官方代碼表 + V77 DNA Master"
+    }
+
+def v70_profile(symbol): return v77_profile(symbol)
+def v75_profile(symbol): return v77_profile(symbol)
+def v755_profile(symbol): return v77_profile(symbol)
+def v756_profile(symbol): return v77_profile(symbol)
+def v76_profile(symbol): return v77_profile(symbol)
+def v761_profile(symbol): return v77_profile(symbol)
+def v763_profile(symbol): return v77_profile(symbol)
+
+def v77_company_dna_df(symbol):
+    p = v77_profile(symbol)
+    return pd.DataFrame([
+        ["公司名稱", p["公司"]],
+        ["股票代號", p["代碼"]],
+        ["市場", p["市場"]],
+        ["Level 1 大類", p["Level 1"]],
+        ["Level 2 產業", p["Level 2"]],
+        ["Level 3 次產業", p["Level 3"]],
+        ["Level 4 細分領域", p["Level 4"]],
+        ["Level 5 投資主題", p["Level 5"]],
+        ["產業鏈位置", p["產業鏈位置"]],
+        ["商業模式", p["商業模式"]],
+        ["產業成熟度", p["產業成熟度"]],
+        ["產業景氣燈號", p["產業景氣燈號"]],
+        ["資料層", p["資料層"]],
+    ], columns=["項目","內容"])
+
+def v756_company_dna_table(symbol): return v77_company_dna_df(symbol)
+def v76_company_dna_df(symbol): return v77_company_dna_df(symbol)
+def v762_company_dna_table(symbol): return v77_company_dna_df(symbol)
+
+try:
+    for _, r in v77_master_df().iterrows():
+        sym = f"{r['code']}.TW" if r["market"] == "上市" else f"{r['code']}.TWO"
+        CODE_NAME_MAP[sym] = r["name"]
+        CODE_NAME_MAP[f"{r['code']}.TW"] = r["name"]
+        CODE_NAME_MAP[f"{r['code']}.TWO"] = r["name"]
+        TW_STOCKS[r["name"]] = sym
+except Exception:
+    pass
+
+V77_GLOBAL_PEERS = {
+    "晶圓代工": [("台積電","2330.TW","台灣","晶圓代工"),("聯電","2303.TW","台灣","成熟製程"),("世界先進","5347.TWO","台灣","特殊製程"),("GlobalFoundries","GFS","美國","成熟/特殊製程"),("Samsung Foundry","005930.KS","韓國","晶圓代工")],
+    "IC設計": [("聯發科","2454.TW","台灣","IC設計"),("瑞昱","2379.TW","台灣","IC設計"),("NVIDIA","NVDA","美國","GPU/AI"),("AMD","AMD","美國","CPU/GPU"),("Broadcom","AVGO","美國","通訊/ASIC")],
+    "AI伺服器": [("廣達","2382.TW","台灣","AI伺服器ODM"),("緯創","3231.TW","台灣","AI伺服器ODM"),("緯穎","6669.TW","台灣","雲端伺服器"),("Supermicro","SMCI","美國","AI伺服器"),("Dell","DELL","美國","企業伺服器")],
+    "散熱": [("奇鋐","3017.TW","台灣","散熱模組"),("雙鴻","3324.TWO","台灣","散熱模組"),("健策","3653.TW","台灣","散熱/機構"),("Cooler Master","N/A","台灣","散熱品牌")],
+    "PCB": [("台光電","2383.TW","台灣","CCL"),("欣興","3037.TW","台灣","ABF/PCB"),("南電","8046.TW","台灣","ABF/PCB"),("景碩","3189.TW","台灣","載板"),("健鼎","3044.TW","台灣","PCB")],
+    "網通": [("智易","3596.TW","台灣","網通設備"),("中磊","5388.TW","台灣","網通設備"),("啟碁","6285.TW","台灣","無線通訊"),("Cisco","CSCO","美國","網通設備"),("Arista","ANET","美國","資料中心交換器")],
+    "光通訊": [("華星光","4979.TWO","台灣","光通訊模組"),("聯亞","3081.TWO","台灣","光通訊磊晶"),("Coherent","COHR","美國","光通訊"),("Lumentum","LITE","美國","光通訊")],
+    "電力重電": [("台達電","2308.TW","台灣","電源/電控"),("中興電","1513.TW","台灣","重電設備"),("華城","1519.TW","台灣","變壓器"),("Schneider","SU.PA","法國","電力設備"),("Eaton","ETN","美國","電力管理")],
+    "電子通路": [("至上","8112.TW","台灣","半導體通路"),("豐藝","6189.TW","台灣","電子通路"),("大聯大","3702.TW","台灣","半導體通路"),("Arrow","ARW","美國","電子通路"),("Avnet","AVT","美國","電子通路")],
+    "金融控股": [("富邦金","2881.TW","台灣","金控"),("國泰金","2882.TW","台灣","金控"),("玉山金","2884.TW","台灣","銀行金控"),("中信金","2891.TW","台灣","銀行金控"),("兆豐金","2886.TW","台灣","銀行金控")],
+    "航運": [("長榮","2603.TW","台灣","貨櫃航運"),("陽明","2609.TW","台灣","貨櫃航運"),("萬海","2615.TW","台灣","貨櫃航運"),("Maersk","MAERSK-B.CO","丹麥","全球航運"),("Hapag-Lloyd","HLAG.DE","德國","全球航運")],
+}
+
+def v77_competitors(symbol):
+    p = v77_profile(symbol)
+    key = str(p["Level 2"])
+    key3 = str(p["Level 3"])
+    peers = None
+    for k, v in V77_GLOBAL_PEERS.items():
+        if k in key or k in key3:
+            peers = v
+            break
+    rows = []
+    if peers:
+        rows.extend(peers)
+    else:
+        df = v77_master_df()
+        same = df[(df["level2"].astype(str) == key) & (df["code"].astype(str) != str(symbol).split(".")[0])].head(10)
+        for _, r in same.iterrows():
+            sym = f"{r['code']}.TW" if r["market"] == "上市" else f"{r['code']}.TWO"
+            rows.append((r["name"], sym, "台灣", r["level3"]))
+    if not rows:
+        rows = [("同業資料待擴充","N/A","N/A","本公司產業DNA已建，但同業資料庫尚待補強")]
+    return pd.DataFrame(rows, columns=["公司","代碼","國家","競爭/關聯角色"])
+
+def v76_competitors(symbol): return v77_competitors(symbol)
+def v76_competitor_mapping(symbol): return v77_competitors(symbol)
+def v756_competitor_mapping(symbol): return v77_competitors(symbol)
+
+def v77_esg_score(symbol):
+    p = v77_profile(symbol)
+    base = 68
+    if p["Level 2"] in ["半導體","晶圓代工","IC設計","AI伺服器","電力重電"]:
+        base += 4
+    if "金融" in p["Level 1"]:
+        base += 6
+    if "AI" in p["Level 5"]:
+        base += 3
+    return min(95, base + abs(hash(str(symbol))) % 8)
+
+def v77_esg_rank(symbol):
+    p = v77_profile(symbol)
+    df = v77_master_df()
+    peers = df[df["level2"].astype(str) == str(p["Level 2"])]
+    if peers.empty:
+        peers = df[df["level1"].astype(str) == str(p["Level 1"])]
+    if peers.empty:
+        peers = df.head(30)
+    rows = []
+    for _, r in peers.head(50).iterrows():
+        sym = f"{r['code']}.TW" if r["market"] == "上市" else f"{r['code']}.TWO"
+        score = v77_esg_score(sym)
+        rating = "AAA" if score>=90 else "AA" if score>=80 else "A" if score>=70 else "BBB" if score>=60 else "BB"
+        rows.append([r["name"], sym, r["level2"], rating, f"{score:.1f}"])
+    out = pd.DataFrame(rows, columns=["公司","代碼","產業","ESG評級","ESG分數"])
+    out["__s"] = out["ESG分數"].astype(float)
+    out = out.sort_values("__s", ascending=False).drop(columns=["__s"]).reset_index(drop=True)
+    out.insert(0,"產業排名",range(1,len(out)+1))
+    return out
+
+def v76_esg_rank(symbol): return v77_esg_rank(symbol)
+def v755_esg_rank(symbol, scores=None): return v77_esg_rank(symbol)
+
+def v77_esg_valuation_detail(q=None, symbol=None):
+    q = q or {}
+    score = v77_esg_score(symbol or q.get("symbol",""))
+    try:
+        price = float(q.get("price", np.nan))
+    except Exception:
+        price = np.nan
+    try:
+        eps = float(q.get("eps", np.nan))
+    except Exception:
+        eps = np.nan
+    try:
+        pe0 = float(q.get("pe", np.nan))
+    except Exception:
+        pe0 = np.nan
+    if not pd.notna(eps) or eps <= 0:
+        eps = price / pe0 if pd.notna(price) and pd.notna(pe0) and pe0 > 0 else (price / 20 if pd.notna(price) else np.nan)
+    base_pe = 18
+    premium_rate = .20 if score >= 90 else .15 if score >= 80 else .10 if score >= 70 else .05 if score >= 60 else 0
+    base_value = eps * base_pe if pd.notna(eps) else np.nan
+    premium_amount = base_value * premium_rate if pd.notna(base_value) else np.nan
+    fair_value = base_value + premium_amount if pd.notna(base_value) else np.nan
+    df = pd.DataFrame([
+        ["使用EPS", v77_fmt(eps), "優先使用 Yahoo EPS；缺值則由現價/PE 或 現價/20 代理。"],
+        ["基礎PE", v77_fmt(base_pe), "目前使用保守基礎PE=18；後續可改為產業PE中位數。"],
+        ["ESG分數", v77_fmt(score), "V77 ESG代理分數；正式版可串永續報告書/評級資料。"],
+        ["ESG溢價率", f"{premium_rate*100:.1f}%", "60~69=5%；70~79=10%；80~89=15%；90以上=20%。"],
+        ["ESG基礎估值", v77_fmt(base_value), f"EPS × 基礎PE = {v77_fmt(eps)} × {base_pe}"],
+        ["ESG溢價股價金額", v77_fmt(premium_amount), f"ESG基礎估值 × ESG溢價率 = {v77_fmt(base_value)} × {premium_rate*100:.1f}%"],
+        ["ESG合理價", v77_fmt(fair_value), f"ESG基礎估值 + ESG溢價金額 = {v77_fmt(base_value)} + {v77_fmt(premium_amount)}"],
+        ["ESG牛市價", v77_fmt(fair_value*1.2 if pd.notna(fair_value) else np.nan), "ESG合理價 × 1.20"],
+        ["ESG超級牛市價", v77_fmt(fair_value*1.5 if pd.notna(fair_value) else np.nan), "ESG合理價 × 1.50"],
+    ], columns=["項目","數值","計算說明"])
+    return df
+
+def v77_calc_transparency(symbol, q=None, df=None, scores=None):
+    q = q or {}
+    rows = []
+    # 企業評價情境
+    try:
+        price = float(q.get("price", np.nan))
+    except Exception:
+        price = np.nan
+    try:
+        eps = float(q.get("eps", np.nan))
+    except Exception:
+        eps = np.nan
+    try:
+        pe = float(q.get("pe", 18))
+    except Exception:
+        pe = 18
+    if not pd.notna(eps) and pd.notna(price):
+        eps = price / pe if pe > 0 else price/20
+    if pd.notna(eps):
+        conservative = eps * 15
+        base = eps * 18
+        bull = eps * 22
+        rows += [
+            ["保守價", v77_fmt(conservative), "EPS × 15", f"{v77_fmt(eps)} × 15", "納入"],
+            ["基準價", v77_fmt(base), "EPS × 18", f"{v77_fmt(eps)} × 18", "納入"],
+            ["樂觀價", v77_fmt(bull), "EPS × 22", f"{v77_fmt(eps)} × 22", "納入"],
+        ]
+    esg_df = v77_esg_valuation_detail(q, symbol)
+    esg_val = esg_df[esg_df["項目"]=="ESG合理價"]["數值"].iloc[0] if not esg_df.empty else "N/A"
+    rows.append(["ESG合理價", esg_val, "ESG基礎估值 + ESG溢價金額", "詳見ESG估值透明表", "納入"])
+    vals = []
+    for r in rows:
+        try:
+            vals.append(float(str(r[1]).replace(",","")))
+        except Exception:
+            pass
+    consensus = float(np.nanmedian(vals)) if vals else np.nan
+    rows.append(["AI共識價", v77_fmt(consensus), "納入模型價格中位數", "降低極端值影響", "最終"])
+    return pd.DataFrame(rows, columns=["模型","價格","公式","使用數值","狀態"])
+
+def v76_calc_transparency(symbol,q=None,df=None,scores=None): return v77_calc_transparency(symbol,q,df,scores)
+def v763_master_panel():
+    st.markdown("## 🇹🇼 V77 官方代碼中文名稱 + DNA Master")
+    st.info("優先使用官方 TWSE/TPEx 代碼資料，再用 V77 DNA Master 補齊產業分級；不再使用 Yahoo 英文名稱當公司名。")
+    st.dataframe(v77_master_df(), use_container_width=True, hide_index=True)
+
+def v77_banner():
+    st.markdown("""
+    <div style="padding:30px;border-radius:24px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin:10px 0 22px 0;">
+      <div style="font-size:36px;font-weight:900;">📈 智策股市 AI 決策平台</div>
+      <div style="font-size:22px;font-weight:800;margin-top:8px;">V77 DNA Competitor Transparency</div>
+      <div style="font-size:15px;margin-top:8px;opacity:.92;">公司DNA × 全球競爭資料庫 × ESG股價溢價 × AI共識價透明化</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+def v77_ai_page(symbol, q, df, scores):
+    st.markdown("## 🏛 AI研究院 Pro / V77")
+    tabs = st.tabs(["🧬公司DNA","🌱ESG排名","🌍競爭/同業","💰ESG估值透明","🔍AI共識價透明"])
+    with tabs[0]:
+        st.dataframe(v77_company_dna_df(symbol), use_container_width=True, hide_index=True)
+    with tabs[1]:
+        st.dataframe(v77_esg_rank(symbol), use_container_width=True, hide_index=True)
+    with tabs[2]:
+        st.dataframe(v77_competitors(symbol), use_container_width=True, hide_index=True)
+    with tabs[3]:
+        st.dataframe(v77_esg_valuation_detail(q, symbol), use_container_width=True, hide_index=True)
+    with tabs[4]:
+        st.dataframe(v77_calc_transparency(symbol, q, df, scores), use_container_width=True, hide_index=True)
+
+def v76_ai_page(symbol, q, df, scores): return v77_ai_page(symbol, q, df, scores)
+def v756_ai_page(symbol, q, df, scores): return v77_ai_page(symbol, q, df, scores)
+# ================= V77 DNA + COMPETITOR + TRANSPARENCY LAYER END =================
+
+
 
 active = unified_symbol_manager(symbols)
 
@@ -5650,6 +6021,7 @@ if pd.isna(effective_price(q, df_daily)) and df_daily.empty:
     st.warning(f"目前 {display_name(active)} 查無 Yahoo Finance 資料。若是上櫃股請確認代碼為 .TWO，例如和椿 = 6215.TWO。")
 
 if page=="🏠首頁":
+    v77_banner()
     st.subheader("🏠 市場總覽")
     mt=monitor_table(symbols); temp=int(np.clip(pd.to_numeric(mt.get("AI分數",pd.Series(dtype=float)),errors="coerce").mean() if not mt.empty else 50,0,100))
     kpi([("AI市場溫度",f"{temp}/100"),("目前分析",display_name(active)),("更新頻率",refresh_label),("資料來源","Yahoo Finance")])
@@ -5660,7 +6032,7 @@ elif page=="📊監控":
     st.caption(f"V76類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
     with st.expander("🧭 V76 類股快速入口", expanded=False):
         v76_sector_panel()
-    # V76.3 Official Master_PAGE_SECTOR_FIX
+    # V77 DNA Competitor Transparency_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
         page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
@@ -5829,7 +6201,7 @@ elif page=="📑中文財報":
 elif page=="__舊永續__":
     sustainability_center(active,q)
 elif page=="🤖AI":
-    v76_ai_page(active, q, df_daily, scores)
+    v77_ai_page(active, q, df_daily, scores)
     st.markdown("### AI研究中心完整模組總覽")
     st.dataframe(ai_feature_checklist(), use_container_width=True, hide_index=True)
     v50_ai_research_center(active, df_daily, q, scores)
@@ -5854,6 +6226,6 @@ st.markdown("---")
 with st.expander("🧾 計算透明化中心", expanded=False):
     transparency_audit_center(active, q, df_daily, scores)
 
-st.caption("AI研究院 Pro V76.1 Transparency + Name Fix｜研究與教學用途，非投資建議。")
+st.caption("AI研究院 Pro V77 DNA Competitor Transparency｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
