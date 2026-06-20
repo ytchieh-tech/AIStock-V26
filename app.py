@@ -13,7 +13,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V58 Professional Complete Release"
+APP_VERSION="V59 Transparency + Kline Drawing Edition"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -440,7 +440,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V58 Professional Complete Release responsive audit */
+/* V59 Transparency + Kline Drawing Edition responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -499,7 +499,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V58 Professional Complete Release：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V59 Transparency + Kline Drawing Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -704,7 +704,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V58 Professional Complete Release.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V59 Transparency + Kline Drawing Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -879,7 +879,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V58 Professional Complete Release: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V59 Transparency + Kline Drawing Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1776,7 +1776,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V58 Professional Complete Release｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V59 Transparency + Kline Drawing Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1792,7 +1792,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V58 Professional Complete Release</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V59 Transparency + Kline Drawing Edition</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1829,7 +1829,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V58 Professional Complete Release_SIDEBAR_SECTOR_FIX
+    # V59 Transparency + Kline Drawing Edition_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -2285,6 +2285,115 @@ def v58_data_source_matrix():
 # Internal retained capability markers: SYMBOL_RESOLVER_PRO, KLINE_INDICATOR_RENDER_FIX
 # ================= V58 PROFESSIONAL COMPLETE RELEASE LAYER END =================
 
+# ================= V59 TRANSPARENCY + KLINE DRAWING LAYER =================
+def v59_plotly_draw_config():
+    return {"displaylogo": False, "scrollZoom": True,
+            "modeBarButtonsToAdd": ["drawline","drawopenpath","drawclosedpath","drawcircle","drawrect","eraseshape"],
+            "toImageButtonOptions": {"format":"png","filename":"AIStock_Kline","height":900,"width":1400,"scale":2}}
+
+def v59_signal_engine(df):
+    d=add_more_indicators(add_indicators(df))
+    if d is None or d.empty: return pd.DataFrame()
+    rows=[]
+    for i in range(1,len(d)):
+        price=d['Close'].iloc[i]
+        dt=d['Date'].iloc[i]
+        def add(n,t,desc): rows.append({'Date':dt,'訊號':n,'類型':t,'價格':float(price) if pd.notna(price) else None,'說明':desc})
+        if all(c in d.columns for c in ['MA5','MA20']) and pd.notna(d['MA5'].iloc[i-1]) and pd.notna(d['MA20'].iloc[i-1]) and pd.notna(d['MA5'].iloc[i]) and pd.notna(d['MA20'].iloc[i]):
+            if d['MA5'].iloc[i-1] <= d['MA20'].iloc[i-1] and d['MA5'].iloc[i] > d['MA20'].iloc[i]: add('黃金交叉','偏多','MA5 向上突破 MA20')
+            if d['MA5'].iloc[i-1] >= d['MA20'].iloc[i-1] and d['MA5'].iloc[i] < d['MA20'].iloc[i]: add('死亡交叉','偏空','MA5 向下跌破 MA20')
+        if 'OSC' in d.columns and pd.notna(d['OSC'].iloc[i-1]) and pd.notna(d['OSC'].iloc[i]):
+            if d['OSC'].iloc[i-1] <= 0 and d['OSC'].iloc[i] > 0: add('MACD翻紅','偏多','MACD柱狀體由負轉正')
+            if d['OSC'].iloc[i-1] >= 0 and d['OSC'].iloc[i] < 0: add('MACD翻黑','偏空','MACD柱狀體由正轉負')
+        if 'RSI' in d.columns and pd.notna(d['RSI'].iloc[i-1]) and pd.notna(d['RSI'].iloc[i]):
+            if d['RSI'].iloc[i-1] <= 50 and d['RSI'].iloc[i] > 50: add('RSI突破50','偏多','RSI由弱轉強')
+            if d['RSI'].iloc[i-1] >= 50 and d['RSI'].iloc[i] < 50: add('RSI跌破50','偏空','RSI由強轉弱')
+        if all(c in d.columns for c in ['BB_UP','BB_LOW']) and pd.notna(price):
+            if pd.notna(d['BB_UP'].iloc[i]) and price>d['BB_UP'].iloc[i]: add('突破布林上軌','強勢/過熱','收盤價突破布林上軌')
+            if pd.notna(d['BB_LOW'].iloc[i]) and price<d['BB_LOW'].iloc[i]: add('跌破布林下軌','弱勢/超跌','收盤價跌破布林下軌')
+    return pd.DataFrame(rows).tail(30).reset_index(drop=True) if rows else pd.DataFrame()
+
+def v59_add_signal_markers(fig, sig):
+    if sig is None or sig.empty: return fig
+    bull=sig[sig['類型'].astype(str).str.contains('多|強',na=False)]
+    bear=sig[sig['類型'].astype(str).str.contains('空|弱',na=False)]
+    if not bull.empty: fig.add_trace(go.Scatter(x=bull['Date'],y=bull['價格'],mode='markers+text',name='偏多訊號',text=bull['訊號'],textposition='top center',marker=dict(symbol='triangle-up',size=11)))
+    if not bear.empty: fig.add_trace(go.Scatter(x=bear['Date'],y=bear['價格'],mode='markers+text',name='偏空訊號',text=bear['訊號'],textposition='bottom center',marker=dict(symbol='triangle-down',size=11)))
+    return fig
+
+def kline_chart(df, overlays, panel):
+    if df is None or df.empty:
+        st.warning('查無K線資料'); return
+    d=add_more_indicators(add_indicators(df))
+    if d is None or d.empty:
+        st.warning('查無K線資料'); return
+    dd=d.tail(180).copy()
+    if 'Date' not in dd.columns: dd=dd.reset_index().rename(columns={'index':'Date'})
+    sig=v59_signal_engine(dd)
+    fig=go.Figure()
+    fig.add_trace(go.Candlestick(x=dd['Date'],open=dd['Open'],high=dd['High'],low=dd['Low'],close=dd['Close'],name='K線',increasing_line_color='#ff3333',decreasing_line_color='#00d26a',increasing_fillcolor='#ff3333',decreasing_fillcolor='#00d26a'))
+    cmap={'MA5':'#facc15','MA10':'#22d3ee','MA20':'#d946ef','MA60':'#fb923c','MA120':'#94a3b8','MA240':'#64748b'}
+    for ma in overlays or []:
+        if ma in dd.columns: fig.add_trace(go.Scatter(x=dd['Date'],y=dd[ma],name=ma,mode='lines',line=dict(width=1.5,color=cmap.get(ma))))
+    if overlays and '布林通道' in overlays:
+        for col,nm in [('BB_UP','BB上軌'),('BB_MID','BB中軌'),('BB_LOW','BB下軌')]:
+            if col in dd.columns: fig.add_trace(go.Scatter(x=dd['Date'],y=dd[col],name=nm,mode='lines',line=dict(width=1,dash='dot')))
+    fig=v59_add_signal_markers(fig,sig)
+    fig.update_layout(height=540,template='plotly_white',xaxis_rangeslider_visible=False,margin=dict(l=10,r=10,t=25,b=10),legend=dict(orientation='h',y=-0.15,font=dict(size=9)),yaxis=dict(side='right'),dragmode='drawline',newshape=dict(line=dict(width=2)))
+    st.plotly_chart(fig,use_container_width=True,config=v59_plotly_draw_config())
+    sub=go.Figure(); panel=panel or '成交量'
+    if panel=='成交量': sub.add_trace(go.Bar(x=dd['Date'],y=dd['Volume'],name='成交量')); sub.add_trace(go.Scatter(x=dd['Date'],y=dd.get('VOL_MA20'),name='20日均量',mode='lines'))
+    elif panel=='MACD': sub.add_trace(go.Bar(x=dd['Date'],y=dd['OSC'],name='OSC')); sub.add_trace(go.Scatter(x=dd['Date'],y=dd['DIF'],name='DIF',mode='lines')); sub.add_trace(go.Scatter(x=dd['Date'],y=dd['MACD'],name='MACD',mode='lines'))
+    elif panel=='KD':
+        for c in ['K','D','J']: sub.add_trace(go.Scatter(x=dd['Date'],y=dd[c],name=c,mode='lines'))
+        sub.add_hline(y=80,line_dash='dot'); sub.add_hline(y=20,line_dash='dot')
+    elif panel=='RSI': sub.add_trace(go.Scatter(x=dd['Date'],y=dd['RSI'],name='RSI',mode='lines')); sub.add_hline(y=70,line_dash='dot'); sub.add_hline(y=30,line_dash='dot')
+    elif panel=='BIAS': sub.add_trace(go.Scatter(x=dd['Date'],y=dd['BIAS20'],name='BIAS20',mode='lines')); sub.add_trace(go.Scatter(x=dd['Date'],y=dd['BIAS60'],name='BIAS60',mode='lines')); sub.add_hline(y=0,line_dash='dot')
+    elif panel=='布林通道': sub.add_trace(go.Scatter(x=dd['Date'],y=dd['BB_WIDTH'],name='BB寬度%',mode='lines'))
+    elif panel=='OBV': sub.add_trace(go.Scatter(x=dd['Date'],y=dd['OBV'],name='OBV',mode='lines')); sub.add_trace(go.Scatter(x=dd['Date'],y=dd['OBV_MA20'],name='OBV_MA20',mode='lines'))
+    elif panel=='MFI': sub.add_trace(go.Scatter(x=dd['Date'],y=dd['MFI'],name='MFI',mode='lines')); sub.add_hline(y=80,line_dash='dot'); sub.add_hline(y=20,line_dash='dot')
+    elif panel=='威廉%R': sub.add_trace(go.Scatter(x=dd['Date'],y=dd['WILLR'],name='Williams %R',mode='lines')); sub.add_hline(y=-20,line_dash='dot'); sub.add_hline(y=-80,line_dash='dot')
+    elif panel=='CCI': sub.add_trace(go.Scatter(x=dd['Date'],y=dd['CCI'],name='CCI',mode='lines')); sub.add_hline(y=100,line_dash='dot'); sub.add_hline(y=-100,line_dash='dot')
+    elif panel=='ADX': sub.add_trace(go.Scatter(x=dd['Date'],y=dd['ADX'],name='ADX',mode='lines')); sub.add_trace(go.Scatter(x=dd['Date'],y=dd['PLUS_DI'],name='+DI',mode='lines')); sub.add_trace(go.Scatter(x=dd['Date'],y=dd['MINUS_DI'],name='-DI',mode='lines')); sub.add_hline(y=20,line_dash='dot')
+    elif panel=='ATR': sub.add_trace(go.Scatter(x=dd['Date'],y=dd['ATR_PCT'],name='ATR%',mode='lines'))
+    elif panel=='ROC': sub.add_trace(go.Scatter(x=dd['Date'],y=dd['ROC12'],name='ROC12',mode='lines')); sub.add_hline(y=0,line_dash='dot')
+    elif panel=='Momentum': sub.add_trace(go.Scatter(x=dd['Date'],y=dd['MOM10'],name='MOM10',mode='lines')); sub.add_hline(y=0,line_dash='dot')
+    sub.update_layout(title=dict(text=f'副圖：{panel}',font=dict(size=14)),height=300,template='plotly_white',margin=dict(l=10,r=10,t=35,b=10),legend=dict(orientation='h',y=-0.18,font=dict(size=9)),yaxis=dict(side='right'),xaxis=dict(matches='x'),dragmode='pan')
+    st.plotly_chart(sub,use_container_width=True,config=v59_plotly_draw_config())
+    with st.expander('📍 K線訊號與計算說明',expanded=False):
+        st.caption('黃金交叉、死亡交叉、MACD翻紅/翻黑、RSI突破、布林突破由歷史K線即時計算。')
+        st.dataframe(sig,use_container_width=True,hide_index=True) if sig is not None and not sig.empty else st.info('目前區間內未偵測到明顯技術訊號。')
+
+def _safe_num(x):
+    try: return float(x)
+    except Exception: return np.nan
+
+def valuation_transparency_table(symbol,q,df,scores):
+    price=effective_price(q,df); eps=q.get('eps',np.nan); bvps=q.get('bvps',np.nan); pe=q.get('pe',np.nan); pb=q.get('pb',np.nan)
+    growth=scores.get('growth',scores.get('tech',50))/1000; wacc=0.085+(100-scores.get('fund',50))/1000
+    rows=[['現價','Yahoo Finance Close / regularMarketPrice','price',price,price,'高'],['NAV','每股淨值法','BVPS × 1.15',bvps,bvps*1.15 if pd.notna(bvps) else np.nan,'中'],['PE','本益比法','EPS × PE',f'EPS={eps}, PE={pe}',eps*pe if pd.notna(eps) and pd.notna(pe) else np.nan,'中'],['PB','股價淨值比','BVPS × PB',f'BVPS={bvps}, PB={pb}',bvps*pb if pd.notna(bvps) and pd.notna(pb) else np.nan,'中'],['DCF代理','現金流折現代理','EPS×(1+g)/(WACC-g)',f'EPS={eps}, g={growth:.3f}, WACC={wacc:.3f}',eps*(1+growth)/(wacc-growth) if pd.notna(eps) and wacc>growth else np.nan,'代理'],['AI總分','加權分數','技術/財報/法人/ESG/風險加權',str(scores),ai_total(scores),'代理']]
+    return pd.DataFrame(rows,columns=['項目','資料來源','公式','代入數值','結果','可信度'])
+
+def esg_transparency_table(symbol,q,scores):
+    esg=scores.get('esg',68); eps=q.get('eps',np.nan); base_pe=18; premium=max(-0.05,min(0.12,(esg-60)/200)); fair=eps*base_pe*(1+premium) if pd.notna(eps) else np.nan; bull=fair*1.25 if pd.notna(fair) else np.nan
+    return pd.DataFrame([['ESG共識分數','Level 1~4 ESG資料層','平均/代理整合','MSCI/Sustainalytics/FTSE/治理/AIStock',esg,'30%~95%'],['ESG溢價','ESG分數','(ESG-60)/200，上下限-5%~12%',esg,premium,'代理'],['ESG合理價','EPS與基準PE','EPS × 基準PE × (1+ESG溢價)',f'EPS={eps}, PE={base_pe}, premium={premium:.2%}',fair,'代理'],['ESG牛市價','ESG合理價','ESG合理價 × 1.25',fair,bull,'代理']],columns=['項目','資料來源','公式','代入數值','結果','可信度'])
+
+def institutional_transparency_table(symbol,df,scores):
+    return pd.DataFrame([['法人分數','價格/量能/法人資料或代理','外資/投信/自營商加權',scores.get('inst',50),scores.get('inst',50),'中/代理'],['籌碼分數','成交量、均量、趨勢','量能強度與價格位置',scores.get('chip',50),scores.get('chip',50),'代理'],['主力分數','量價集中代理','成交量放大+趨勢位置',scores.get('main',50),scores.get('main',50),'代理'],['綜合買賣燈號','法人+融資融券+借券+主力','加權平均',f"inst={scores.get('inst',50)}, main={scores.get('main',50)}",int((scores.get('inst',50)+scores.get('main',50))/2),'代理']],columns=['項目','資料來源','公式','代入數值','結果','可信度'])
+
+def ai_transparency_table(symbol,q,df,scores):
+    return pd.DataFrame([['技術分','K線、MA、RSI、MACD','技術指標加權',scores.get('tech',50),scores.get('tech',50),'中'],['財報分','EPS/PE/PB/財報欄位','獲利與財務品質',scores.get('fund',50),scores.get('fund',50),'中'],['法人分','法人/量價代理','法人與籌碼加權',scores.get('inst',50),scores.get('inst',50),'代理'],['ESG分','ESG Level 1~4','ESG資料層整合',scores.get('esg',68),scores.get('esg',68),'30%~95%'],['AI總分','上述分數','tech/fund/inst/esg/risk加權',str(scores),ai_total(scores),'代理']],columns=['項目','資料來源','公式','代入數值','結果','可信度'])
+
+def transparency_audit_center(symbol,q,df,scores):
+    st.markdown('## 🧾 計算透明化中心')
+    st.caption('所有數值皆列出資料來源、公式、代入值、結果與可信度；代理模型會明確標示。')
+    tabs=st.tabs(['企業評價','ESG','AI','法人籌碼'])
+    with tabs[0]: st.dataframe(valuation_transparency_table(symbol,q,df,scores),use_container_width=True,hide_index=True)
+    with tabs[1]: st.dataframe(esg_transparency_table(symbol,q,scores),use_container_width=True,hide_index=True)
+    with tabs[2]: st.dataframe(ai_transparency_table(symbol,q,df,scores),use_container_width=True,hide_index=True)
+    with tabs[3]: st.dataframe(institutional_transparency_table(symbol,df,scores),use_container_width=True,hide_index=True)
+# ================= V59 TRANSPARENCY + KLINE DRAWING LAYER END =================
+
 
 
 
@@ -2308,7 +2417,7 @@ elif page=="📊監控":
     st.subheader("📊 即時監控中心")
     st.markdown("#### 監控設定")
     st.caption(f"V49類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
-    # V58 Professional Complete Release_PAGE_SECTOR_FIX
+    # V59 Transparency + Kline Drawing Edition_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
         page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
@@ -2494,6 +2603,10 @@ elif page=="⚙設定":
     st.dataframe(enterprise_feature_checklist(), use_container_width=True, hide_index=True)
 
 st.markdown("---")
-st.caption("AIStock V58 Professional Complete Release｜研究與教學用途，非投資建議。")
+
+with st.expander("🧾 計算透明化中心", expanded=False):
+    transparency_audit_center(active, q, df_daily, scores)
+
+st.caption("AIStock V59 Transparency + Kline Drawing Edition｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
