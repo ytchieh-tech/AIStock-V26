@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import re, math
 try:
@@ -13,7 +14,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V60 App Mode + Kline Control Edition"
+APP_VERSION="V61 Mobile Restore + Crosshair + Name Fix"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -440,7 +441,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V60 App Mode + Kline Control Edition responsive audit */
+/* V61 Mobile Restore + Crosshair + Name Fix responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -499,7 +500,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V60 App Mode + Kline Control Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V61 Mobile Restore + Crosshair + Name Fix：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -704,7 +705,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V60 App Mode + Kline Control Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V61 Mobile Restore + Crosshair + Name Fix.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -879,7 +880,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V60 App Mode + Kline Control Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V61 Mobile Restore + Crosshair + Name Fix: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1776,7 +1777,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V60 App Mode + Kline Control Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V61 Mobile Restore + Crosshair + Name Fix｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1792,7 +1793,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V60 App Mode + Kline Control Edition</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V61 Mobile Restore + Crosshair + Name Fix</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1831,7 +1832,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V60 App Mode + Kline Control Edition_SIDEBAR_SECTOR_FIX
+    # V61 Mobile Restore + Crosshair + Name Fix_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -2601,20 +2602,239 @@ def kline_chart(df, overlays, panel):
         else:
             st.info("目前區間內未偵測到明顯技術訊號。")
 
-def v60_mobile_app_launcher():
-    st.markdown("### 📱 APP模式快捷入口")
-    st.caption("手機使用時可直接點選功能進入，不必依賴上方橫向選單。")
-    pages = [
-        ("🏠首頁", "首頁"), ("📊監控", "監控"), ("📈K線", "K線"), ("💎評價", "評價"),
-        ("🌱ESG", "ESG永續"), ("🏢法人", "法人"), ("📑財報", "中文財報"), ("🤖AI", "AI"), ("⚙設定", "設定")
-    ]
-    cols = st.columns(3)
-    for i, (label, value) in enumerate(pages):
-        if cols[i % 3].button(label, key=f"v60_app_launch_{value}"):
-            st.session_state["v60_app_target_page"] = value
-            st.rerun()
-
 # ================= V60 APP MODE + KLINE CONTROL LAYER END =================
+
+# ================= V61 MOBILE RESTORE + CROSSHAIR + NAME FIX LAYER =================
+# V61：中文名稱補強；全站優先顯示本地中文名，避免 Yahoo 英文名稱覆蓋。
+V61_NAME_MAP = {
+    "2330.TW": "台積電",
+    "2303.TW": "聯電",
+    "2454.TW": "聯發科",
+    "2312.TW": "金寶",
+    "8112.TW": "至上",
+    "6189.TW": "豐藝",
+    "6215.TWO": "和椿科技",
+    "6830.TW": "汎銓",
+    "6415.TW": "矽力-KY",
+    "5347.TWO": "世界先進",
+    "2379.TW": "瑞昱",
+    "2408.TW": "南亞科",
+    "3711.TW": "日月光投控",
+    "3661.TW": "世芯-KY",
+    "3019.TW": "亞光",
+    "2049.TW": "上銀",
+    "1536.TW": "和大",
+}
+try:
+    CODE_NAME_MAP.update(V61_NAME_MAP)
+except Exception:
+    CODE_NAME_MAP = V61_NAME_MAP.copy()
+
+try:
+    TW_STOCKS.update({
+        "至上": "8112.TW",
+        "至上電子": "8112.TW",
+        "豐藝": "6189.TW",
+        "豐藝電子": "6189.TW",
+    })
+except Exception:
+    pass
+
+def display_name(symbol):
+    s = str(symbol).upper().strip()
+    code = s.split(".")[0]
+    # explicit full symbol first
+    if s in V61_NAME_MAP:
+        return f"{V61_NAME_MAP[s]} / {s}"
+    if s in globals().get("CODE_NAME_MAP", {}):
+        return f"{CODE_NAME_MAP[s]} / {s}"
+    # code-only fallback
+    for full, nm in V61_NAME_MAP.items():
+        if full.split(".")[0] == code:
+            return f"{nm} / {s}"
+    try:
+        nm = yahoo_name_lookup(s)
+        # 若 Yahoo 回英文，仍允許顯示，但本地字典優先
+        return f"{nm} / {s}" if nm else s
+    except Exception:
+        return s
+
+def v61_mobile_webapp_note():
+    with st.expander("📱 手機像APP一樣開啟的方法", expanded=False):
+        st.markdown("""
+**Android / Chrome：**  
+1. 打開本網頁。  
+2. 右上角 `⋮`。  
+3. 選擇 **加入主畫面**。  
+4. 之後手機桌面會出現圖示，點選即可直接進入本系統。
+
+**iPhone / Safari：**  
+1. 打開本網頁。  
+2. 點分享按鈕。  
+3. 選擇 **加入主畫面**。  
+4. 之後就能像 APP 一樣從桌面開啟。
+""")
+
+def v61_plotly_config(draw_mode=True):
+    buttons = ["drawline", "drawopenpath", "drawclosedpath", "drawcircle", "drawrect", "eraseshape"] if draw_mode else []
+    return {
+        "displaylogo": False,
+        "scrollZoom": True,
+        "modeBarButtonsToAdd": buttons,
+        "toImageButtonOptions": {"format": "png", "filename": "AIStock_Kline", "height": 900, "width": 1400, "scale": 2},
+    }
+
+def v61_kline_control_panel():
+    st.markdown("### 🧭 K線工具控制列")
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        draw_mode = st.toggle("啟用手動畫線工具", value=True, key="v61_draw_mode")
+    with c2:
+        st.caption("中文對照：畫直線｜自由折線｜矩形區間｜圓形標記｜清除圖形。Plotly 原生工具列文字無法完全中文化，因此以此控制列說明。")
+    signal_options = ["黃金交叉", "死亡交叉", "MACD翻紅", "MACD翻黑", "RSI突破50", "RSI跌破50", "突破布林上軌", "跌破布林下軌"]
+    selected = st.multiselect(
+        "選擇要顯示在K線圖上的訊號",
+        signal_options,
+        default=[],
+        key="v61_kline_signal_filter"
+    )
+    show_text = st.toggle("顯示訊號文字標籤", value=False, key="v61_show_signal_text")
+    st.caption("若不想圖面太擠，請只勾選少數訊號，或關閉文字標籤。")
+    return draw_mode, selected, show_text
+
+def v61_add_signal_markers(fig, signals, selected, show_text=False):
+    if signals is None or signals.empty or not selected:
+        return fig
+    ss = signals[signals["訊號"].isin(selected)].copy()
+    if ss.empty:
+        return fig
+    bull = ss[ss["類型"].astype(str).str.contains("多|強", na=False)]
+    bear = ss[ss["類型"].astype(str).str.contains("空|弱", na=False)]
+    text_mode = "markers+text" if show_text else "markers"
+    if not bull.empty:
+        fig.add_trace(go.Scatter(
+            x=bull["Date"], y=bull["價格"], mode=text_mode, name="偏多訊號",
+            text=bull["訊號"] if show_text else None, textposition="top center",
+            marker=dict(symbol="triangle-up", size=10)
+        ), row=1, col=1)
+    if not bear.empty:
+        fig.add_trace(go.Scatter(
+            x=bear["Date"], y=bear["價格"], mode=text_mode, name="偏空訊號",
+            text=bear["訊號"] if show_text else None, textposition="bottom center",
+            marker=dict(symbol="triangle-down", size=10)
+        ), row=1, col=1)
+    return fig
+
+def kline_chart(df, overlays, panel):
+    """V61: Restore original menu style; K線+副圖同圖共享X軸，可滑動核對當日成交量。"""
+    if df is None or df.empty:
+        st.warning("查無K線資料")
+        return
+    draw_mode, selected_signals, show_text = v61_kline_control_panel()
+    d = add_more_indicators(add_indicators(df))
+    if d is None or d.empty:
+        st.warning("查無K線資料")
+        return
+    dd = d.tail(180).copy()
+    if "Date" not in dd.columns:
+        dd = dd.reset_index().rename(columns={"index": "Date"})
+    signals = v60_signal_engine(dd) if "v60_signal_engine" in globals() else v59_signal_engine(dd)
+
+    fig = make_subplots(
+        rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.04,
+        row_heights=[0.68, 0.32],
+        subplot_titles=("K線主圖", f"副圖：{panel or '成交量'}")
+    )
+    fig.add_trace(go.Candlestick(
+        x=dd["Date"], open=dd["Open"], high=dd["High"], low=dd["Low"], close=dd["Close"],
+        name="K線",
+        increasing_line_color="#ff3333", decreasing_line_color="#00d26a",
+        increasing_fillcolor="#ff3333", decreasing_fillcolor="#00d26a"
+    ), row=1, col=1)
+
+    color_map = {"MA5":"#facc15","MA10":"#22d3ee","MA20":"#d946ef","MA60":"#fb923c","MA120":"#94a3b8","MA240":"#64748b"}
+    for ma in overlays or []:
+        if ma in dd.columns:
+            fig.add_trace(go.Scatter(x=dd["Date"], y=dd[ma], name=ma, mode="lines", line=dict(width=1.5, color=color_map.get(ma))), row=1, col=1)
+    if overlays and "布林通道" in overlays:
+        for col, nm in [("BB_UP","BB上軌"),("BB_MID","BB中軌"),("BB_LOW","BB下軌")]:
+            if col in dd.columns:
+                fig.add_trace(go.Scatter(x=dd["Date"], y=dd[col], name=nm, mode="lines", line=dict(width=1, dash="dot")), row=1, col=1)
+
+    fig = v61_add_signal_markers(fig, signals, selected_signals, show_text)
+
+    panel = panel or "成交量"
+    if panel == "成交量":
+        fig.add_trace(go.Bar(x=dd["Date"], y=dd["Volume"], name="成交量", opacity=0.75), row=2, col=1)
+        if "VOL_MA20" in dd.columns:
+            fig.add_trace(go.Scatter(x=dd["Date"], y=dd["VOL_MA20"], name="20日均量", mode="lines"), row=2, col=1)
+    elif panel == "MACD":
+        fig.add_trace(go.Bar(x=dd["Date"], y=dd["OSC"], name="OSC"), row=2, col=1)
+        fig.add_trace(go.Scatter(x=dd["Date"], y=dd["DIF"], name="DIF", mode="lines"), row=2, col=1)
+        fig.add_trace(go.Scatter(x=dd["Date"], y=dd["MACD"], name="MACD", mode="lines"), row=2, col=1)
+    elif panel == "KD":
+        for col in ["K","D","J"]:
+            if col in dd.columns:
+                fig.add_trace(go.Scatter(x=dd["Date"], y=dd[col], name=col, mode="lines"), row=2, col=1)
+        fig.add_hline(y=80, line_dash="dot", row=2, col=1); fig.add_hline(y=20, line_dash="dot", row=2, col=1)
+    elif panel == "RSI":
+        fig.add_trace(go.Scatter(x=dd["Date"], y=dd["RSI"], name="RSI", mode="lines"), row=2, col=1)
+        fig.add_hline(y=70, line_dash="dot", row=2, col=1); fig.add_hline(y=30, line_dash="dot", row=2, col=1)
+    elif panel == "BIAS":
+        fig.add_trace(go.Scatter(x=dd["Date"], y=dd["BIAS20"], name="BIAS20", mode="lines"), row=2, col=1)
+        fig.add_trace(go.Scatter(x=dd["Date"], y=dd["BIAS60"], name="BIAS60", mode="lines"), row=2, col=1)
+        fig.add_hline(y=0, line_dash="dot", row=2, col=1)
+    elif panel == "布林通道":
+        fig.add_trace(go.Scatter(x=dd["Date"], y=dd["BB_WIDTH"], name="BB寬度%", mode="lines"), row=2, col=1)
+    elif panel == "OBV":
+        fig.add_trace(go.Scatter(x=dd["Date"], y=dd["OBV"], name="OBV", mode="lines"), row=2, col=1)
+        fig.add_trace(go.Scatter(x=dd["Date"], y=dd["OBV_MA20"], name="OBV_MA20", mode="lines"), row=2, col=1)
+    elif panel == "MFI":
+        fig.add_trace(go.Scatter(x=dd["Date"], y=dd["MFI"], name="MFI", mode="lines"), row=2, col=1)
+        fig.add_hline(y=80, line_dash="dot", row=2, col=1); fig.add_hline(y=20, line_dash="dot", row=2, col=1)
+    elif panel == "威廉%R":
+        fig.add_trace(go.Scatter(x=dd["Date"], y=dd["WILLR"], name="Williams %R", mode="lines"), row=2, col=1)
+        fig.add_hline(y=-20, line_dash="dot", row=2, col=1); fig.add_hline(y=-80, line_dash="dot", row=2, col=1)
+    elif panel == "CCI":
+        fig.add_trace(go.Scatter(x=dd["Date"], y=dd["CCI"], name="CCI", mode="lines"), row=2, col=1)
+        fig.add_hline(y=100, line_dash="dot", row=2, col=1); fig.add_hline(y=-100, line_dash="dot", row=2, col=1)
+    elif panel == "ADX":
+        for col in ["ADX","PLUS_DI","MINUS_DI"]:
+            if col in dd.columns:
+                fig.add_trace(go.Scatter(x=dd["Date"], y=dd[col], name=col, mode="lines"), row=2, col=1)
+        fig.add_hline(y=20, line_dash="dot", row=2, col=1)
+    elif panel == "ATR":
+        fig.add_trace(go.Scatter(x=dd["Date"], y=dd["ATR_PCT"], name="ATR%", mode="lines"), row=2, col=1)
+    elif panel == "ROC":
+        fig.add_trace(go.Scatter(x=dd["Date"], y=dd["ROC12"], name="ROC12", mode="lines"), row=2, col=1)
+        fig.add_hline(y=0, line_dash="dot", row=2, col=1)
+    elif panel == "Momentum":
+        fig.add_trace(go.Scatter(x=dd["Date"], y=dd["MOM10"], name="MOM10", mode="lines"), row=2, col=1)
+        fig.add_hline(y=0, line_dash="dot", row=2, col=1)
+
+    fig.update_layout(
+        height=820,
+        template="plotly_white",
+        xaxis_rangeslider_visible=False,
+        hovermode="x unified",
+        margin=dict(l=10, r=10, t=50, b=10),
+        legend=dict(orientation="h", y=-0.08, font=dict(size=9)),
+        dragmode="drawline" if draw_mode else "pan",
+        newshape=dict(line=dict(width=2)),
+    )
+    fig.update_yaxes(side="right", row=1, col=1)
+    fig.update_yaxes(side="right", row=2, col=1)
+    st.plotly_chart(fig, use_container_width=True, config=v61_plotly_config(draw_mode))
+
+    with st.expander("📍 K線訊號與計算說明", expanded=False):
+        st.caption("訊號可自行選擇是否顯示在主圖；圖表已改為上下同圖共享X軸，滑到某日可核對當日K線與成交量。")
+        if signals is not None and not signals.empty:
+            show_df = signals[signals["訊號"].isin(selected_signals)] if selected_signals else signals
+            st.dataframe(show_df, use_container_width=True, hide_index=True)
+        else:
+            st.info("目前區間內未偵測到明顯技術訊號。")
+# ================= V61 MOBILE RESTORE + CROSSHAIR + NAME FIX LAYER END =================
+
 
 
 
@@ -2632,7 +2852,7 @@ if pd.isna(effective_price(q, df_daily)) and df_daily.empty:
     st.warning(f"目前 {display_name(active)} 查無 Yahoo Finance 資料。若是上櫃股請確認代碼為 .TWO，例如和椿 = 6215.TWO。")
 
 if page=="🏠首頁":
-    v60_mobile_app_launcher()
+    v61_mobile_webapp_note()
     st.subheader("🏠 市場總覽")
     mt=monitor_table(symbols); temp=int(np.clip(pd.to_numeric(mt.get("AI分數",pd.Series(dtype=float)),errors="coerce").mean() if not mt.empty else 50,0,100))
     kpi([("AI市場溫度",f"{temp}/100"),("目前分析",display_name(active)),("更新頻率",refresh_label),("資料來源","Yahoo Finance")])
@@ -2641,7 +2861,7 @@ elif page=="📊監控":
     st.subheader("📊 即時監控中心")
     st.markdown("#### 監控設定")
     st.caption(f"V49類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
-    # V60 App Mode + Kline Control Edition_PAGE_SECTOR_FIX
+    # V61 Mobile Restore + Crosshair + Name Fix_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
         page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
@@ -2831,6 +3051,6 @@ st.markdown("---")
 with st.expander("🧾 計算透明化中心", expanded=False):
     transparency_audit_center(active, q, df_daily, scores)
 
-st.caption("AIStock V60 App Mode + Kline Control Edition｜研究與教學用途，非投資建議。")
+st.caption("AIStock V61 Mobile Restore + Crosshair + Name Fix｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
