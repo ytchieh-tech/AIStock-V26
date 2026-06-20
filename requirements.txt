@@ -1,9 +1,5 @@
 streamlit
-streamlit-autorefresh
 pandas
 numpy
 plotly
 yfinance
-requests
-scikit-learn
-xgboost
