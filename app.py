@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V86 Industry Intelligence Edition"
+APP_VERSION="V86.1 Industry Intelligence Startup Fixed"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -443,7 +443,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V86 Industry Intelligence Edition responsive audit */
+/* V86.1 Industry Intelligence Startup Fixed responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -502,7 +502,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V86 Industry Intelligence Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V86.1 Industry Intelligence Startup Fixed：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -707,7 +707,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V86 Industry Intelligence Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V86.1 Industry Intelligence Startup Fixed.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -882,7 +882,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V86 Industry Intelligence Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V86.1 Industry Intelligence Startup Fixed: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1779,7 +1779,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V86 Industry Intelligence Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V86.1 Industry Intelligence Startup Fixed｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1795,7 +1795,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V86 Industry Intelligence Edition</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V86.1 Industry Intelligence Startup Fixed</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1818,7 +1818,7 @@ if "page" not in st.session_state: st.session_state.page="🏠首頁"
 # V60_PAGE_TARGET_HELPER: APP快捷入口目標保存在 session_state；若原始選單未吃到，仍可由各頁判斷使用。
 
 # ================= V76.1 TRANSPARENCY + NAME FIX LAYER =================
-APP_VERSION="V86 Industry Intelligence Edition"
+APP_VERSION="V86.1 Industry Intelligence Startup Fixed"
 
 # 補充 V76 未覆蓋股票中文名稱與產業DNA，避免回退 Yahoo 英文名稱或待分類。
 V761_EXTRA_ROWS = [
@@ -1996,7 +1996,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V86 Industry Intelligence Edition_SIDEBAR_SECTOR_FIX
+    # V86.1 Industry Intelligence Startup Fixed_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -5139,7 +5139,7 @@ def v70_research_institute(symbol, q, df, scores):
 
 # ================= V76 NAME RESOLVER + SECTOR COMPLETE LAYER =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V86 Industry Intelligence Edition"
+APP_VERSION="V86.1 Industry Intelligence Startup Fixed"
 
 V76_ROWS = [
 ("2330","台積電","上市","電子","半導體","晶圓代工","先進製程","AI/HPC","中游"),("2303","聯電","上市","電子","半導體","晶圓代工","成熟製程","車用/工控","中游"),("5347","世界先進","上櫃","電子","半導體","特殊製程晶圓代工","成熟製程","車用/工控","中游"),("6770","力積電","上市","電子","半導體","晶圓代工/記憶體","成熟製程","記憶體/代工","中游"),("2408","南亞科","上市","電子","半導體","DRAM","記憶體","AI/伺服器記憶體","上中游"),("2344","華邦電","上市","電子","半導體","記憶體","NOR/DRAM","車用/工控","上中游"),("2337","旺宏","上市","電子","半導體","記憶體","NOR Flash","車用/工控","上中游"),
@@ -5271,7 +5271,7 @@ def v76_calc_transparency(symbol,q=None,df=None,scores=None):
     return pd.DataFrame(rows,columns=['模型','使用價格','狀態','公式/方法','使用數值與說明'])
 
 def v76_ai_page(symbol,q,df,scores):
-    st.markdown('## 🏛 V86 Industry Intelligence Edition.3')
+    st.markdown('## 🏛 V86.1 Industry Intelligence Startup Fixed.3')
     tabs=st.tabs(['🧬公司DNA','🌱ESG排名','🌍競爭/同業','🔍計算透明'])
     with tabs[0]: st.dataframe(v76_company_dna_df(symbol),use_container_width=True,hide_index=True)
     with tabs[1]: st.dataframe(v76_esg_rank(symbol),use_container_width=True,hide_index=True)
@@ -5281,7 +5281,7 @@ def v76_ai_page(symbol,q,df,scores):
 
 # ================= V76.3 OFFICIAL MASTER + TRANSPARENCY FIX =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V86 Industry Intelligence Edition"
+APP_VERSION="V86.1 Industry Intelligence Startup Fixed"
 
 V763_FALLBACK_MASTER = [
     # code,name,market,level1,level2,level3,level4,level5,chain
@@ -5613,13 +5613,13 @@ def v762_banner():
     st.markdown("""
     <div style="padding:28px;border-radius:22px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin:12px 0 22px 0;">
       <div style="font-size:34px;font-weight:900;">📈 智策股市 AI 決策平台</div>
-      <div style="font-size:20px;font-weight:800;margin-top:8px;">V86 Industry Intelligence Edition</div>
+      <div style="font-size:20px;font-weight:800;margin-top:8px;">V86.1 Industry Intelligence Startup Fixed</div>
       <div style="font-size:15px;margin-top:8px;opacity:.92;">官方代碼中文表 × 產業DNA × ESG股價溢價 × 計算透明</div>
     </div>
     """, unsafe_allow_html=True)
 
 def v76_ai_page(symbol, q, df, scores):
-    st.markdown("## 🏛 V86 Industry Intelligence Edition.3")
+    st.markdown("## 🏛 V86.1 Industry Intelligence Startup Fixed.3")
     tabs = st.tabs(["🧬公司DNA","🌱ESG排名","🌍競爭/同業","🔍計算透明"])
     with tabs[0]:
         st.dataframe(v76_company_dna_df(symbol), use_container_width=True, hide_index=True)
@@ -5640,7 +5640,7 @@ def v762_master_panel():
 
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER =================
 # 基底：V76.3。首頁、監控、K線、設定不重寫；只把原四大中心原封不動嵌入研究院。
-APP_VERSION="V86 Industry Intelligence Edition"
+APP_VERSION="V86.1 Industry Intelligence Startup Fixed"
 
 def v85_num(x, default=np.nan):
     try:
@@ -5881,11 +5881,11 @@ def v85_original_institutional_center(active, q, df_daily, scores):
             ["籌碼燈號", "法人、主力、融資、借券四構面加權"],
         ],columns=["項目","說明"]),use_container_width=True,hide_index=True)
 
-def v86_final_research_institute(active, q, df_daily, scores):
+def v861_final_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V86 Industry Intelligence Edition</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V86.1 Industry Intelligence Startup Fixed</div>
       <div style="font-size:16px;margin-top:10px;">V85 = 完整搬遷版：財報、評價、ESG、法人原封不動搬入研究院</div>
     </div>
     """, unsafe_allow_html=True)
@@ -5935,100 +5935,82 @@ def v77_ai_page(symbol, q=None, df=None, scores=None): return v85_final_research
 def v80_enterprise_value_page(symbol, q=None, df=None, scores=None): return v85_final_research_institute(symbol, q, df, scores or {})
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER END =================
 
-# ================= V86 INDUSTRY INTELLIGENCE LAYER =================
-APP_VERSION="V86 Industry Intelligence Edition"
+# ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER =================
+APP_VERSION="V86.1 Industry Intelligence Startup Fixed"
 
-def v86_profile(symbol):
-    base = v85_profile(symbol) if "v85_profile" in globals() else {}
-    code0 = str(symbol).split(".")[0]
-    industry_db = {
+def v861_profile_data(active):
+    code0 = str(active).split(".")[0]
+    db = {
         "2330": {
-            "level1":"電子", "level2":"半導體", "level3":"晶圓代工", "level4":"先進製程", "level5":"AI/HPC",
+            "level1":"電子","level2":"半導體","level3":"晶圓代工","level4":"先進製程","level5":"AI/HPC",
             "upstream":"半導體設備、矽晶圓、EDA/IP、特用化學品",
             "midstream":"晶圓代工、先進製程、特殊製程",
             "downstream":"IC設計、AI GPU、手機晶片、車用晶片、HPC客戶",
-            "cycle":"擴張期", "health":92,
+            "cycle":"擴張期","health":92,
             "advantages":"技術領先、先進製程市占高、客戶黏著度強、資本支出規模大",
             "risks":"地緣政治、先進製程資本密集、客戶集中、景氣循環",
             "trend":"未來三年主要受AI/HPC、先進封裝、車用與高效能運算需求驅動。"
         },
+        "3030": {
+            "level1":"電子","level2":"設備","level3":"AOI檢測設備","level4":"PCB/半導體檢測","level5":"AI自動化檢測",
+            "upstream":"鏡頭、感測器、控制器、精密機構、軟體演算法",
+            "midstream":"AOI檢測設備、測試設備、自動化設備",
+            "downstream":"PCB廠、封測廠、電子組裝、終端品牌供應鏈",
+            "cycle":"擴張期","health":78,
+            "advantages":"AOI技術、客戶認證、設備整合能力、AI檢測升級",
+            "risks":"設備訂單循環、資本支出放緩、客戶集中、國際競爭",
+            "trend":"未來三年AI檢測、自動化、先進PCB與半導體檢測需求將是主軸。"
+        },
         "2303": {
-            "level1":"電子", "level2":"半導體", "level3":"晶圓代工", "level4":"成熟製程", "level5":"車用/工控",
+            "level1":"電子","level2":"半導體","level3":"晶圓代工","level4":"成熟製程","level5":"車用/工控",
             "upstream":"矽晶圓、半導體設備、化學品",
             "midstream":"成熟製程晶圓代工",
             "downstream":"電源管理、車用、工控、消費性IC",
-            "cycle":"復甦期", "health":72,
+            "cycle":"復甦期","health":72,
             "advantages":"成熟製程產能、客戶基礎、長期供應關係",
             "risks":"成熟製程價格競爭、中國產能、庫存循環",
             "trend":"未來三年成熟製程將看車用、工控與電源管理需求復甦程度。"
         },
         "5347": {
-            "level1":"電子", "level2":"半導體", "level3":"特殊製程", "level4":"成熟/利基製程", "level5":"車用/工控/電源",
+            "level1":"電子","level2":"半導體","level3":"特殊製程","level4":"成熟/利基製程","level5":"車用/工控/電源",
             "upstream":"矽晶圓、設備、化學材料",
             "midstream":"特殊製程晶圓代工",
             "downstream":"車用、電源管理、工控、面板驅動IC",
-            "cycle":"復甦期", "health":70,
+            "cycle":"復甦期","health":70,
             "advantages":"特殊製程利基、客戶黏著、成熟產能利用",
             "risks":"需求循環、價格壓力、產能利用率波動",
             "trend":"未來三年關鍵在車用與工控復甦、特殊製程需求與庫存調整。"
         },
-        "3030": {
-            "level1":"電子", "level2":"設備", "level3":"AOI檢測設備", "level4":"PCB/半導體檢測", "level5":"AI自動化檢測",
-            "upstream":"鏡頭、感測器、控制器、精密機構、軟體演算法",
-            "midstream":"AOI檢測設備、測試設備、自動化設備",
-            "downstream":"PCB廠、封測廠、電子組裝、終端品牌供應鏈",
-            "cycle":"擴張期", "health":78,
-            "advantages":"AOI技術、客戶認證、設備整合能力、AI檢測升級",
-            "risks":"設備訂單循環、資本支出放緩、客戶集中、國際競爭",
-            "trend":"未來三年AI檢測、自動化、先進PCB與半導體檢測需求將是主軸。"
-        },
-        "3374": {
-            "level1":"電子", "level2":"半導體", "level3":"封測/先進封裝", "level4":"晶圓級封裝", "level5":"CIS/先進封裝",
-            "upstream":"晶圓、載板、封裝材料、設備",
-            "midstream":"晶圓級封裝、測試服務",
-            "downstream":"影像感測、手機、車用、AI感測應用",
-            "cycle":"復甦期", "health":76,
-            "advantages":"封裝製程、客戶認證、利基應用",
-            "risks":"消費電子循環、客戶需求波動、價格競爭",
-            "trend":"未來三年看CIS復甦、車用感測與先進封裝需求。"
-        },
-        "6570": {
-            "level1":"電子", "level2":"工業電腦", "level3":"嵌入式系統", "level4":"邊緣運算", "level5":"AIoT",
-            "upstream":"處理器、記憶體、主機板、機構件",
-            "midstream":"工業電腦、嵌入式系統、邊緣運算設備",
-            "downstream":"工廠自動化、醫療、交通、零售、AIoT應用",
-            "cycle":"成長期", "health":74,
-            "advantages":"客製化能力、通路、工業應用經驗",
-            "risks":"零組件供應、專案波動、競爭者多",
-            "trend":"未來三年由AIoT、邊緣AI、智慧工廠與垂直應用推動。"
-        }
     }
-    d = industry_db.get(code0, None)
-    if d is None:
-        d = {
-            "level1": base.get("Level 1 大類", base.get("Level 1","待分類")),
-            "level2": base.get("Level 2 產業", base.get("Level 2","待分類")),
-            "level3": base.get("Level 3 次產業", base.get("Level 3","待分類")),
-            "level4": base.get("Level 4 細分領域", base.get("Level 4","待分類")),
-            "level5": base.get("Level 5 投資主題", base.get("Level 5","待分類")),
-            "upstream":"待建立產業資料庫",
-            "midstream":base.get("產業鏈位置","待確認"),
-            "downstream":"待建立產業資料庫",
-            "cycle":"中立期", "health":60,
-            "advantages":"待補公司DNA與產業資料",
-            "risks":"待補產業風險資料",
-            "trend":"V86已建立框架；細部資料將依產業庫逐步補齊。"
-        }
-    return d
+    if code0 in db:
+        return db[code0]
+    try:
+        p = v85_profile(active)
+    except Exception:
+        p = {}
+    return {
+        "level1":p.get("Level 1 大類", p.get("Level 1","待分類")),
+        "level2":p.get("Level 2 產業", p.get("Level 2","待分類")),
+        "level3":p.get("Level 3 次產業", p.get("Level 3","待分類")),
+        "level4":p.get("Level 4 細分領域", p.get("Level 4","待分類")),
+        "level5":p.get("Level 5 投資主題", p.get("Level 5","待分類")),
+        "upstream":"待建立產業資料庫",
+        "midstream":p.get("產業鏈位置","待確認"),
+        "downstream":"待建立產業資料庫",
+        "cycle":"中立期","health":60,
+        "advantages":"待補公司DNA與產業資料",
+        "risks":"待補產業風險資料",
+        "trend":"V86.1已建立框架；細部資料將依產業庫逐步補齊。"
+    }
 
-def v86_industry_page(active):
-    d = v86_profile(active)
-    st.markdown("### ② 產業研究院 V86")
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric("產業健康度", f"{d['health']}/100")
-    k2.metric("景氣循環", d["cycle"])
-    k3.metric("Level2產業", d["level2"])
-    k4.metric("投資主題", d["level5"])
+def v861_industry_page(active):
+    d = v861_profile_data(active)
+    st.markdown("### ② 產業研究院 V86.1")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("產業健康度", f"{d['health']}/100")
+    c2.metric("景氣循環", d["cycle"])
+    c3.metric("Level2產業", d["level2"])
+    c4.metric("投資主題", d["level5"])
     st.markdown("#### 產業五級分類")
     st.dataframe(pd.DataFrame([
         ["Level1 大類", d["level1"]],
@@ -6043,12 +6025,6 @@ def v86_industry_page(active):
         ["中游", d["midstream"], "公司主要位置"],
         ["下游", d["downstream"], "客戶與需求來源"],
     ], columns=["產業鏈","內容","說明"]), use_container_width=True, hide_index=True)
-    st.markdown("#### 景氣循環與產業健康度")
-    st.dataframe(pd.DataFrame([
-        ["景氣循環", d["cycle"], "擴張期/高峰期/衰退期/復甦期/中立期"],
-        ["產業健康度", f"{d['health']}/100", "需求、景氣、成長題材、風險綜合評分"],
-        ["燈號", "🟢 擴張" if d["health"]>=80 else "🟡 中立/復甦" if d["health"]>=60 else "🔴 偏弱", "由健康度轉換"],
-    ], columns=["項目","內容","說明"]), use_container_width=True, hide_index=True)
     st.markdown("#### AI產業摘要")
     st.dataframe(pd.DataFrame([
         ["產業優勢", d["advantages"]],
@@ -6056,45 +6032,33 @@ def v86_industry_page(active):
         ["未來三年趨勢", d["trend"]],
     ], columns=["項目","AI摘要"]), use_container_width=True, hide_index=True)
 
-def v86_competitor_data(active):
+def v861_competitor_data(active):
     code0 = str(active).split(".")[0]
-    data = {
-        "2330": [
+    if code0 == "2330":
+        rows = [
             ["台積電","台灣","晶圓代工領導者","約60%+","領導者","中","先進製程與先進封裝領先"],
             ["Samsung Foundry","韓國","先進製程競爭者","約10%~15%","挑戰者","中","技術與資本競爭"],
             ["Intel Foundry","美國","先進製程/IDM轉型","N/A","挑戰者","中高","政策與製程追趕"],
             ["GlobalFoundries","美國","成熟製程","約5%~8%","跟隨者","中","成熟製程利基"],
             ["聯電","台灣","成熟製程","約5%~7%","跟隨者","中","成熟製程同業"],
             ["世界先進","台灣","特殊製程","N/A","利基者","中","特殊製程同業"],
-        ],
-        "3030": [
+        ]
+    elif code0 == "3030":
+        rows = [
             ["德律","台灣","AOI/檢測設備","N/A","利基領導者","中","台灣AOI檢測設備代表"],
             ["由田","台灣","AOI設備","N/A","挑戰者","中","PCB/AOI設備"],
             ["致茂","台灣","測試設備","N/A","領導者","中","測試量測設備"],
             ["Camtek","以色列","半導體檢測","N/A","全球挑戰者","中高","半導體檢測競爭"],
             ["Koh Young","韓國","3D AOI/SPI","N/A","全球挑戰者","中","3D檢測技術"],
             ["Mirtec","韓國","AOI設備","N/A","跟隨者","中","SMT/AOI檢測"],
-        ],
-        "2303": [
-            ["聯電","台灣","成熟製程晶圓代工","約5%~7%","成熟製程領導者","中","成熟製程與車用工控"],
-            ["台積電","台灣","晶圓代工領導者","約60%+","領導者","中","上位競爭者"],
-            ["GlobalFoundries","美國","成熟製程","約5%~8%","競爭者","中","成熟製程同業"],
-            ["中芯國際","中國","成熟/先進製程","約5%","競爭者","中高","中國產能競爭"],
-            ["世界先進","台灣","特殊製程","N/A","利基者","中","特殊製程同業"],
-        ],
-        "5347": [
-            ["世界先進","台灣","特殊製程","N/A","利基者","中","本公司/特殊製程"],
-            ["聯電","台灣","成熟製程","約5%~7%","競爭者","中","成熟製程同業"],
-            ["台積電","台灣","晶圓代工","約60%+","領導者","中","上位同業"],
-            ["GlobalFoundries","美國","成熟製程","約5%~8%","競爭者","中","成熟製程同業"],
-        ],
-    }
-    rows = data.get(code0, [["同業資料待擴充","N/A","待分類","N/A","待評估","待評估","V86框架已建立，細部資料庫後續補齊"]])
+        ]
+    else:
+        rows = [["同業資料待擴充","N/A","待分類","N/A","待評估","待評估","V86.1框架已建立，細部資料庫後續補齊"]]
     return pd.DataFrame(rows, columns=["競爭者","國家","角色","市占率/地位","技術地位","替代風險","AI競爭摘要"])
 
-def v86_competition_page(active):
-    st.markdown("### ③ 全球競爭研究院 V86")
-    df = v86_competitor_data(active)
+def v861_competition_page(active):
+    st.markdown("### ③ 全球競爭研究院 V86.1")
+    df = v861_competitor_data(active)
     st.markdown("#### 全球競爭地圖")
     st.dataframe(df, use_container_width=True, hide_index=True)
     st.markdown("#### 技術地位統計")
@@ -6104,49 +6068,44 @@ def v86_competition_page(active):
     st.markdown("#### 替代風險分析")
     st.dataframe(df[["競爭者","替代風險","AI競爭摘要"]], use_container_width=True, hide_index=True)
 
-def v86_get_quote(sym):
+def v861_safe_quote(sym):
     try:
-        return v84_quote(sym) if "v84_quote" in globals() else {}
-    except Exception:
-        try:
-            return v85_quote(sym) if "v85_quote" in globals() else {}
-        except Exception:
+        if not sym or sym == "N/A":
             return {}
+        return v85_quote(sym) if "v85_quote" in globals() else {}
+    except Exception:
+        return {}
 
-def v86_peer_page(active):
-    st.markdown("### ④ 同業比較研究院 V86")
-    comp = v86_competitor_data(active)
+def v861_peer_page(active):
+    st.markdown("### ④ 同業比較研究院 V86.1")
+    comp = v861_competitor_data(active)
+    map_sym = {
+        "台積電":"2330.TW","聯電":"2303.TW","世界先進":"5347.TWO","德律":"3030.TW","由田":"3455.TW",
+        "致茂":"2360.TW","Camtek":"CAMT","GlobalFoundries":"GFS","Intel Foundry":"INTC","Samsung Foundry":"005930.KS"
+    }
     rows = []
     for _, r in comp.iterrows():
-        sym = ""
         name = r["競爭者"]
-        # simple symbol mapping
-        map_sym = {
-            "台積電":"2330.TW","聯電":"2303.TW","世界先進":"5347.TWO","德律":"3030.TW","由田":"3455.TW",
-            "致茂":"2360.TW","Camtek":"CAMT","GlobalFoundries":"GFS","Intel Foundry":"INTC","Samsung Foundry":"005930.KS"
-        }
         sym = map_sym.get(name, "")
-        q = v86_get_quote(sym) if sym else {}
-        price = v84_num(q.get("price")) if "v84_num" in globals() else np.nan
-        eps = v84_num(q.get("eps")) if "v84_num" in globals() else np.nan
-        pe = v84_num(q.get("pe")) if "v84_num" in globals() else np.nan
-        pb = v84_num(q.get("pb")) if "v84_num" in globals() else np.nan
-        roe = v84_num(q.get("roe")) if "v84_num" in globals() else np.nan
-        roa = np.nan if pd.isna(roe) else roe * 0.55
-        rev_growth = np.nan
-        eps_growth = np.nan
+        q = v861_safe_quote(sym)
+        price = v85_num(q.get("price")) if "v85_num" in globals() else np.nan
+        eps = v85_num(q.get("eps")) if "v85_num" in globals() else np.nan
+        pe = v85_num(q.get("pe")) if "v85_num" in globals() else np.nan
+        pb = v85_num(q.get("pb")) if "v85_num" in globals() else np.nan
+        roe = v85_num(q.get("roe")) if "v85_num" in globals() else np.nan
+        roa = roe * 0.55 if pd.notna(roe) else np.nan
         score = 50
-        if pd.notna(pe) and pe > 0 and pe < 25: score += 10
-        if pd.notna(pb) and pb > 0 and pb < 4: score += 10
+        if pd.notna(pe) and 0 < pe < 25: score += 10
+        if pd.notna(pb) and 0 < pb < 4: score += 10
         if pd.notna(roe) and roe > 0.12: score += 20
-        rows.append([name, sym or "N/A", r["角色"], v84_fmt(price) if "v84_fmt" in globals() else price,
-                     v84_fmt(pe) if "v84_fmt" in globals() else pe, v84_fmt(pb) if "v84_fmt" in globals() else pb,
-                     (f"{roe*100:.1f}%" if pd.notna(roe) else "N/A"),
-                     (f"{roa*100:.1f}%" if pd.notna(roa) else "N/A"),
-                     v84_fmt(eps) if "v84_fmt" in globals() else eps,
-                     "N/A" if pd.isna(rev_growth) else f"{rev_growth:.1f}%",
-                     "N/A" if pd.isna(eps_growth) else f"{eps_growth:.1f}%",
-                     score])
+        rows.append([name, sym or "N/A", r["角色"],
+                     v85_fmt(price) if "v85_fmt" in globals() else str(price),
+                     v85_fmt(pe) if "v85_fmt" in globals() else str(pe),
+                     v85_fmt(pb) if "v85_fmt" in globals() else str(pb),
+                     f"{roe*100:.1f}%" if pd.notna(roe) else "N/A",
+                     f"{roa*100:.1f}%" if pd.notna(roa) else "N/A",
+                     v85_fmt(eps) if "v85_fmt" in globals() else str(eps),
+                     "N/A", "N/A", score])
     df = pd.DataFrame(rows, columns=["公司","代碼","角色","現價","PE","PB","ROE","ROA","EPS","營收成長率","EPS成長率","AI同業分數"])
     st.markdown("#### 同業估值 / 獲利 / 成長比較")
     st.dataframe(df, use_container_width=True, hide_index=True)
@@ -6154,17 +6113,14 @@ def v86_peer_page(active):
     rank = df.sort_values("AI同業分數", ascending=False).reset_index(drop=True)
     rank.insert(0, "排名", range(1, len(rank)+1))
     st.dataframe(rank[["排名","公司","角色","PE","PB","ROE","EPS","AI同業分數"]], use_container_width=True, hide_index=True)
-    st.markdown("#### AI同業摘要")
-    active_name = str(v85_display(active) if "v85_display" in globals() else active).split("/")[0].strip()
-    st.info("本頁已新增 PE、PB、ROE、ROA、EPS、營收成長率、EPS成長率比較框架；部分海外或非上市同業因資料源限制會顯示 N/A，V87可再補資料來源。")
+    st.info("部分海外或非上市同業因資料源限制會顯示 N/A，後續可再補資料來源。")
 
-# Override V85 final institute with V86 enhanced first four tabs, keep ⑤~⑫ original V85 migration untouched.
-def v86_final_research_institute(active, q, df_daily, scores):
+def v861_final_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V86 Industry Intelligence Edition</div>
-      <div style="font-size:16px;margin-top:10px;">V86補強：產業研究院 × 全球競爭研究院 × 同業比較研究院</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V86.1 Startup Fixed</div>
+      <div style="font-size:16px;margin-top:10px;">修正啟動打圈圈問題；保留V85四大中心搬遷，只補強產業/競爭/同業</div>
     </div>
     """, unsafe_allow_html=True)
     st.markdown(f"### 研究標的：{v85_display(active) if 'v85_display' in globals() else active}")
@@ -6172,11 +6128,11 @@ def v86_final_research_institute(active, q, df_daily, scores):
     with tabs[0]:
         st.dataframe(pd.DataFrame(list(v85_profile(active).items()), columns=["項目","內容"]), use_container_width=True, hide_index=True)
     with tabs[1]:
-        v86_industry_page(active)
+        v861_industry_page(active)
     with tabs[2]:
-        v86_competition_page(active)
+        v861_competition_page(active)
     with tabs[3]:
-        v86_peer_page(active)
+        v861_peer_page(active)
     with tabs[4]:
         v85_original_financial_center(active, q, df_daily, scores)
     with tabs[5]:
@@ -6188,7 +6144,7 @@ def v86_final_research_institute(active, q, df_daily, scores):
     with tabs[8]:
         st.subheader("⑨ AI共識價研究院")
         v85_original_valuation_center(active, q, df_daily, scores)
-        st.info("本頁沿用原評價中心共識價；V87可再拆出動態權重與資料來源。")
+        st.info("本頁沿用原評價中心共識價；下一版可再拆出動態權重與資料來源。")
     with tabs[9]:
         st.subheader("⑩ AI評級透明化中心")
         v85_weight_methodology()
@@ -6203,10 +6159,7 @@ def v86_final_research_institute(active, q, df_daily, scores):
     with tabs[11]:
         st.subheader("⑫ 投資決策中心")
         v85_decision_placeholder(active, q, df_daily, scores)
-
-def v86_final_research_institute(active, q, df_daily, scores):
-    return v86_final_research_institute(active, q, df_daily, scores)
-# ================= V86 INDUSTRY INTELLIGENCE LAYER END =================
+# ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER END =================
 
 
 active = unified_symbol_manager(symbols)
@@ -6230,7 +6183,7 @@ elif page=="📊監控":
     st.caption(f"V76類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
     with st.expander("🧭 V76 類股快速入口", expanded=False):
         v76_sector_panel()
-    # V86 Industry Intelligence Edition_PAGE_SECTOR_FIX
+    # V86.1 Industry Intelligence Startup Fixed_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
         page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
@@ -6399,7 +6352,7 @@ elif page=="📑中文財報":
 elif page=="__舊永續__":
     sustainability_center(active,q)
 elif page=="🏛企業價值研究院":
-    v86_final_research_institute(active, q, df_daily, scores)
+    v861_final_research_institute(active, q, df_daily, scores)
     st.stop()
     v76_ai_page(active, q, df_daily, scores)
     st.markdown("### AI研究中心完整模組總覽")
@@ -6426,6 +6379,6 @@ st.markdown("---")
 with st.expander("🧾 計算透明化中心", expanded=False):
     transparency_audit_center(active, q, df_daily, scores)
 
-st.caption("AI研究院 Pro V86 Industry Intelligence Edition｜研究與教學用途，非投資建議。")
+st.caption("AI研究院 Pro V86.1 Industry Intelligence Startup Fixed｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
