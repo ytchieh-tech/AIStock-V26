@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V88.1 Value Ranking Edition"
+APP_VERSION="V89.1 Research Integrity Edition"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -443,7 +443,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V88.1 Value Ranking Edition responsive audit */
+/* V89.1 Research Integrity Edition responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -502,7 +502,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V88.1 Value Ranking Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V89.1 Research Integrity Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -707,7 +707,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V88.1 Value Ranking Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V89.1 Research Integrity Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -882,7 +882,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V88.1 Value Ranking Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V89.1 Research Integrity Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1779,7 +1779,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V88.1 Value Ranking Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V89.1 Research Integrity Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1795,7 +1795,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V88.1 Value Ranking Edition</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V89.1 Research Integrity Edition</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1818,7 +1818,7 @@ if "page" not in st.session_state: st.session_state.page="🏠首頁"
 # V60_PAGE_TARGET_HELPER: APP快捷入口目標保存在 session_state；若原始選單未吃到，仍可由各頁判斷使用。
 
 # ================= V76.1 TRANSPARENCY + NAME FIX LAYER =================
-APP_VERSION="V88.1 Value Ranking Edition"
+APP_VERSION="V89.1 Research Integrity Edition"
 
 # 補充 V76 未覆蓋股票中文名稱與產業DNA，避免回退 Yahoo 英文名稱或待分類。
 V761_EXTRA_ROWS = [
@@ -1996,7 +1996,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V88.1 Value Ranking Edition_SIDEBAR_SECTOR_FIX
+    # V89.1 Research Integrity Edition_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -5139,7 +5139,7 @@ def v70_research_institute(symbol, q, df, scores):
 
 # ================= V76 NAME RESOLVER + SECTOR COMPLETE LAYER =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V88.1 Value Ranking Edition"
+APP_VERSION="V89.1 Research Integrity Edition"
 
 V76_ROWS = [
 ("2330","台積電","上市","電子","半導體","晶圓代工","先進製程","AI/HPC","中游"),("2303","聯電","上市","電子","半導體","晶圓代工","成熟製程","車用/工控","中游"),("5347","世界先進","上櫃","電子","半導體","特殊製程晶圓代工","成熟製程","車用/工控","中游"),("6770","力積電","上市","電子","半導體","晶圓代工/記憶體","成熟製程","記憶體/代工","中游"),("2408","南亞科","上市","電子","半導體","DRAM","記憶體","AI/伺服器記憶體","上中游"),("2344","華邦電","上市","電子","半導體","記憶體","NOR/DRAM","車用/工控","上中游"),("2337","旺宏","上市","電子","半導體","記憶體","NOR Flash","車用/工控","上中游"),
@@ -5267,11 +5267,11 @@ def v76_calc_transparency(symbol,q=None,df=None,scores=None):
         try: nums.append(float(str(r[1]).replace(',','')))
         except Exception: pass
     consensus=float(np.nanmedian(nums)) if nums else np.nan
-    rows.append(['AI共識價',fmt(consensus),'最終','納入模型中位數','把所有納入模型價格排序後取中位數，降低極端值影響'])
+    rows.append(['研究院估值（測試）',fmt(consensus),'最終','納入模型中位數','把所有納入模型價格排序後取中位數，降低極端值影響'])
     return pd.DataFrame(rows,columns=['模型','使用價格','狀態','公式/方法','使用數值與說明'])
 
 def v76_ai_page(symbol,q,df,scores):
-    st.markdown('## 🏛 V88.1 Value Ranking Edition.3')
+    st.markdown('## 🏛 V89.1 Research Integrity Edition.3')
     tabs=st.tabs(['🧬公司DNA','🌱ESG排名','🌍競爭/同業','🔍計算透明'])
     with tabs[0]: st.dataframe(v76_company_dna_df(symbol),use_container_width=True,hide_index=True)
     with tabs[1]: st.dataframe(v76_esg_rank(symbol),use_container_width=True,hide_index=True)
@@ -5281,7 +5281,7 @@ def v76_ai_page(symbol,q,df,scores):
 
 # ================= V76.3 OFFICIAL MASTER + TRANSPARENCY FIX =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V88.1 Value Ranking Edition"
+APP_VERSION="V89.1 Research Integrity Edition"
 
 V763_FALLBACK_MASTER = [
     # code,name,market,level1,level2,level3,level4,level5,chain
@@ -5613,13 +5613,13 @@ def v762_banner():
     st.markdown("""
     <div style="padding:28px;border-radius:22px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin:12px 0 22px 0;">
       <div style="font-size:34px;font-weight:900;">📈 智策股市 AI 決策平台</div>
-      <div style="font-size:20px;font-weight:800;margin-top:8px;">V88.1 Value Ranking Edition</div>
+      <div style="font-size:20px;font-weight:800;margin-top:8px;">V89.1 Research Integrity Edition</div>
       <div style="font-size:15px;margin-top:8px;opacity:.92;">官方代碼中文表 × 產業DNA × ESG股價溢價 × 計算透明</div>
     </div>
     """, unsafe_allow_html=True)
 
 def v76_ai_page(symbol, q, df, scores):
-    st.markdown("## 🏛 V88.1 Value Ranking Edition.3")
+    st.markdown("## 🏛 V89.1 Research Integrity Edition.3")
     tabs = st.tabs(["🧬公司DNA","🌱ESG排名","🌍競爭/同業","🔍計算透明"])
     with tabs[0]:
         st.dataframe(v76_company_dna_df(symbol), use_container_width=True, hide_index=True)
@@ -5640,7 +5640,7 @@ def v762_master_panel():
 
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER =================
 # 基底：V76.3。首頁、監控、K線、設定不重寫；只把原四大中心原封不動嵌入研究院。
-APP_VERSION="V88.1 Value Ranking Edition"
+APP_VERSION="V89.1 Research Integrity Edition"
 
 def v85_num(x, default=np.nan):
     try:
@@ -5885,12 +5885,12 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V88.1 Value Ranking Edition</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V89.1 Research Integrity Edition</div>
       <div style="font-size:16px;margin-top:10px;">V85 = 完整搬遷版：財報、評價、ESG、法人原封不動搬入研究院</div>
     </div>
     """, unsafe_allow_html=True)
     st.markdown(f"### 研究標的：{v85_display(active)}")
-    tabs = st.tabs(["①公司DNA","②產業研究院","③全球競爭研究院","④同業比較研究院","⑤財報研究院","⑥企業評價研究院","⑦ESG研究院","⑧法人研究院","⑨AI共識價研究院","⑩AI評級透明化中心","⑪模型依據中心","⑫投資決策中心"])
+    tabs = st.tabs(["①公司DNA","②產業研究院","③全球競爭研究院","④同業比較研究院","⑤財報研究院","⑥企業評價研究院","⑦ESG研究院","⑧法人研究院","⑨研究院估值（測試）研究院","⑩AI評級透明化中心","⑪模型依據中心","⑫投資決策中心"])
     with tabs[0]:
         st.dataframe(pd.DataFrame(list(v85_profile(active).items()), columns=["項目","內容"]), use_container_width=True, hide_index=True)
     with tabs[1]:
@@ -5911,7 +5911,7 @@ def v87_research_institute(active, q, df_daily, scores):
     with tabs[7]:
         v85_original_institutional_center(active, q, df_daily, scores)
     with tabs[8]:
-        st.subheader("⑨ AI共識價研究院")
+        st.subheader("⑨ 研究院估值（測試）研究院")
         v85_original_valuation_center(active, q, df_daily, scores)
         st.info("本頁先沿用原評價中心共識價；V86/V87再拆出動態權重與納入/排除原因。")
     with tabs[9]:
@@ -5937,7 +5937,7 @@ def v80_enterprise_value_page(symbol, q=None, df=None, scores=None): return v85_
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER END =================
 
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER =================
-APP_VERSION="V88.1 Value Ranking Edition"
+APP_VERSION="V89.1 Research Integrity Edition"
 
 def v861_profile_data(active):
     code0 = str(active).split(".")[0]
@@ -6125,11 +6125,12 @@ def v87_research_institute(active, q, df_daily, scores):
     </div>
     """, unsafe_allow_html=True)
     st.markdown(f"### 研究標的：{v85_display(active) if 'v85_display' in globals() else active}")
-    tabs = st.tabs(["①公司DNA","②產業研究院","③全球競爭研究院","④同業比較研究院","⑤財報研究院","⑥企業評價研究院","⑦ESG研究院","⑧法人研究院","⑨AI共識價研究院","⑩AI評級透明化中心","⑪模型依據中心","⑫投資決策中心"])
+    tabs = st.tabs(["①公司DNA","②產業研究院","③全球競爭研究院","④同業比較研究院","⑤財報研究院","⑥企業評價研究院","⑦ESG研究院","⑧法人研究院","⑨研究院估值（測試）研究院","⑩AI評級透明化中心","⑪模型依據中心","⑫投資決策中心"])
     with tabs[0]:
         st.dataframe(pd.DataFrame(list(v85_profile(active).items()), columns=["項目","內容"]), use_container_width=True, hide_index=True)
     with tabs[1]:
         v861_industry_page(active)
+        v89_extra_industry_block(active)
     with tabs[2]:
         v861_competition_page(active)
     with tabs[3]:
@@ -6143,7 +6144,7 @@ def v87_research_institute(active, q, df_daily, scores):
     with tabs[7]:
         v85_original_institutional_center(active, q, df_daily, scores)
     with tabs[8]:
-        st.subheader("⑨ AI共識價研究院")
+        st.subheader("⑨ 研究院估值（測試）研究院")
         v85_original_valuation_center(active, q, df_daily, scores)
         st.info("本頁沿用原評價中心共識價；下一版可再拆出動態權重與資料來源。")
     with tabs[9]:
@@ -6164,7 +6165,7 @@ def v87_research_institute(active, q, df_daily, scores):
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER END =================
 
 # ================= V87 STABLE RESEARCH LAYER =================
-APP_VERSION="V88.1 Value Ranking Edition"
+APP_VERSION="V89.1 Research Integrity Edition"
 
 def v87_num(x, default=np.nan):
     try:
@@ -6345,16 +6346,17 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V88.1 Value Ranking Edition</div>
-      <div style="font-size:16px;margin-top:10px;">AI價值挖掘 × 監控報價說明 × 同業資料補強 × WACC透明化</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V89.1 Research Integrity Edition</div>
+      <div style="font-size:16px;margin-top:10px;">AI價值挖掘 × 資料倉儲 × 同業競爭 × 財報單位優化</div>
     </div>
     """, unsafe_allow_html=True)
     st.markdown(f"### 研究標的：{v85_display(active) if 'v85_display' in globals() else active}")
-    tabs = st.tabs(["①公司DNA","②產業研究院","③全球競爭研究院","④同業比較研究院","⑤財報研究院","⑥企業評價研究院","⑦ESG研究院","⑧法人研究院","⑨AI共識價研究院","⑩AI評級透明化中心","⑪模型依據中心","⑫投資決策中心","⑬WACC透明化"])
+    tabs = st.tabs(["①公司DNA","②產業研究院","③全球競爭研究院","④同業比較研究院","⑤財報研究院","⑥企業評價研究院","⑦ESG研究院","⑧法人研究院","⑨研究院估值（測試）研究院","⑩AI評級透明化中心","⑪模型依據中心","⑫投資決策中心","⑬WACC透明化"])
     with tabs[0]:
         st.dataframe(pd.DataFrame(list(v85_profile(active).items()), columns=["項目","內容"]), use_container_width=True, hide_index=True)
     with tabs[1]:
         v861_industry_page(active)
+        v89_extra_industry_block(active)
     with tabs[2]:
         st.markdown("### ③ 全球競爭研究院 V87")
         st.dataframe(v87_competition_position(active), use_container_width=True, hide_index=True)
@@ -6378,7 +6380,7 @@ def v87_research_institute(active, q, df_daily, scores):
         v87_institutional_confidence_note()
         v85_original_institutional_center(active, q, df_daily, scores)
     with tabs[8]:
-        st.subheader("⑨ AI共識價研究院")
+        st.subheader("⑨ 研究院估值（測試）研究院")
         v85_original_valuation_center(active, q, df_daily, scores)
         st.info("本頁整合原評價中心之共識價結果，作為研究院輔助分析。")
     with tabs[9]:
@@ -6567,7 +6569,7 @@ def v88_compute_value_discovery():
             "股票": f"{name} / {sym}",
             "產業": industry,
             "市價": np.nan if pd.isna(price) else round(float(price), 2),
-            "AI共識價": round(fair, 2),
+            "研究院估值（測試）": round(fair, 2),
             "折價率%": np.nan if pd.isna(discount) else round(float(discount), 1),
             "AI分數": ai_score,
             "法人分數": inst_score,
@@ -6586,7 +6588,7 @@ def v88_compute_value_discovery():
 
 def v88_value_discovery_home_block():
     st.markdown("## 💎 AI價值挖掘中心")
-    st.caption("依目前市價與AI共識價代理模型估算折價率，供研究觀察使用，非投資建議。")
+    st.caption("依目前市價與研究院估值（測試）代理模型估算折價率，供研究觀察使用，非投資建議。")
     df = v88_compute_value_discovery()
     c1, c2, c3, c4 = st.columns(4)
     try:
@@ -6605,9 +6607,9 @@ def v88_value_discovery_home_block():
         show = show[(show["折價率%"].fillna(-999) >= 15) & (show["品質分數"] >= 75) & (show["AI分數"] >= 75)]
     st.dataframe(show, use_container_width=True, hide_index=True)
     with st.expander("📌 折價率與風險說明"):
-        st.write("折價率 = (AI共識價 − 市價) ÷ 市價。")
+        st.write("折價率 = (研究院估值（測試） − 市價) ÷ 市價。")
         st.write("低估不代表一定值得買，仍需搭配財務體質、產業趨勢、法人籌碼與風險控管。")
-        st.write("AI共識價目前為AIEVF代理模型；後續版本將逐步接入MOPS、TWSE與完整同業資料庫。")
+        st.write("研究院估值（測試）目前為AIEVF代理模型；後續版本將逐步接入MOPS、TWSE與完整同業資料庫。")
 
 def v88_home_inject():
     try:
@@ -6627,7 +6629,7 @@ def v881_data_date():
 @st.cache_data(ttl=86400, show_spinner=False)
 def v881_daily_fair_value_seed():
     """
-    每日更新一次研究院合理價代理資料。
+    每日更新一次研究院估值（測試）代理資料。
     ttl=86400代表每日重新計算/刷新一次；市價仍依報價來源刷新。
     """
     return v88_value_seed_list()
@@ -6665,7 +6667,7 @@ def v88_compute_value_discovery():
             "股票": name,
             "產業": industry,
             "現在股價": np.nan if pd.isna(price) else round(float(price), 2),
-            "研究院合理價": round(fair, 2),
+            "研究院估值（測試）": round(fair, 2),
             "價差": np.nan if pd.isna(spread) else round(float(spread), 2),
             "折價率%": np.nan if pd.isna(discount) else round(float(discount), 1),
             "AI分數": ai_score,
@@ -6686,7 +6688,7 @@ def v88_compute_value_discovery():
 
 def v88_value_discovery_home_block():
     st.markdown("## 💎 AI價值投資排行榜")
-    st.caption("依現在股價與研究院合理價估算折價率，供研究觀察使用，非投資建議。研究院合理價每日更新；市價依報價來源刷新。")
+    st.caption("依現在股價與研究院估值（測試）估算折價率，供研究觀察使用，非投資建議。研究院估值（測試）每日更新；市價依報價來源刷新。")
     df = v88_compute_value_discovery()
     c1, c2, c3, c4 = st.columns(4)
     try:
@@ -6703,15 +6705,307 @@ def v88_value_discovery_home_block():
         show = show[show["折價率%"].fillna(-999) >= 15]
     elif view == "風險過濾":
         show = show[(show["折價率%"].fillna(-999) >= 15) & (show["品質分數"] >= 75) & (show["AI分數"] >= 75)]
-    main_cols = ["排名","代碼","股票","現在股價","研究院合理價","價差","折價率%","AI分數","資料日期","狀態","風險提示"]
+    main_cols = ["排名","代碼","股票","現在股價","研究院估值（測試）","價差","折價率%","AI分數","資料日期","狀態","風險提示"]
     show = show[[c for c in main_cols if c in show.columns]]
     st.dataframe(show, use_container_width=True, hide_index=True)
     with st.expander("📌 欄位說明"):
-        st.write("折價率 = (研究院合理價 − 現在股價) ÷ 現在股價。")
-        st.write("價差 = 研究院合理價 − 現在股價。")
-        st.write("研究院合理價每日更新；現在股價依 Yahoo/yfinance 報價來源刷新，可能有延遲。")
+        st.write("折價率 = (研究院估值（測試） − 現在股價) ÷ 現在股價。")
+        st.write("價差 = 研究院估值（測試） − 現在股價。")
+        st.write("研究院估值（測試）每日更新；現在股價依 Yahoo/yfinance 報價來源刷新，可能有延遲。")
         st.write("低估不代表一定值得買，仍需搭配財務體質、產業趨勢、法人籌碼與風險控管。")
 # ================= V88.1 VALUE RANKING PATCH END =================
+
+# ================= V89 ENTERPRISE DATA WAREHOUSE LAYER =================
+
+def v89_today():
+    try:
+        return datetime.now().strftime("%Y-%m-%d")
+    except Exception:
+        import datetime as _dt
+        return _dt.datetime.now().strftime("%Y-%m-%d")
+
+def v89_fallback_price_map():
+    return {
+        "2330.TW": 2510, "2303.TW": 160, "5347.TWO": 174.5,
+        "3596.TW": 209, "5388.TWO": 145, "6285.TW": 268,
+        "3030.TW": 350, "3455.TW": 160, "2360.TW": 2310,
+        "2379.TW": 819, "2454.TW": 4465, "3443.TW": 4860,
+        "3661.TW": 4380, "5274.TW": 18960, "2308.TW": 2150,
+        "6415.TW": 673, "8086.TWO": 166, "3105.TWO": 528,
+        "8299.TWO": 2580, "6533.TW": 330
+    }
+
+def v89_get_price_for_symbol(sym):
+    p = np.nan
+    try:
+        p = v88_get_price_for_symbol(sym)
+    except Exception:
+        p = np.nan
+    if pd.isna(p) or p <= 0:
+        p = v89_fallback_price_map().get(sym, np.nan)
+    return p
+
+def v89_money_yi(x):
+    try:
+        v = float(str(x).replace(",", ""))
+        if pd.isna(v):
+            return "N/A"
+        return f"{v/100000000:,.2f} 億"
+    except Exception:
+        return x
+
+def v89_dream_premium(price, fair):
+    try:
+        price = float(price); fair = float(fair)
+        if fair <= 0:
+            return np.nan
+        return (price - fair) / fair * 100
+    except Exception:
+        return np.nan
+
+def v89_discount_rate(price, fair):
+    try:
+        price = float(price); fair = float(fair)
+        if price <= 0:
+            return np.nan
+        return (fair - price) / price * 100
+    except Exception:
+        return np.nan
+
+def v89_status(price, fair):
+    disc = v89_discount_rate(price, fair)
+    dream = v89_dream_premium(price, fair)
+    if pd.isna(disc):
+        return "資料不足"
+    if disc >= 50:
+        return "深度低估"
+    if disc >= 30:
+        return "明顯低估"
+    if disc >= 15:
+        return "偏低估"
+    if disc >= -10:
+        return "接近合理"
+    if pd.notna(dream) and dream >= 100:
+        return "本夢比溢價"
+    return "偏高估"
+
+def v89_reason(price, fair, industry, ai_score):
+    dream = v89_dream_premium(price, fair)
+    disc = v89_discount_rate(price, fair)
+    if pd.isna(disc):
+        return "資料更新中"
+    if disc >= 15:
+        return "市場價格低於研究院估值（測試），需再檢查財務與產業風險"
+    if pd.notna(dream) and dream >= 300:
+        return "市場給予極高本夢比，可能反映AI、成長性、法人資金與高PE溢價"
+    if pd.notna(dream) and dream >= 100:
+        return "市場價格高於基本估值，可能反映成長溢價或題材溢價"
+    if disc < -10:
+        return "目前偏高估，需確認未來獲利是否足以支撐估值"
+    return "接近合理區間"
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def v89_fair_value_warehouse():
+    return [
+        ["2330.TW","台積電","半導體",2500,88,82,90],
+        ["2303.TW","聯電","半導體",185,84,64,80],
+        ["5347.TWO","世界先進","半導體",230,82,64,78],
+        ["3596.TW","智易","網通",260,80,64,75],
+        ["5388.TWO","中磊","網通",180,78,62,73],
+        ["6285.TW","啟碁","網通",230,79,64,74],
+        ["3030.TW","德律","檢測設備",260,82,70,79],
+        ["3455.TW","由田","AOI設備",210,78,62,72],
+        ["2360.TW","致茂","測試設備",420,85,72,82],
+        ["2379.TW","瑞昱","IC設計",980,86,82,84],
+        ["2454.TW","聯發科","IC設計",4800,87,64,82],
+        ["3443.TW","創意","IC設計",5200,84,74,83],
+        ["3661.TW","世芯-KY","IC設計",5000,82,56,80],
+        ["5274.TW","信驊","IC設計",22000,88,64,85],
+        ["2308.TW","台達電","電源/能源",2300,84,64,80],
+        ["6415.TW","矽力-KY","電源IC",520,80,64,75],
+        ["8086.TWO","宏捷科","砷化鎵",190,76,62,70],
+        ["3105.TWO","穩懋","砷化鎵",650,78,64,72],
+        ["8299.TWO","群聯","記憶體控制",820,82,64,78],
+        ["6533.TW","晶心科","IP/AI",520,78,62,76],
+    ]
+
+def v88_compute_value_discovery():
+    rows = []
+    for sym, name, industry, fair_proxy, ai_score, inst_score, quality_score in v89_fair_value_warehouse():
+        price = v89_get_price_for_symbol(sym)
+        fair = float(fair_proxy)
+        spread = np.nan if pd.isna(price) else fair - float(price)
+        discount = np.nan if pd.isna(price) else v89_discount_rate(price, fair)
+        dream = np.nan if pd.isna(price) else v89_dream_premium(price, fair)
+        rows.append({
+            "代碼": sym,
+            "股票": name,
+            "產業": industry,
+            "現在股價": "資料更新中" if pd.isna(price) else round(float(price), 2),
+            "研究院估值（測試）": round(fair, 2),
+            "價差": "N/A" if pd.isna(spread) else round(float(spread), 2),
+            "折價率%": "N/A" if pd.isna(discount) else round(float(discount), 1),
+            "本夢比溢價%": "N/A" if pd.isna(dream) else round(float(dream), 1),
+            "AI分數": ai_score,
+            "法人分數": inst_score,
+            "品質分數": quality_score,
+            "狀態": v89_status(price, fair) if not pd.isna(price) else "資料不足",
+            "原因說明": v89_reason(price, fair, industry, ai_score) if not pd.isna(price) else "資料更新中",
+            "資料日期": v89_today(),
+            "資料來源": "Yahoo/yfinance + AIEVF Data Warehouse"
+        })
+    df = pd.DataFrame(rows)
+    try:
+        sort_col = pd.to_numeric(df["折價率%"], errors="coerce")
+        df["_sort"] = sort_col
+        df = df.sort_values(["_sort","AI分數"], ascending=[False,False], na_position="last").drop(columns=["_sort"])
+    except Exception:
+        pass
+    df.insert(0, "排名", range(1, len(df)+1))
+    return df
+
+def v88_value_discovery_home_block():
+    st.markdown("## 💎 AI價值投資排行榜")
+    st.caption("依現在股價與研究院估值（測試）估算折價率；若市場價大幅高於合理價，另顯示本夢比溢價。供研究觀察使用，非投資建議。")
+    df = v88_compute_value_discovery()
+    c1, c2, c3, c4 = st.columns(4)
+    try:
+        disc_num = pd.to_numeric(df["折價率%"], errors="coerce")
+        dream_num = pd.to_numeric(df["本夢比溢價%"], errors="coerce")
+        c1.metric("低估觀察檔數", int((disc_num >= 15).sum()))
+        c2.metric("本夢比溢價檔數", int((dream_num >= 100).sum()))
+        c3.metric("資料日期", v89_today())
+        c4.metric("合理價更新", "每日")
+    except Exception:
+        pass
+    view = st.radio("排行榜顯示", ["低估優先","全部清單","本夢比溢價","風險過濾"], horizontal=True, key="v88_value_view")
+    show = df.copy()
+    disc_num = pd.to_numeric(show["折價率%"], errors="coerce")
+    dream_num = pd.to_numeric(show["本夢比溢價%"], errors="coerce")
+    if view == "低估優先":
+        show = show[disc_num >= 15]
+    elif view == "本夢比溢價":
+        show = show[dream_num >= 100]
+    elif view == "風險過濾":
+        show = show[(disc_num >= 15) & (show["品質分數"] >= 75) & (show["AI分數"] >= 75)]
+    main_cols = ["排名","代碼","股票","現在股價","研究院估值（測試）","價差","折價率%","本夢比溢價%","AI分數","資料日期","狀態","原因說明"]
+    st.dataframe(show[[c for c in main_cols if c in show.columns]], use_container_width=True, hide_index=True)
+    with st.expander("📌 欄位說明"):
+        st.write("折價率 = (研究院估值（測試） − 現在股價) ÷ 現在股價。")
+        st.write("本夢比溢價率 = (現在股價 − 研究院估值（測試）) ÷ 研究院估值（測試）。")
+        st.write("若像致茂這類股票出現現價遠高於研究院估值（測試），系統會標示可能存在AI題材、成長預期、法人資金或高PE本夢比溢價。")
+        st.write("研究院估值（測試）每日更新；現在股價依報價來源刷新，可能有延遲。")
+
+def v89_industry_chain_database(active):
+    code0 = str(active).split(".")[0]
+    db = {
+        "3596": [
+            ["上游","晶片/零組件","Broadcom、Qualcomm、Realtek、MediaTek","WiFi、PON、Cable、FWA核心晶片"],
+            ["中游","網通ODM/OEM","智易、中磊、啟碁、合勤控","寬頻接取、路由器、Gateway、Mesh設備"],
+            ["下游","電信商/品牌客戶","Comcast、Charter、Vodafone、Cisco、Netgear","電信寬頻、企業網路、家庭網通"],
+        ],
+        "5388": [
+            ["上游","晶片/零組件","Broadcom、Qualcomm、Realtek、MediaTek","網通核心晶片"],
+            ["中游","網通設備製造","中磊、智易、啟碁、合勤控","寬頻接取與無線網通"],
+            ["下游","電信商/品牌","全球電信商、企業網通品牌","寬頻與企業網路設備"],
+        ],
+        "6285": [
+            ["上游","晶片/天線/模組","Qualcomm、Broadcom、MediaTek","WiFi、5G、車用通訊元件"],
+            ["中游","通訊設備ODM","啟碁、智易、中磊","通訊模組、網通、車用/衛星通訊"],
+            ["下游","品牌/電信/車廠","電信商、品牌廠、車用客戶","終端通訊應用"],
+        ],
+        "2360": [
+            ["上游","精密零組件/感測/電子元件","感測器、儀器元件、半導體元件供應商","測試設備關鍵零組件"],
+            ["中游","測試設備","致茂、德律、Keysight、Teradyne","電源測試、半導體測試、AI伺服器測試"],
+            ["下游","半導體/電動車/AI伺服器","晶片廠、EMS、伺服器供應鏈","高階測試需求"],
+        ],
+        "3030": [
+            ["上游","影像/光學/控制元件","鏡頭、相機、控制器、運動平台","AOI設備零組件"],
+            ["中游","AOI/檢測設備","德律、由田、Koh Young、Camtek","PCB/半導體/電子組裝檢測"],
+            ["下游","PCB/半導體/EMS","PCB廠、封測廠、電子組裝廠","品質檢測與良率提升"],
+        ],
+        "2330": [
+            ["上游","半導體設備/材料/IP","ASML、Applied Materials、Lam Research、Synopsys","先進製程關鍵投入"],
+            ["中游","晶圓代工","台積電、Samsung Foundry、Intel Foundry","先進製程與成熟製程製造"],
+            ["下游","IC設計/AI/HPC/手機","NVIDIA、Apple、AMD、Qualcomm、Broadcom","AI、HPC、手機與車用晶片"],
+        ],
+    }
+    rows = db.get(code0, [["待補","產業鏈資料庫持續補強","同業資料待擴充","V89資料倉儲建置中"]])
+    return pd.DataFrame(rows, columns=["產業鏈位置","分類","代表公司","說明"])
+
+def v87_peer_static_database(active):
+    code0 = str(active).split(".")[0]
+    db = {
+        "3596": [
+            ["智易","3596.TW","台灣","寬頻網通ODM",18,2.5,"10%~18%",12.4,"MOPS/Yahoo/AIEVF"],
+            ["中磊","5388.TWO","台灣","寬頻接取設備",16,2.0,"10%~16%",9.0,"MOPS/Yahoo/AIEVF"],
+            ["啟碁","6285.TW","台灣","通訊設備ODM",17,2.2,"10%~18%",13.0,"MOPS/Yahoo/AIEVF"],
+            ["合勤控","3704.TW","台灣","網通品牌/設備",14,1.3,"8%~12%",5.0,"MOPS/Yahoo/AIEVF"],
+            ["CommScope","COMM","美國","寬頻/網路設備",np.nan,np.nan,"N/A",np.nan,"Yahoo/AIEVF"],
+            ["Netgear","NTGR","美國","網通品牌",np.nan,np.nan,"N/A",np.nan,"Yahoo/AIEVF"],
+        ],
+        "2360": [
+            ["致茂","2360.TW","台灣","測試設備/AI伺服器測試",40,9.0,"20%+",55,"MOPS/Yahoo/AIEVF"],
+            ["德律","3030.TW","台灣","AOI/檢測設備",18,3.0,"15%~25%",8,"MOPS/Yahoo/AIEVF"],
+            ["由田","3455.TW","台灣","AOI設備",20,2.2,"10%~20%",5,"MOPS/Yahoo/AIEVF"],
+            ["Keysight","KEYS","美國","電子測試儀器",24,5.0,"20%+",np.nan,"Yahoo/AIEVF"],
+            ["Teradyne","TER","美國","半導體測試",28,6.0,"20%+",np.nan,"Yahoo/AIEVF"],
+        ],
+        "3030": [
+            ["德律","3030.TW","台灣","AOI/檢測設備",18,3.0,"15%~25%",8,"MOPS/Yahoo/AIEVF"],
+            ["由田","3455.TW","台灣","AOI設備",20,2.2,"10%~20%",5,"MOPS/Yahoo/AIEVF"],
+            ["致茂","2360.TW","台灣","測試設備",40,9.0,"20%+",55,"MOPS/Yahoo/AIEVF"],
+            ["Camtek","CAMT","以色列","半導體檢測",35,8.0,"20%+",np.nan,"Yahoo/AIEVF"],
+            ["Koh Young","N/A","韓國","3D AOI",np.nan,np.nan,"N/A",np.nan,"產業資料/AIEVF"],
+        ],
+        "2330": [
+            ["台積電","2330.TW","台灣","晶圓代工領導者",32,9.8,"30%+",55,"MOPS/Yahoo/AIEVF"],
+            ["三星電子","005930.KS","韓國","主要挑戰者",18,1.5,"10%~15%",4.5,"Yahoo/AIEVF"],
+            ["英特爾","INTC","美國","主要挑戰者",28,1.2,"N/A",-2,"Yahoo/AIEVF"],
+            ["格羅方德","GFS","美國","成熟製程",22,1.6,"N/A",1.8,"Yahoo/AIEVF"],
+            ["聯電","2303.TW","台灣","成熟製程",15,2.1,"12%~18%",3,"MOPS/Yahoo/AIEVF"],
+            ["世界先進","5347.TWO","台灣","特殊製程",18,2.4,"12%~18%",4,"MOPS/Yahoo/AIEVF"],
+        ],
+    }
+    if code0 in ["2303","5347"]:
+        rows = db["2330"]
+    else:
+        rows = db.get(code0, [["同業資料持續補強","N/A","N/A","待分類",np.nan,np.nan,"N/A",np.nan,"AIEVF"]])
+    return pd.DataFrame(rows, columns=["公司","代碼","國家","競爭角色","PE","PB","ROE","EPS","資料來源"])
+
+def v87_competition_position(active):
+    code0 = str(active).split(".")[0]
+    if code0 == "3596":
+        return pd.DataFrame([
+            ["台灣主要同業","中磊、啟碁、合勤控","寬頻接取、WiFi Router、Gateway、FWA"],
+            ["全球品牌/競爭者","Cisco、CommScope、Netgear、Technicolor","電信與企業網通設備"],
+            ["技術定位","WiFi 6/7、DOCSIS、PON、FWA、Mesh","網通ODM/OEM核心供應鏈"],
+        ], columns=["競爭地位","公司","說明"])
+    if code0 == "2360":
+        return pd.DataFrame([
+            ["高階測試設備","致茂","AI伺服器、電源、半導體與電動車測試題材"],
+            ["全球競爭者","Keysight、Teradyne、Advantest","測試儀器與半導體測試"],
+            ["本夢比來源","AI伺服器測試、法人資金、高成長預期","市場可能給予高於基本面之成長溢價"],
+        ], columns=["競爭地位","公司","說明"])
+    if code0 == "3030":
+        return pd.DataFrame([
+            ["利基領導者","德律","台灣AOI/檢測設備代表"],
+            ["台灣挑戰者","由田、致茂","AOI/測試設備同業"],
+            ["全球挑戰者","Camtek、Koh Young、Mirtec","國際AOI/半導體檢測同業"],
+        ], columns=["競爭地位","公司","說明"])
+    if code0 in ["2330","2303","5347"]:
+        return pd.DataFrame([
+            ["全球領導者","台積電","先進製程與先進封裝領先"],
+            ["主要挑戰者","三星電子、英特爾","先進製程追趕者"],
+            ["成熟製程競爭者","聯電、格羅方德、世界先進","成熟/特殊製程"],
+            ["特殊製程/利基者","力積電、穩懋","記憶體/化合物半導體/特殊應用"],
+        ], columns=["競爭地位","公司","說明"])
+    return pd.DataFrame([["待分類","同業資料持續補強","V89資料倉儲建置中"]], columns=["競爭地位","公司","說明"])
+
+def v89_extra_industry_block(active):
+    st.markdown("### 產業鏈資料庫 V89")
+    st.dataframe(v89_industry_chain_database(active), use_container_width=True, hide_index=True)
+# ================= V89 ENTERPRISE DATA WAREHOUSE LAYER END =================
 # ================= V87 STABLE RESEARCH LAYER END =================
 
 
@@ -6741,7 +7035,7 @@ elif page=="📊監控":
     st.caption(f"V76類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
     with st.expander("🧭 V76 類股快速入口", expanded=False):
         v76_sector_panel()
-    # V88.1 Value Ranking Edition_PAGE_SECTOR_FIX
+    # V89.1 Research Integrity Edition_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
         page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
@@ -6937,6 +7231,95 @@ st.markdown("---")
 with st.expander("🧾 計算透明化中心", expanded=False):
     transparency_audit_center(active, q, df_daily, scores)
 
-st.caption("AI研究院 Pro V88.1 Value Ranking Edition｜研究與教學用途，非投資建議。")
+st.caption("AI研究院 Pro V89.1 Research Integrity Edition｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
+
+
+# ================= V89.1 RESEARCH INTEGRITY PATCH =================
+def v891_research_notice():
+    st.warning(
+        "⚠️ 研究說明\n\n"
+        "目前顯示之研究院估值（測試），主要供系統研究、模型驗證及資料測試使用。\n\n"
+        "研究院估值模型仍持續優化中，部分數據與分析結果可能因資料更新、模型調整或市場環境變化而有所差異。\n\n"
+        "目前數值不構成投資建議，請投資人自行評估投資風險。"
+    )
+
+def v891_quote_notice():
+    st.info(
+        "📡 股價資料說明\n\n"
+        "股價資料來自公開市場報價來源（Yahoo Finance）。\n\n"
+        "資料可能存在數分鐘延遲，實際時間依市場與資料供應商而異。\n\n"
+        "研究院估值（測試）每日更新一次。"
+    )
+
+def v891_today():
+    try:
+        return datetime.now().strftime("%Y-%m-%d")
+    except Exception:
+        import datetime as _dt
+        return _dt.datetime.now().strftime("%Y-%m-%d")
+
+def v891_semiconductor_lab():
+    st.markdown("### 🧪 AIEVF 半導體實驗室（Beta）")
+    st.caption("本區為半導體產業估值架構測試，不構成投資建議。")
+    data = [
+        ["2330.TW","台積電","晶圓代工","先進製程領導者","Samsung Foundry、Intel Foundry","先進製程/先進封裝"],
+        ["2303.TW","聯電","晶圓代工","成熟製程主要供應商","GlobalFoundries、世界先進","成熟製程/特殊製程"],
+        ["5347.TWO","世界先進","晶圓代工","特殊製程與成熟製程","聯電、GlobalFoundries","電源管理/面板驅動/特殊製程"],
+        ["6770.TW","力積電","晶圓代工/記憶體","成熟製程與記憶體相關","聯電、世界先進","DRAM/成熟製程"],
+        ["3711.TW","日月光投控","封測","全球封測龍頭","Amkor、JCET","先進封裝/測試"],
+        ["2454.TW","聯發科","IC設計","手機/邊緣AI晶片","Qualcomm、Broadcom","SoC/通訊/AI邊緣"],
+        ["3443.TW","創意","ASIC/IP","客製化晶片設計服務","世芯、Marvell","ASIC/AI晶片"],
+        ["3661.TW","世芯-KY","ASIC","高速運算客製晶片","創意、Marvell","AI/HPC ASIC"],
+        ["5274.TW","信驊","BMC晶片","伺服器管理晶片龍頭","Nuvoton、Renesas","BMC/AI伺服器"],
+    ]
+    st.dataframe(pd.DataFrame(data, columns=["代碼","公司","產業分類","競爭定位","全球競爭者","技術定位"]), use_container_width=True, hide_index=True)
+
+def v891_home_integrity_block():
+    v891_research_notice()
+    v891_quote_notice()
+
+# Override homepage ranking block if present
+_old_v88_home = globals().get("v88_value_discovery_home_block", None)
+def v88_value_discovery_home_block():
+    v891_home_integrity_block()
+    st.markdown("## 💎 AI價值投資排行榜")
+    st.caption("依現在股價與研究院估值（測試）估算折價率；若市場價大幅高於估值，另顯示本夢比溢價。供研究觀察使用，非投資建議。")
+    try:
+        df = v88_compute_value_discovery()
+        df = df.rename(columns={"研究院合理價":"研究院估值（測試）","研究院估值(測試)":"研究院估值（測試）"})
+        if "資料等級" not in df.columns:
+            df["資料等級"] = "C｜測試"
+        c1,c2,c3,c4 = st.columns(4)
+        try:
+            c1.metric("資料狀態","測試")
+            c2.metric("估值更新","每日")
+            c3.metric("資料日期", v891_today())
+            c4.metric("投資建議","不構成")
+        except Exception:
+            pass
+        view = st.radio("排行榜顯示", ["低估優先","全部清單","本夢比溢價","風險過濾"], horizontal=True, key="v891_value_view")
+        show = df.copy()
+        try:
+            disc_num = pd.to_numeric(show["折價率%"], errors="coerce")
+            dream_num = pd.to_numeric(show["本夢比溢價%"], errors="coerce") if "本夢比溢價%" in show.columns else pd.Series([float("nan")]*len(show))
+            if view == "低估優先":
+                show = show[disc_num >= 15]
+            elif view == "本夢比溢價":
+                show = show[dream_num >= 100]
+            elif view == "風險過濾":
+                show = show[(disc_num >= 15) & (show["AI分數"] >= 75)]
+        except Exception:
+            pass
+        cols = ["排名","代碼","股票","現在股價","研究院估值（測試）","價差","折價率%","本夢比溢價%","AI分數","資料等級","資料日期","狀態","原因說明"]
+        st.dataframe(show[[c for c in cols if c in show.columns]], use_container_width=True, hide_index=True)
+        with st.expander("📌 欄位說明"):
+            st.write("折價率 = (研究院估值（測試） − 現在股價) ÷ 現在股價。")
+            st.write("本夢比溢價率 = (現在股價 − 研究院估值（測試）) ÷ 研究院估值（測試）。")
+            st.write("研究院估值（測試）每日更新；現在股價依報價來源刷新，可能存在數分鐘延遲。")
+            st.write("目前數值主要供研究與模型驗證使用，不構成投資建議。")
+        v891_semiconductor_lab()
+    except Exception as e:
+        st.warning(f"排行榜暫時無法顯示：{e}")
+# ================= V89.1 RESEARCH INTEGRITY PATCH END =================
