@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V89.4.3 Financial Center Stable Release"
+APP_VERSION="V89.4.4 UI Cleanup & Peer Library Edition"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -443,7 +443,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V89.4.3 Financial Center Stable Release responsive audit */
+/* V89.4.4 UI Cleanup & Peer Library Edition responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -502,7 +502,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V89.4.3 Financial Center Stable Release：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V89.4.4 UI Cleanup & Peer Library Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -707,7 +707,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V89.4.3 Financial Center Stable Release.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V89.4.4 UI Cleanup & Peer Library Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -882,7 +882,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V89.4.3 Financial Center Stable Release: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V89.4.4 UI Cleanup & Peer Library Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1779,7 +1779,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V89.4.3 Financial Center Stable Release｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V89.4.4 UI Cleanup & Peer Library Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1795,7 +1795,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V89.4.3 Financial Center Stable Release</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V89.4.4 UI Cleanup & Peer Library Edition</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1806,7 +1806,7 @@ st.markdown("""
       <rect x="635" y="55" width="24" height="42" fill="#22c55e"/>
       <rect x="915" y="58" width="24" height="36" fill="#ef4444"/>
     </g>
-    <text x="40" y="158" fill="#dbeafe" font-size="13">V53 clean banner</text>
+    <text x="40" y="158" fill="#dbeafe" font-size="13"></text>
   </svg>
 </div>
 
@@ -1818,7 +1818,7 @@ if "page" not in st.session_state: st.session_state.page="🏠首頁"
 # V60_PAGE_TARGET_HELPER: APP快捷入口目標保存在 session_state；若原始選單未吃到，仍可由各頁判斷使用。
 
 # ================= V76.1 TRANSPARENCY + NAME FIX LAYER =================
-APP_VERSION="V89.4.3 Financial Center Stable Release"
+APP_VERSION="V89.4.4 UI Cleanup & Peer Library Edition"
 
 # 補充 V76 未覆蓋股票中文名稱與產業DNA，避免回退 Yahoo 英文名稱或待分類。
 V761_EXTRA_ROWS = [
@@ -1996,7 +1996,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V89.4.3 Financial Center Stable Release_SIDEBAR_SECTOR_FIX
+    # V89.4.4 UI Cleanup & Peer Library Edition_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -5139,7 +5139,7 @@ def v70_research_institute(symbol, q, df, scores):
 
 # ================= V76 NAME RESOLVER + SECTOR COMPLETE LAYER =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V89.4.3 Financial Center Stable Release"
+APP_VERSION="V89.4.4 UI Cleanup & Peer Library Edition"
 
 V76_ROWS = [
 ("2330","台積電","上市","電子","半導體","晶圓代工","先進製程","AI/HPC","中游"),("2303","聯電","上市","電子","半導體","晶圓代工","成熟製程","車用/工控","中游"),("5347","世界先進","上櫃","電子","半導體","特殊製程晶圓代工","成熟製程","車用/工控","中游"),("6770","力積電","上市","電子","半導體","晶圓代工/記憶體","成熟製程","記憶體/代工","中游"),("2408","南亞科","上市","電子","半導體","DRAM","記憶體","AI/伺服器記憶體","上中游"),("2344","華邦電","上市","電子","半導體","記憶體","NOR/DRAM","車用/工控","上中游"),("2337","旺宏","上市","電子","半導體","記憶體","NOR Flash","車用/工控","上中游"),
@@ -5271,7 +5271,7 @@ def v76_calc_transparency(symbol,q=None,df=None,scores=None):
     return pd.DataFrame(rows,columns=['模型','使用價格','狀態','公式/方法','使用數值與說明'])
 
 def v76_ai_page(symbol,q,df,scores):
-    st.markdown('## 🏛 V89.4.3 Financial Center Stable Release.3')
+    st.markdown('## 🏛 V89.4.4 UI Cleanup & Peer Library Edition.3')
     tabs=st.tabs(['🧬公司DNA','🌱ESG排名','🌍競爭/同業','🔍計算透明'])
     with tabs[0]: st.dataframe(v76_company_dna_df(symbol),use_container_width=True,hide_index=True)
     with tabs[1]: st.dataframe(v76_esg_rank(symbol),use_container_width=True,hide_index=True)
@@ -5279,9 +5279,9 @@ def v76_ai_page(symbol,q,df,scores):
     with tabs[3]: st.dataframe(v76_calc_transparency(symbol,q,df,scores),use_container_width=True,hide_index=True)
 # ================= V76 NAME RESOLVER + SECTOR COMPLETE LAYER END =================
 
-# ================= V76.3 OFFICIAL MASTER + TRANSPARENCY FIX =================
+# =================  OFFICIAL MASTER + TRANSPARENCY FIX =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V89.4.3 Financial Center Stable Release"
+APP_VERSION="V89.4.4 UI Cleanup & Peer Library Edition"
 
 V763_FALLBACK_MASTER = [
     # code,name,market,level1,level2,level3,level4,level5,chain
@@ -5461,7 +5461,7 @@ def v763_profile(symbol):
     r = v763_row(s)
     if r is None:
         return {"公司":v763_name(s),"代碼":s,"市場":"待確認","Level 1":"待分類","Level 2":"待分類","Level 3":"待分類","Level 4":"待分類","Level 5":"待分類","產業":"待分類","次產業":"待分類","產業鏈位置":"待確認","商業模式":"待確認","產業成熟度":"待確認","產業景氣燈號":"⚪ 待確認","資料層":"未覆蓋"}
-    return {"公司":r["name"],"代碼":s,"市場":r["market"],"Level 1":r["level1"],"Level 2":r["level2"],"Level 3":r["level3"],"Level 4":r["level4"],"Level 5":r["level5"],"產業":r["level2"],"次產業":r["level3"],"產業鏈位置":r["chain"],"商業模式":r["level3"],"產業成熟度":"成長期" if "AI" in str(r["level5"]) else "成熟/循環","產業景氣燈號":"🟢 熱絡" if "AI" in str(r["level5"]) else "🟡 中立","資料層":"官方代碼表 + V76.3內建DNA"}
+    return {"公司":r["name"],"代碼":s,"市場":r["market"],"Level 1":r["level1"],"Level 2":r["level2"],"Level 3":r["level3"],"Level 4":r["level4"],"Level 5":r["level5"],"產業":r["level2"],"次產業":r["level3"],"產業鏈位置":r["chain"],"商業模式":r["level3"],"產業成熟度":"成長期" if "AI" in str(r["level5"]) else "成熟/循環","產業景氣燈號":"🟢 熱絡" if "AI" in str(r["level5"]) else "🟡 中立","資料層":"官方代碼表 + 內建DNA"}
 
 def v761_profile(symbol): return v763_profile(symbol)
 def v762_profile(symbol): return v763_profile(symbol)
@@ -5603,7 +5603,7 @@ def v761_valuation_input_explain(inp):
     return pd.DataFrame(rows, columns=["使用數值","值","說明"])
 
 def v763_master_panel():
-    st.markdown("## 🇹🇼 V76.3 官方股票代碼中文對照")
+    st.markdown("## 🇹🇼  官方股票代碼中文對照")
     st.info("本版會嘗試從 TWSE/TPEx 官方 OpenAPI 下載代碼與中文名稱；若雲端網路或API失敗，立即使用內建 Master，仍然不會退回 Yahoo 英文名稱。")
     df = v763_master_df()
     st.dataframe(df, use_container_width=True, hide_index=True)
@@ -5613,13 +5613,13 @@ def v762_banner():
     st.markdown("""
     <div style="padding:28px;border-radius:22px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin:12px 0 22px 0;">
       <div style="font-size:34px;font-weight:900;">📈 智策股市 AI 決策平台</div>
-      <div style="font-size:20px;font-weight:800;margin-top:8px;">V89.4.3 Financial Center Stable Release</div>
+      <div style="font-size:20px;font-weight:800;margin-top:8px;">V89.4.4 UI Cleanup & Peer Library Edition</div>
       <div style="font-size:15px;margin-top:8px;opacity:.92;">官方代碼中文表 × 產業DNA × ESG股價溢價 × 計算透明</div>
     </div>
     """, unsafe_allow_html=True)
 
 def v76_ai_page(symbol, q, df, scores):
-    st.markdown("## 🏛 V89.4.3 Financial Center Stable Release.3")
+    st.markdown("## 🏛 V89.4.4 UI Cleanup & Peer Library Edition.3")
     tabs = st.tabs(["🧬公司DNA","🌱ESG排名","🌍競爭/同業","🔍計算透明"])
     with tabs[0]:
         st.dataframe(v76_company_dna_df(symbol), use_container_width=True, hide_index=True)
@@ -5636,11 +5636,11 @@ def v76_name_sector_fix_panel():
 
 def v762_master_panel():
     v763_master_panel()
-# ================= V76.3 OFFICIAL MASTER + TRANSPARENCY FIX END =================
+# =================  OFFICIAL MASTER + TRANSPARENCY FIX END =================
 
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER =================
-# 基底：V76.3。首頁、監控、K線、設定不重寫；只把原四大中心原封不動嵌入研究院。
-APP_VERSION="V89.4.3 Financial Center Stable Release"
+# 基底：。首頁、監控、K線、設定不重寫；只把原四大中心原封不動嵌入研究院。
+APP_VERSION="V89.4.4 UI Cleanup & Peer Library Edition"
 
 def v85_num(x, default=np.nan):
     try:
@@ -5885,7 +5885,7 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V89.4.3 Financial Center Stable Release</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V89.4.4 UI Cleanup & Peer Library Edition</div>
       <div style="font-size:16px;margin-top:10px;">V85 = 完整搬遷版：財報、評價、ESG、法人原封不動搬入研究院</div>
     </div>
     """, unsafe_allow_html=True)
@@ -5937,7 +5937,7 @@ def v80_enterprise_value_page(symbol, q=None, df=None, scores=None): return v85_
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER END =================
 
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER =================
-APP_VERSION="V89.4.3 Financial Center Stable Release"
+APP_VERSION="V89.4.4 UI Cleanup & Peer Library Edition"
 
 def v861_profile_data(active):
     code0 = str(active).split(".")[0]
@@ -6165,7 +6165,7 @@ def v87_research_institute(active, q, df_daily, scores):
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER END =================
 
 # ================= V87 STABLE RESEARCH LAYER =================
-APP_VERSION="V89.4.3 Financial Center Stable Release"
+APP_VERSION="V89.4.4 UI Cleanup & Peer Library Edition"
 
 def v87_num(x, default=np.nan):
     try:
@@ -6346,7 +6346,7 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V89.4.3 Financial Center Stable Release</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V89.4.4 UI Cleanup & Peer Library Edition</div>
       <div style="font-size:16px;margin-top:10px;">AI價值挖掘 × 資料倉儲 × 同業競爭 × 財報單位優化</div>
     </div>
     """, unsafe_allow_html=True)
@@ -9243,6 +9243,144 @@ except Exception:
     pass
 # ================= V89.4.3 FINANCIAL CENTER STABLE RELEASE END =================
 
+
+# ================= V89.4.4 UI CLEANUP & PEER LIBRARY PATCH =================
+APP_VERSION_CLEAN = "V89.4.4 UI Cleanup & Peer Library Edition"
+
+V8944_ALLOWED_PAGES = [
+    "🏠首頁",
+    "📡監控",
+    "📈K線",
+    "🏛企業價值研究院",
+    "🧪AIVM研究中心",
+    "⚙設定",
+]
+
+# 半導體同業資料庫
+V8944_PEER_LIBRARY = {
+    "晶圓代工": {
+        "members": ["2330.TW", "2303.TW", "5347.TWO", "6770.TW"],
+        "description": "比較毛利率、產能利用率、資本支出、現金流與製程定位。",
+    },
+    "IC設計": {
+        "members": ["2454.TW", "3034.TW", "2379.TW", "3035.TW", "3443.TW", "3661.TW", "3529.TWO", "6415.TW", "6533.TW"],
+        "description": "比較營收成長、毛利率、研發強度、EPS成長與AI受惠程度。",
+    },
+    "AI ASIC": {
+        "members": ["3661.TW", "3443.TW", "3035.TW", "6526.TW"],
+        "description": "比較AI訂單能見度、NRE收入、先進製程依賴度與客戶集中度。",
+    },
+    "CCL/高階載板": {
+        "members": ["2383.TW", "6274.TWO", "6213.TW", "3037.TW", "8046.TW", "3189.TWO"],
+        "description": "比較AI伺服器材料升級、ABF/PCB需求、毛利率與景氣循環。",
+    },
+    "半導體設備/CoWoS": {
+        "members": ["6187.TWO", "3583.TW", "6640.TWO", "3131.TWO", "3680.TW", "1560.TW"],
+        "description": "比較CoWoS擴產、設備訂單、在手訂單與資本支出循環。",
+    },
+    "AI伺服器": {
+        "members": ["6669.TW", "2382.TW", "3231.TW", "2356.TW", "2317.TW", "3017.TW", "3653.TW"],
+        "description": "比較AI伺服器出貨、GPU平台、散熱、機殼與組裝能力。",
+    },
+}
+
+V8944_COMPANY_DNA = {
+    "2330.TW": {"成長性":"高", "現金流/獲利穩定度":"高", "景氣循環敏感度":"中", "AI受惠程度":"高", "資本支出強度":"高", "產業定位":"全球先進製程龍頭", "企業品質分數":95, "Top3":["PEG","AI Premium","PE"]},
+    "2303.TW": {"成長性":"中", "現金流/獲利穩定度":"中高", "景氣循環敏感度":"中高", "AI受惠程度":"中", "資本支出強度":"中", "產業定位":"成熟製程晶圓代工", "企業品質分數":84, "Top3":["PE","FCFF","DCF"]},
+    "5347.TWO": {"成長性":"中", "現金流/獲利穩定度":"高", "景氣循環敏感度":"中", "AI受惠程度":"中", "資本支出強度":"中", "產業定位":"成熟/特殊製程晶圓代工", "企業品質分數":88, "Top3":["FCFF","DCF","EVA"]},
+    "6770.TW": {"成長性":"中", "現金流/獲利穩定度":"中", "景氣循環敏感度":"高", "AI受惠程度":"中", "資本支出強度":"高", "產業定位":"景氣循環型晶圓代工", "企業品質分數":72, "Top3":["PB","NAV","Industry Cycle"]},
+    "2454.TW": {"成長性":"高", "現金流/獲利穩定度":"高", "景氣循環敏感度":"中", "AI受惠程度":"高", "資本支出強度":"低", "產業定位":"手機SoC與Edge AI平台", "企業品質分數":92, "Top3":["PEG","PE","FCFF"]},
+    "3034.TW": {"成長性":"中高", "現金流/獲利穩定度":"高", "景氣循環敏感度":"中", "AI受惠程度":"中", "資本支出強度":"低", "產業定位":"顯示驅動與IC設計", "企業品質分數":86, "Top3":["PE","FCFF","DCF"]},
+    "3035.TW": {"成長性":"高", "現金流/獲利穩定度":"中", "景氣循環敏感度":"中高", "AI受惠程度":"高", "資本支出強度":"低", "產業定位":"ASIC/IP設計服務", "企業品質分數":82, "Top3":["PEG","EV/Sales","PE"]},
+    "3443.TW": {"成長性":"高", "現金流/獲利穩定度":"中高", "景氣循環敏感度":"中高", "AI受惠程度":"高", "資本支出強度":"低", "產業定位":"高階ASIC設計服務", "企業品質分數":88, "Top3":["PEG","AI Premium","PE"]},
+    "3661.TW": {"成長性":"高", "現金流/獲利穩定度":"中高", "景氣循環敏感度":"中高", "AI受惠程度":"高", "資本支出強度":"低", "產業定位":"AI ASIC設計服務", "企業品質分數":90, "Top3":["PEG","AI Premium","EV/Sales"]},
+    "2383.TW": {"成長性":"高", "現金流/獲利穩定度":"中高", "景氣循環敏感度":"中", "AI受惠程度":"高", "資本支出強度":"中", "產業定位":"AI伺服器高階CCL材料", "企業品質分數":88, "Top3":["PEG","PE","FCFF"]},
+}
+
+def v8944_peer_rows():
+    rows = []
+    for group, info in V8944_PEER_LIBRARY.items():
+        for sym in info["members"]:
+            try:
+                cname = display_name(sym).split(" / ")[0]
+            except Exception:
+                cname = sym
+            rows.append({
+                "同業分類": group,
+                "代碼": sym,
+                "公司": cname,
+                "研究重點": info["description"],
+            })
+    return pd.DataFrame(rows)
+
+def v8944_dna_df(symbol):
+    dna = V8944_COMPANY_DNA.get(str(symbol), {
+        "成長性":"待分類",
+        "現金流/獲利穩定度":"待分類",
+        "景氣循環敏感度":"待分類",
+        "AI受惠程度":"待分類",
+        "資本支出強度":"待分類",
+        "產業定位":display_name(symbol) if "display_name" in globals() else str(symbol),
+        "企業品質分數":75,
+        "Top3":["DCF","PE","FCFF"],
+    })
+    rows = []
+    for k, v in dna.items():
+        if k == "Top3":
+            rows.append(["Top3適配方法", " / ".join(v), "依公司DNA與產業定位"])
+        else:
+            rows.append([k, v, "Peer Library / 公司DNA資料庫"])
+    return pd.DataFrame(rows, columns=["公司特徵", "評估", "依據"])
+
+# 覆蓋 AIVM 公司特徵
+def v893_feature_profile(symbol, q, scores, inp):
+    return v8944_dna_df(symbol)
+
+# 覆蓋 Top3 方法資料
+def v8933_top3_method_profile(symbol):
+    dna = V8944_COMPANY_DNA.get(str(symbol), None)
+    if dna:
+        reason_map = {
+            "PEG": ["公司具備成長性，市場通常以EPS成長與本益比擴張評價", "適合觀察未來成長是否支撐估值"],
+            "AI Premium": ["AI供應鏈受惠程度高", "市場願意給予AI題材與高成長溢價"],
+            "PE": ["法人與市場常用EPS乘數評價", "便於與同業比較"],
+            "FCFF": ["自由現金流具參考性", "可驗證企業長期現金創造能力"],
+            "DCF": ["現金流可預測時適合作為內在價值評估", "可搭配WACC與長期成長率敏感度分析"],
+            "EVA": ["可衡量是否創造超過資金成本的價值", "適合觀察ROIC與WACC差距"],
+            "PB": ["景氣循環與資產密集企業可參考帳面價值", "獲利波動時有下緣參考"],
+            "NAV": ["資產價值對晶圓廠具參考性", "適合景氣谷底時輔助判斷"],
+            "Industry Cycle": ["產業景氣循環高度影響估值", "適合成熟製程與記憶體/循環股"],
+            "EV/Sales": ["高成長或獲利波動公司可用營收乘數輔助", "適合設計服務與成長型公司"],
+        }
+        return [(m, max(70, 96 - i*4), reason_map.get(m, ["符合目前公司DNA與產業定位"])) for i, m in enumerate(dna.get("Top3", ["DCF","PE","FCFF"]))]
+    return [("DCF", 85, ["資料不足時以現金流模型作為基礎"]), ("PE", 80, ["市場常用相對估值方法"]), ("FCFF", 78, ["觀察企業自由現金流"])]
+
+def v894_quality_score(symbol, scores=None):
+    dna = V8944_COMPANY_DNA.get(str(symbol), {})
+    return int(dna.get("企業品質分數", 75))
+
+def v8944_show_peer_library():
+    st.subheader("🏭 半導體同業資料庫 Peer Library")
+    st.caption("V89.4.4：同業資料庫補齊第一版。後續 V89.5 將接 MOPS、月營收與法說會資料。")
+    st.dataframe(v8944_peer_rows(), use_container_width=True, hide_index=True)
+
+# 將 Peer Library 併入 AIVM 頁面底部
+try:
+    _v8944_old_v893_aivm_page = v893_aivm_page
+    def v893_aivm_page():
+        _v8944_old_v893_aivm_page()
+        with st.expander("🏭 半導體同業資料庫 Peer Library", expanded=False):
+            v8944_show_peer_library()
+except Exception:
+    pass
+
+# 強制精簡主選單來源
+MAIN = V8944_ALLOWED_PAGES
+menu_items = V8944_ALLOWED_PAGES
+main_tabs = V8944_ALLOWED_PAGES
+
+# ================= V89.4.4 UI CLEANUP & PEER LIBRARY PATCH END =================
+
 active = unified_symbol_manager(symbols)
 
 # V39：手機/電腦響應式欄位
@@ -9276,7 +9414,7 @@ elif page=="📊監控":
     st.caption(f"V76類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
     with st.expander("🧭 V76 類股快速入口", expanded=False):
         v76_sector_panel()
-    # V89.4.3 Financial Center Stable Release_PAGE_SECTOR_FIX
+    # V89.4.4 UI Cleanup & Peer Library Edition_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
         page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
@@ -9474,7 +9612,7 @@ st.markdown("---")
 with st.expander("🧾 計算透明化中心", expanded=False):
     transparency_audit_center(active, q, df_daily, scores)
 
-st.caption("AI研究院 Pro V89.4.3 Financial Center Stable Release｜研究與教學用途，非投資建議。")
+st.caption("AI研究院 Pro V89.4.4 UI Cleanup & Peer Library Edition｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
 
