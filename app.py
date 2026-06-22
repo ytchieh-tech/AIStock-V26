@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V89.4.1 Financial Normalization Hotfix"
+APP_VERSION="V89.4.2 Financial Center Rebuild Edition"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -443,7 +443,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V89.4.1 Financial Normalization Hotfix responsive audit */
+/* V89.4.2 Financial Center Rebuild Edition responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -502,7 +502,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V89.4.1 Financial Normalization Hotfix：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V89.4.2 Financial Center Rebuild Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -707,7 +707,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V89.4.1 Financial Normalization Hotfix.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V89.4.2 Financial Center Rebuild Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -882,7 +882,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V89.4.1 Financial Normalization Hotfix: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V89.4.2 Financial Center Rebuild Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1779,7 +1779,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V89.4.1 Financial Normalization Hotfix｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V89.4.2 Financial Center Rebuild Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1795,7 +1795,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V89.4.1 Financial Normalization Hotfix</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V89.4.2 Financial Center Rebuild Edition</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1818,7 +1818,7 @@ if "page" not in st.session_state: st.session_state.page="🏠首頁"
 # V60_PAGE_TARGET_HELPER: APP快捷入口目標保存在 session_state；若原始選單未吃到，仍可由各頁判斷使用。
 
 # ================= V76.1 TRANSPARENCY + NAME FIX LAYER =================
-APP_VERSION="V89.4.1 Financial Normalization Hotfix"
+APP_VERSION="V89.4.2 Financial Center Rebuild Edition"
 
 # 補充 V76 未覆蓋股票中文名稱與產業DNA，避免回退 Yahoo 英文名稱或待分類。
 V761_EXTRA_ROWS = [
@@ -1996,7 +1996,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V89.4.1 Financial Normalization Hotfix_SIDEBAR_SECTOR_FIX
+    # V89.4.2 Financial Center Rebuild Edition_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -5139,7 +5139,7 @@ def v70_research_institute(symbol, q, df, scores):
 
 # ================= V76 NAME RESOLVER + SECTOR COMPLETE LAYER =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V89.4.1 Financial Normalization Hotfix"
+APP_VERSION="V89.4.2 Financial Center Rebuild Edition"
 
 V76_ROWS = [
 ("2330","台積電","上市","電子","半導體","晶圓代工","先進製程","AI/HPC","中游"),("2303","聯電","上市","電子","半導體","晶圓代工","成熟製程","車用/工控","中游"),("5347","世界先進","上櫃","電子","半導體","特殊製程晶圓代工","成熟製程","車用/工控","中游"),("6770","力積電","上市","電子","半導體","晶圓代工/記憶體","成熟製程","記憶體/代工","中游"),("2408","南亞科","上市","電子","半導體","DRAM","記憶體","AI/伺服器記憶體","上中游"),("2344","華邦電","上市","電子","半導體","記憶體","NOR/DRAM","車用/工控","上中游"),("2337","旺宏","上市","電子","半導體","記憶體","NOR Flash","車用/工控","上中游"),
@@ -5271,7 +5271,7 @@ def v76_calc_transparency(symbol,q=None,df=None,scores=None):
     return pd.DataFrame(rows,columns=['模型','使用價格','狀態','公式/方法','使用數值與說明'])
 
 def v76_ai_page(symbol,q,df,scores):
-    st.markdown('## 🏛 V89.4.1 Financial Normalization Hotfix.3')
+    st.markdown('## 🏛 V89.4.2 Financial Center Rebuild Edition.3')
     tabs=st.tabs(['🧬公司DNA','🌱ESG排名','🌍競爭/同業','🔍計算透明'])
     with tabs[0]: st.dataframe(v76_company_dna_df(symbol),use_container_width=True,hide_index=True)
     with tabs[1]: st.dataframe(v76_esg_rank(symbol),use_container_width=True,hide_index=True)
@@ -5281,7 +5281,7 @@ def v76_ai_page(symbol,q,df,scores):
 
 # ================= V76.3 OFFICIAL MASTER + TRANSPARENCY FIX =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V89.4.1 Financial Normalization Hotfix"
+APP_VERSION="V89.4.2 Financial Center Rebuild Edition"
 
 V763_FALLBACK_MASTER = [
     # code,name,market,level1,level2,level3,level4,level5,chain
@@ -5613,13 +5613,13 @@ def v762_banner():
     st.markdown("""
     <div style="padding:28px;border-radius:22px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin:12px 0 22px 0;">
       <div style="font-size:34px;font-weight:900;">📈 智策股市 AI 決策平台</div>
-      <div style="font-size:20px;font-weight:800;margin-top:8px;">V89.4.1 Financial Normalization Hotfix</div>
+      <div style="font-size:20px;font-weight:800;margin-top:8px;">V89.4.2 Financial Center Rebuild Edition</div>
       <div style="font-size:15px;margin-top:8px;opacity:.92;">官方代碼中文表 × 產業DNA × ESG股價溢價 × 計算透明</div>
     </div>
     """, unsafe_allow_html=True)
 
 def v76_ai_page(symbol, q, df, scores):
-    st.markdown("## 🏛 V89.4.1 Financial Normalization Hotfix.3")
+    st.markdown("## 🏛 V89.4.2 Financial Center Rebuild Edition.3")
     tabs = st.tabs(["🧬公司DNA","🌱ESG排名","🌍競爭/同業","🔍計算透明"])
     with tabs[0]:
         st.dataframe(v76_company_dna_df(symbol), use_container_width=True, hide_index=True)
@@ -5640,7 +5640,7 @@ def v762_master_panel():
 
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER =================
 # 基底：V76.3。首頁、監控、K線、設定不重寫；只把原四大中心原封不動嵌入研究院。
-APP_VERSION="V89.4.1 Financial Normalization Hotfix"
+APP_VERSION="V89.4.2 Financial Center Rebuild Edition"
 
 def v85_num(x, default=np.nan):
     try:
@@ -5885,7 +5885,7 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V89.4.1 Financial Normalization Hotfix</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V89.4.2 Financial Center Rebuild Edition</div>
       <div style="font-size:16px;margin-top:10px;">V85 = 完整搬遷版：財報、評價、ESG、法人原封不動搬入研究院</div>
     </div>
     """, unsafe_allow_html=True)
@@ -5937,7 +5937,7 @@ def v80_enterprise_value_page(symbol, q=None, df=None, scores=None): return v85_
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER END =================
 
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER =================
-APP_VERSION="V89.4.1 Financial Normalization Hotfix"
+APP_VERSION="V89.4.2 Financial Center Rebuild Edition"
 
 def v861_profile_data(active):
     code0 = str(active).split(".")[0]
@@ -6165,7 +6165,7 @@ def v87_research_institute(active, q, df_daily, scores):
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER END =================
 
 # ================= V87 STABLE RESEARCH LAYER =================
-APP_VERSION="V89.4.1 Financial Normalization Hotfix"
+APP_VERSION="V89.4.2 Financial Center Rebuild Edition"
 
 def v87_num(x, default=np.nan):
     try:
@@ -6346,7 +6346,7 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V89.4.1 Financial Normalization Hotfix</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V89.4.2 Financial Center Rebuild Edition</div>
       <div style="font-size:16px;margin-top:10px;">AI價值挖掘 × 資料倉儲 × 同業競爭 × 財報單位優化</div>
     </div>
     """, unsafe_allow_html=True)
@@ -8920,6 +8920,252 @@ def financial_center(symbol, q, df):
         ], columns=["項目", "說明"]), use_container_width=True, hide_index=True)
 # ================= V89.4.1 FINANCIAL NORMALIZATION HOTFIX END =================
 
+
+# ================= V89.4.2 FINANCIAL CENTER REBUILD EDITION =================
+def v8942_num(x):
+    try:
+        if x is None:
+            return np.nan
+        if isinstance(x, str):
+            s = x.replace(',', '').replace('億元', '').replace('億', '').replace('%', '').strip()
+            if s in ['', 'None', 'nan', 'NaN', 'N/A', '--']:
+                return np.nan
+            return float(s)
+        return float(x)
+    except Exception:
+        return np.nan
+
+def v8942_fmt_num(x, digits=2):
+    try:
+        if x is None or pd.isna(x):
+            return 'N/A'
+        return f'{float(x):,.{digits}f}'
+    except Exception:
+        return 'N/A'
+
+def v8942_to_yi_number(raw):
+    v = v8942_num(raw)
+    if pd.isna(v):
+        return 'N/A'
+    return v8942_fmt_num(v / 100000000.0)
+
+def v8942_ratio_value(raw):
+    v = v8942_num(raw)
+    if pd.isna(v):
+        return 'N/A'
+    return f'{v:.4f}'.rstrip('0').rstrip('.')
+
+def v8942_is_ratio_item(name):
+    s = str(name)
+    return any(k in s for k in ['EPS','eps','Eps','PE','PB','ROE','ROA','WACC','Beta','Rate','Ratio','Margin','Yield','Per Share','per share','稅率','比率','率','每股','分數','%'])
+
+def v8942_is_amount_item(name):
+    if v8942_is_ratio_item(name):
+        return False
+    s = str(name)
+    return any(k in s for k in [
+        'Revenue','Sales','Income','Profit','EBIT','EBITDA','Expense','Cost','Tax Effect',
+        'Unusual Items','Depreciation','Amortization','Assets','Liabilities','Equity',
+        'Cash','Debt','Inventory','Receivable','Payable','Capital','Expenditure','Flow',
+        'Earnings','Operating','EBT','Pretax','Provision','Stockholders',
+        '收入','營收','毛利','利益','淨利','盈餘','資產','負債','權益','現金','流量',
+        '成本','費用','折舊','攤銷','稅務影響','非常項目','營業','資本','支出',
+        '存貨','應收','應付','債務','股本','保留盈餘'
+    ])
+
+V8942_FIN_TRANSLATION = {
+    'Total Revenue':'營業收入', 'Operating Revenue':'營業收入', 'Revenue':'營業收入',
+    'Gross Profit':'營業毛利', 'Operating Income':'營業利益', 'Total Operating Income As Reported':'營業利益',
+    'Pretax Income':'稅前淨利', 'Net Income':'本期淨利', 'Net Income Common Stockholders':'歸屬母公司淨利',
+    'Normalized Income':'正常化淨利', 'EBITDA':'EBITDA', 'Normalized EBITDA':'正常化 EBITDA', 'EBIT':'EBIT',
+    'Total Assets':'資產總額', 'Total Liabilities Net Minority Interest':'負債總額',
+    'Stockholders Equity':'股東權益', 'Common Stock Equity':'普通股權益', 'Total Equity Gross Minority Interest':'權益總額',
+    'Cash And Cash Equivalents':'現金及約當現金', 'Total Debt':'負債總額', 'Inventory':'存貨', 'Accounts Receivable':'應收帳款',
+    'Operating Cash Flow':'營業活動現金流', 'Cash Flow From Continuing Operating Activities':'營業活動現金流',
+    'Capital Expenditure':'資本支出', 'Purchase Of PPE':'購置不動產廠房設備', 'Free Cash Flow':'自由現金流',
+}
+
+def v8942_translate_item(x):
+    return V8942_FIN_TRANSLATION.get(str(x), str(x))
+
+def v8942_raw_statement_to_display(raw_df):
+    try:
+        if raw_df is None or raw_df.empty:
+            return pd.DataFrame()
+        d = raw_df.copy()
+        if d.index.name is not None or not isinstance(d.index, pd.RangeIndex):
+            d = d.reset_index()
+        first_col = d.columns[0]
+        if str(first_col) not in ['英文項目','項目','會計項目']:
+            d = d.rename(columns={first_col: '英文項目'})
+        if '英文項目' not in d.columns:
+            d = d.rename(columns={d.columns[0]: '英文項目'})
+        if '中文項目' not in d.columns:
+            d.insert(1, '中文項目', d['英文項目'].apply(v8942_translate_item))
+        value_cols = [c for c in d.columns if c not in ['英文項目','中文項目','顯示單位']]
+        units = []
+        for idx in d.index:
+            item_text = f'{d.at[idx, "英文項目"]} {d.at[idx, "中文項目"]}'
+            if v8942_is_amount_item(item_text):
+                for c in value_cols:
+                    if pd.notna(v8942_num(d.at[idx, c])):
+                        d.at[idx, c] = v8942_to_yi_number(d.at[idx, c])
+                units.append('億元')
+            elif v8942_is_ratio_item(item_text):
+                for c in value_cols:
+                    if pd.notna(v8942_num(d.at[idx, c])):
+                        d.at[idx, c] = v8942_ratio_value(d.at[idx, c])
+                units.append('')
+            else:
+                units.append('')
+        d['顯示單位'] = units
+        d.columns = [str(c)[:10] if not isinstance(c, str) else c for c in d.columns]
+        return d
+    except Exception as e:
+        return pd.DataFrame([['資料轉換錯誤', str(e)]], columns=['項目','說明'])
+
+def v8942_get_any(raw_df, keys):
+    try:
+        if raw_df is None or raw_df.empty:
+            return np.nan
+        norm_index = {re.sub(r'[^a-z0-9]', '', str(i).lower()): i for i in raw_df.index}
+        for key in keys:
+            nk = re.sub(r'[^a-z0-9]', '', str(key).lower())
+            if nk in norm_index:
+                vals = pd.to_numeric(raw_df.loc[norm_index[nk]], errors='coerce').dropna()
+                if len(vals):
+                    return float(vals.iloc[0])
+        for key in keys:
+            nk = re.sub(r'[^a-z0-9]', '', str(key).lower())
+            for ni, original in norm_index.items():
+                if nk in ni or ni in nk:
+                    vals = pd.to_numeric(raw_df.loc[original], errors='coerce').dropna()
+                    if len(vals):
+                        return float(vals.iloc[0])
+    except Exception:
+        pass
+    return np.nan
+
+def v8942_financial_summary(symbol, q, ft):
+    income = ft.get('income', pd.DataFrame()) if isinstance(ft, dict) else pd.DataFrame()
+    balance = ft.get('balance', pd.DataFrame()) if isinstance(ft, dict) else pd.DataFrame()
+    cashflow = ft.get('cashflow', pd.DataFrame()) if isinstance(ft, dict) else pd.DataFrame()
+    revenue = v8942_get_any(income, ['Total Revenue','Operating Revenue','Revenue'])
+    gross = v8942_get_any(income, ['Gross Profit'])
+    op_income = v8942_get_any(income, ['Operating Income','Total Operating Income As Reported'])
+    net_income = v8942_get_any(income, ['Net Income','Net Income Common Stockholders','Normalized Income'])
+    assets = v8942_get_any(balance, ['Total Assets'])
+    equity = v8942_get_any(balance, ['Stockholders Equity','Common Stock Equity','Total Equity Gross Minority Interest'])
+    ocf = v8942_get_any(cashflow, ['Operating Cash Flow','Cash Flow From Continuing Operating Activities'])
+    capex = v8942_get_any(cashflow, ['Capital Expenditure','Purchase Of PPE'])
+    fcf = v8942_get_any(cashflow, ['Free Cash Flow'])
+    if pd.isna(fcf) and pd.notna(ocf) and pd.notna(capex):
+        fcf = ocf + capex
+    eps = q.get('eps', np.nan) if isinstance(q, dict) else np.nan
+    pe = q.get('pe', np.nan) if isinstance(q, dict) else np.nan
+    pb = q.get('pb', np.nan) if isinstance(q, dict) else np.nan
+    summary = pd.DataFrame([
+        ['營業收入', v8942_to_yi_number(revenue), '億元'], ['營業毛利', v8942_to_yi_number(gross), '億元'],
+        ['營業利益', v8942_to_yi_number(op_income), '億元'], ['本期淨利', v8942_to_yi_number(net_income), '億元'],
+        ['資產總額', v8942_to_yi_number(assets), '億元'], ['股東權益', v8942_to_yi_number(equity), '億元'],
+        ['營業活動現金流', v8942_to_yi_number(ocf), '億元'], ['自由現金流', v8942_to_yi_number(fcf), '億元'],
+        ['EPS', v8942_ratio_value(eps), '元'], ['PE', v8942_ratio_value(pe), '倍'], ['PB', v8942_ratio_value(pb), '倍'],
+    ], columns=['中文項目','最新數值','單位'])
+    gm = gross/revenue*100 if pd.notna(gross) and pd.notna(revenue) and revenue else np.nan
+    om = op_income/revenue*100 if pd.notna(op_income) and pd.notna(revenue) and revenue else np.nan
+    nm = net_income/revenue*100 if pd.notna(net_income) and pd.notna(revenue) and revenue else np.nan
+    roe = net_income/equity*100 if pd.notna(net_income) and pd.notna(equity) and equity else np.nan
+    roa = net_income/assets*100 if pd.notna(net_income) and pd.notna(assets) and assets else np.nan
+    fcf_margin = fcf/revenue*100 if pd.notna(fcf) and pd.notna(revenue) and revenue else np.nan
+    ratios = pd.DataFrame([
+        ['毛利率', v8942_ratio_value(gm), '%'], ['營益率', v8942_ratio_value(om), '%'],
+        ['淨利率', v8942_ratio_value(nm), '%'], ['ROE', v8942_ratio_value(roe), '%'],
+        ['ROA', v8942_ratio_value(roa), '%'], ['自由現金流率', v8942_ratio_value(fcf_margin), '%'],
+    ], columns=['指標','數值','單位'])
+    score = 50
+    for v, add in [(gm,10),(om,10),(nm,10),(roe,12),(roa,8),(fcf_margin,10)]:
+        if pd.notna(v):
+            score += add if v > 10 else (add/2 if v > 0 else -add/2)
+    return summary, ratios, int(np.clip(score, 0, 100))
+
+def chinese_financial_analysis(symbol, q, ft):
+    return v8942_financial_summary(symbol, q, ft)
+
+def zh_financial_df(df):
+    return v8942_raw_statement_to_display(df)
+
+def financial_center(symbol, q, df):
+    st.subheader(f'📑 中文化財報中心：{display_name(symbol)}')
+    st.caption('V89.4.2：財報中心已重構。金額統一顯示為億元；EPS、PE、PB、ROE、ROA、稅率與比率不轉換。')
+    ft = financial_tables(symbol)
+    summary, ratios, fin_score = v8942_financial_summary(symbol, q, ft)
+    eps = q.get('eps', np.nan) if isinstance(q, dict) else np.nan
+    pe = q.get('pe', np.nan) if isinstance(q, dict) else np.nan
+    pb = q.get('pb', np.nan) if isinstance(q, dict) else np.nan
+    kpi([
+        ('EPS', 'N/A' if pd.isna(v8942_num(eps)) else v8942_ratio_value(eps)),
+        ('PE', 'N/A' if pd.isna(v8942_num(pe)) else v8942_ratio_value(pe)),
+        ('PB', 'N/A' if pd.isna(v8942_num(pb)) else v8942_ratio_value(pb)),
+        ('財報品質分數', f'{fin_score}/100'),
+    ])
+    tabs = st.tabs(['中文財報摘要','中文損益表','中文資產負債表','中文現金流量表','財務比率','AI財報摘要','資料來源與更新'])
+    with tabs[0]:
+        st.dataframe(summary, use_container_width=True, hide_index=True)
+    with tabs[1]:
+        income = v8942_raw_statement_to_display(ft.get('income', pd.DataFrame()))
+        st.dataframe(income, use_container_width=True, hide_index=True) if not income.empty else st.warning('Yahoo Finance 暫無損益表資料。')
+    with tabs[2]:
+        balance = v8942_raw_statement_to_display(ft.get('balance', pd.DataFrame()))
+        st.dataframe(balance, use_container_width=True, hide_index=True) if not balance.empty else st.warning('Yahoo Finance 暫無資產負債表資料。')
+    with tabs[3]:
+        cashflow = v8942_raw_statement_to_display(ft.get('cashflow', pd.DataFrame()))
+        st.dataframe(cashflow, use_container_width=True, hide_index=True) if not cashflow.empty else st.warning('Yahoo Finance 暫無現金流量表資料。')
+    with tabs[4]:
+        st.dataframe(ratios, use_container_width=True, hide_index=True)
+    with tabs[5]:
+        strength = '佳' if fin_score >= 75 else ('中性' if fin_score >= 55 else '偏弱')
+        st.markdown(f"""
+        <div class='explain'>
+        <b>AI財報摘要：</b><br>
+        目前財報品質分數為 <b>{fin_score}/100</b>，判斷為 <b>{strength}</b>。<br>
+        本版已將財報顯示流程改為「原始財報 → 中文翻譯 → 單位正規化 → 顯示」。<br>
+        金額以億元呈現；EPS、PE、PB 與比率維持原始單位。
+        </div>
+        """, unsafe_allow_html=True)
+    with tabs[6]:
+        st.dataframe(pd.DataFrame([
+            ['資料來源','Yahoo Finance；V89.5 預留公開資訊觀測站(MOPS)財務預測串接'],
+            ['金額單位','億元'], ['不轉換項目','EPS、PE、PB、ROE、ROA、稅率、比率、Beta、WACC'],
+            ['注意事項','Yahoo Finance 科目名稱與公開資訊觀測站科目可能不同；正式版將導入MOPS交叉驗證。'],
+        ], columns=['項目','說明']), use_container_width=True, hide_index=True)
+
+def v893_symbols():
+    return ['2330.TW','2303.TW','5347.TWO','6770.TW','2454.TW','3034.TW','3035.TW','3443.TW','3661.TW','2383.TW']
+
+def v8942_semiconductor_groups():
+    return pd.DataFrame([
+        ['晶圓代工','2330.TW','台積電'], ['晶圓代工','2303.TW','聯電'], ['晶圓代工','5347.TWO','世界先進'], ['晶圓代工','6770.TW','力積電'],
+        ['IC設計','2454.TW','聯發科'], ['IC設計','3034.TW','聯詠'], ['AI ASIC','3035.TW','智原'], ['AI ASIC','3443.TW','創意'], ['AI ASIC','3661.TW','世芯-KY'],
+        ['CCL/高階載板','2383.TW','台光電'],
+    ], columns=['產業分類','代碼','公司'])
+
+def v8942_mops_forecast_placeholder():
+    st.subheader('🏛 MOPS財務預測研究院 Coming Soon')
+    st.info('V89.5 預計導入公開資訊觀測站資料、月營收、法說會、重大訊息與財務預測，用於推估下一季與下一年度合理價區間。')
+    st.dataframe(pd.DataFrame([
+        ['公開資訊觀測站','預留串接','財務預測、重大訊息、法說會資料'],
+        ['月營收','預留串接','推估下一季營收與EPS'],
+        ['法說會','預留串接','修正成長率、毛利率、資本支出與WACC假設'],
+        ['下一季合理價','Coming Soon','由財務預測帶入AIVM估值區間'],
+        ['下一年度合理價','Coming Soon','由年度EPS與現金流預測產生估值區間'],
+    ], columns=['模組','狀態','用途']), use_container_width=True, hide_index=True)
+
+try:
+    MAIN = [x for x in MAIN if x in ['🏠首頁','📡監控','📈K線','🏛企業價值研究院','🧪AIVM研究中心','⚙設定']]
+except Exception:
+    pass
+# ================= V89.4.2 FINANCIAL CENTER REBUILD EDITION END =================
+
 active = unified_symbol_manager(symbols)
 
 # V39：手機/電腦響應式欄位
@@ -8953,7 +9199,7 @@ elif page=="📊監控":
     st.caption(f"V76類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
     with st.expander("🧭 V76 類股快速入口", expanded=False):
         v76_sector_panel()
-    # V89.4.1 Financial Normalization Hotfix_PAGE_SECTOR_FIX
+    # V89.4.2 Financial Center Rebuild Edition_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
         page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
@@ -9151,7 +9397,7 @@ st.markdown("---")
 with st.expander("🧾 計算透明化中心", expanded=False):
     transparency_audit_center(active, q, df_daily, scores)
 
-st.caption("AI研究院 Pro V89.4.1 Financial Normalization Hotfix｜研究與教學用途，非投資建議。")
+st.caption("AI研究院 Pro V89.4.2 Financial Center Rebuild Edition｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
 
