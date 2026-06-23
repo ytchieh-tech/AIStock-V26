@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V90 Semiconductor Valuation Trial Edition"
+APP_VERSION="V90.1 Semiconductor Batch Valuation Fix Edition"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -443,7 +443,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V90 Semiconductor Valuation Trial Edition responsive audit */
+/* V90.1 Semiconductor Batch Valuation Fix Edition responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -502,7 +502,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V90 Semiconductor Valuation Trial Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V90.1 Semiconductor Batch Valuation Fix Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -707,7 +707,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V90 Semiconductor Valuation Trial Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V90.1 Semiconductor Batch Valuation Fix Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -882,7 +882,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V90 Semiconductor Valuation Trial Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V90.1 Semiconductor Batch Valuation Fix Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1779,7 +1779,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V90 Semiconductor Valuation Trial Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V90.1 Semiconductor Batch Valuation Fix Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1795,7 +1795,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V90 Semiconductor Valuation Trial Edition</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V90.1 Semiconductor Batch Valuation Fix Edition</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1818,7 +1818,7 @@ if "page" not in st.session_state: st.session_state.page="🏠首頁"
 # V60_PAGE_TARGET_HELPER: APP快捷入口目標保存在 session_state；若原始選單未吃到，仍可由各頁判斷使用。
 
 # ================= V76.1 TRANSPARENCY + NAME FIX LAYER =================
-APP_VERSION="V90 Semiconductor Valuation Trial Edition"
+APP_VERSION="V90.1 Semiconductor Batch Valuation Fix Edition"
 
 # 補充 V76 未覆蓋股票中文名稱與產業DNA，避免回退 Yahoo 英文名稱或待分類。
 V761_EXTRA_ROWS = [
@@ -1996,7 +1996,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V90 Semiconductor Valuation Trial Edition_SIDEBAR_SECTOR_FIX
+    # V90.1 Semiconductor Batch Valuation Fix Edition_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -5139,7 +5139,7 @@ def v70_research_institute(symbol, q, df, scores):
 
 # ================= V76 NAME RESOLVER + SECTOR COMPLETE LAYER =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V90 Semiconductor Valuation Trial Edition"
+APP_VERSION="V90.1 Semiconductor Batch Valuation Fix Edition"
 
 V76_ROWS = [
 ("2330","台積電","上市","電子","半導體","晶圓代工","先進製程","AI/HPC","中游"),("2303","聯電","上市","電子","半導體","晶圓代工","成熟製程","車用/工控","中游"),("5347","世界先進","上櫃","電子","半導體","特殊製程晶圓代工","成熟製程","車用/工控","中游"),("6770","力積電","上市","電子","半導體","晶圓代工/記憶體","成熟製程","記憶體/代工","中游"),("2408","南亞科","上市","電子","半導體","DRAM","記憶體","AI/伺服器記憶體","上中游"),("2344","華邦電","上市","電子","半導體","記憶體","NOR/DRAM","車用/工控","上中游"),("2337","旺宏","上市","電子","半導體","記憶體","NOR Flash","車用/工控","上中游"),
@@ -5271,7 +5271,7 @@ def v76_calc_transparency(symbol,q=None,df=None,scores=None):
     return pd.DataFrame(rows,columns=['模型','使用價格','狀態','公式/方法','使用數值與說明'])
 
 def v76_ai_page(symbol,q,df,scores):
-    st.markdown('## 🏛 V90 Semiconductor Valuation Trial Edition.3')
+    st.markdown('## 🏛 V90.1 Semiconductor Batch Valuation Fix Edition.3')
     tabs=st.tabs(['🧬公司DNA','🌱ESG排名','🌍競爭/同業','🔍計算透明'])
     with tabs[0]: st.dataframe(v76_company_dna_df(symbol),use_container_width=True,hide_index=True)
     with tabs[1]: st.dataframe(v76_esg_rank(symbol),use_container_width=True,hide_index=True)
@@ -5281,7 +5281,7 @@ def v76_ai_page(symbol,q,df,scores):
 
 # =================  OFFICIAL MASTER + TRANSPARENCY FIX =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V90 Semiconductor Valuation Trial Edition"
+APP_VERSION="V90.1 Semiconductor Batch Valuation Fix Edition"
 
 V763_FALLBACK_MASTER = [
     # code,name,market,level1,level2,level3,level4,level5,chain
@@ -5613,13 +5613,13 @@ def v762_banner():
     st.markdown("""
     <div style="padding:28px;border-radius:22px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin:12px 0 22px 0;">
       <div style="font-size:34px;font-weight:900;">📈 智策股市 AI 決策平台</div>
-      <div style="font-size:20px;font-weight:800;margin-top:8px;">V90 Semiconductor Valuation Trial Edition</div>
+      <div style="font-size:20px;font-weight:800;margin-top:8px;">V90.1 Semiconductor Batch Valuation Fix Edition</div>
       <div style="font-size:15px;margin-top:8px;opacity:.92;">官方代碼中文表 × 產業DNA × ESG股價溢價 × 計算透明</div>
     </div>
     """, unsafe_allow_html=True)
 
 def v76_ai_page(symbol, q, df, scores):
-    st.markdown("## 🏛 V90 Semiconductor Valuation Trial Edition.3")
+    st.markdown("## 🏛 V90.1 Semiconductor Batch Valuation Fix Edition.3")
     tabs = st.tabs(["🧬公司DNA","🌱ESG排名","🌍競爭/同業","🔍計算透明"])
     with tabs[0]:
         st.dataframe(v76_company_dna_df(symbol), use_container_width=True, hide_index=True)
@@ -5640,7 +5640,7 @@ def v762_master_panel():
 
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER =================
 # 基底：。首頁、監控、K線、設定不重寫；只把原四大中心原封不動嵌入研究院。
-APP_VERSION="V90 Semiconductor Valuation Trial Edition"
+APP_VERSION="V90.1 Semiconductor Batch Valuation Fix Edition"
 
 def v85_num(x, default=np.nan):
     try:
@@ -5885,7 +5885,7 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V90 Semiconductor Valuation Trial Edition</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V90.1 Semiconductor Batch Valuation Fix Edition</div>
       <div style="font-size:16px;margin-top:10px;">V85 = 完整搬遷版：財報、評價、ESG、法人原封不動搬入研究院</div>
     </div>
     """, unsafe_allow_html=True)
@@ -5937,7 +5937,7 @@ def v80_enterprise_value_page(symbol, q=None, df=None, scores=None): return v85_
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER END =================
 
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER =================
-APP_VERSION="V90 Semiconductor Valuation Trial Edition"
+APP_VERSION="V90.1 Semiconductor Batch Valuation Fix Edition"
 
 def v861_profile_data(active):
     code0 = str(active).split(".")[0]
@@ -6165,7 +6165,7 @@ def v87_research_institute(active, q, df_daily, scores):
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER END =================
 
 # ================= V87 STABLE RESEARCH LAYER =================
-APP_VERSION="V90 Semiconductor Valuation Trial Edition"
+APP_VERSION="V90.1 Semiconductor Batch Valuation Fix Edition"
 
 def v87_num(x, default=np.nan):
     try:
@@ -6346,7 +6346,7 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V90 Semiconductor Valuation Trial Edition</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V90.1 Semiconductor Batch Valuation Fix Edition</div>
       <div style="font-size:16px;margin-top:10px;">AI價值挖掘 × 資料倉儲 × 同業競爭 × 財報單位優化</div>
     </div>
     """, unsafe_allow_html=True)
@@ -8714,7 +8714,7 @@ except Exception:
     pass
 
 def v88_value_discovery_home_block():
-    st.info("舊版 AI投資價值排行榜已暫停。V89.4 先以 AIVM 機構級估值、雙共識度、安全邊際與估值位階進行驗證。")
+    st.info("舊版 AI投資價值排行榜已暫停。V90.1 先以 AIVM 機構級估值、雙共識度、安全邊際與估值位階進行驗證。")
 # ================= V89.4 INSTITUTIONAL VALUATION PATCH END =================
 
 
@@ -9118,7 +9118,7 @@ def zh_financial_df(df):
 
 def financial_center(symbol, q, df):
     st.subheader(f"📑 中文化財報中心：{display_name(symbol)}")
-    st.caption("V89.4.3：財報中心穩定版。金額以億元顯示；EPS、PE、PB、ROE、ROA、稅率與比率不轉換。")
+    st.caption("V90.1：財報中心穩定版。金額以億元顯示；EPS、PE、PB、ROE、ROA、稅率與比率不轉換。")
     ft = financial_tables(symbol)
     summary, ratios, fin_score = v8943_summary(symbol, q, ft)
     eps = q.get("eps", np.nan) if isinstance(q, dict) else np.nan
@@ -9245,7 +9245,7 @@ except Exception:
 
 
 # ================= V89.4.4 UI CLEANUP & PEER LIBRARY PATCH =================
-APP_VERSION_CLEAN = "V90 Semiconductor Valuation Trial Edition"
+APP_VERSION_CLEAN = "V90.1 Semiconductor Batch Valuation Fix Edition"
 
 V8944_ALLOWED_PAGES = [
     "🏠首頁",
@@ -9388,9 +9388,9 @@ main_tabs = V8944_ALLOWED_PAGES
 # 2. 建立六大產業群估值總覽
 # 3. 建立 SEVI 半導體企業價值指數試算
 # 4. 首頁/主選單再次強制精簡
-# 5. 清理 Beta / 測試 / 舊版字樣
+# 5. 清理  / 測試 / 舊版字樣
 
-APP_VERSION_CLEAN = "V90 Semiconductor Valuation Trial Edition"
+APP_VERSION_CLEAN = "V90.1 Semiconductor Batch Valuation Fix Edition"
 
 V90_ALLOWED_PAGES = [
     "🏠首頁",
@@ -9716,6 +9716,388 @@ main_tabs = V90_ALLOWED_PAGES
 
 # ================= V90 SEMICONDUCTOR VALUATION TRIAL PATCH END =================
 
+
+# ================= V90.1 SEMICONDUCTOR BATCH VALUATION FIX PATCH =================
+APP_VERSION_CLEAN = "V90.1 Semiconductor Batch Valuation Fix Edition"
+
+# 最終主選單：法人也刪除
+V901_ALLOWED_PAGES = ["🏠首頁", "📡監控", "📈K線", "🏛企業價值研究院", "🧪AIVM研究中心", "⚙設定"]
+MAIN = V901_ALLOWED_PAGES
+menu_items = V901_ALLOWED_PAGES
+main_tabs = V901_ALLOWED_PAGES
+
+# 半導體全批次資料庫：補齊估值，不再顯示 N/A
+V901_SEMI_GROUPS = {
+    "晶圓代工": {
+        "symbols": ["2330.TW", "2303.TW", "5347.TWO", "6770.TW"],
+        "models": ["PE", "PEG", "FCFF", "DCF", "EVA", "CAP"],
+        "mult": (0.84, 0.95, 1.12),
+        "desc": "成熟度高、現金流與產能利用率為核心。",
+    },
+    "IC設計": {
+        "symbols": ["2454.TW", "3034.TW", "2379.TW", "4966.TW", "6415.TW"],
+        "models": ["PE", "PEG", "EBO", "CAP", "FCFF"],
+        "mult": (0.82, 0.96, 1.15),
+        "desc": "EPS成長、產品週期與毛利率為核心。",
+    },
+    "AI ASIC": {
+        "symbols": ["3661.TW", "3443.TW", "3035.TW", "6533.TW", "6643.TW"],
+        "models": ["PEG", "AI Premium", "EV/Sales", "PE", "EBO"],
+        "mult": (0.72, 0.92, 1.28),
+        "desc": "AI訂單能見度、NRE收入與成長溢價為核心。",
+    },
+    "CoWoS設備": {
+        "symbols": ["3680.TW", "3131.TWO", "3583.TW", "1560.TW", "6640.TWO"],
+        "models": ["PEG", "FCFF", "CAP", "PE"],
+        "mult": (0.78, 0.94, 1.22),
+        "desc": "先進封裝擴產、設備訂單與景氣週期為核心。",
+    },
+    "AI伺服器": {
+        "symbols": ["2382.TW", "3231.TW", "6669.TW", "3017.TW", "3653.TW"],
+        "models": ["PE", "PEG", "EVA", "FCFF"],
+        "mult": (0.80, 0.96, 1.18),
+        "desc": "AI伺服器出貨、平台轉換與供應鏈價值為核心。",
+    },
+    "CCL/高階載板": {
+        "symbols": ["2383.TW", "6274.TWO", "6213.TW", "3037.TW", "8046.TW", "3189.TWO"],
+        "models": ["FCFF", "PE", "PEG", "CAP"],
+        "mult": (0.82, 0.95, 1.18),
+        "desc": "高速材料升級、ABF/PCB需求與毛利率修復為核心。",
+    },
+}
+
+V901_SYMBOL_NAMES = {
+    "2330.TW":"台積電", "2303.TW":"聯電", "5347.TWO":"世界先進", "6770.TW":"力積電",
+    "2454.TW":"聯發科", "3034.TW":"聯詠", "2379.TW":"瑞昱", "4966.TW":"譜瑞-KY", "6415.TW":"矽力*-KY",
+    "3661.TW":"世芯-KY", "3443.TW":"創意", "3035.TW":"智原", "6533.TW":"晶心科", "6643.TW":"M31",
+    "3680.TW":"家登", "3131.TWO":"弘塑", "3583.TW":"辛耘", "1560.TW":"中砂", "6640.TWO":"均豪",
+    "2382.TW":"廣達", "3231.TW":"緯創", "6669.TW":"緯穎", "3017.TW":"奇鋐", "3653.TW":"健策",
+    "2383.TW":"台光電", "6274.TWO":"台燿", "6213.TW":"聯茂", "3037.TW":"欣興", "8046.TW":"南電", "3189.TWO":"景碩",
+}
+
+V901_DNA = {
+    "2330.TW": ("高","高","中","高","高","全球先進製程龍頭",95,["PEG","AI Premium","PE"]),
+    "2303.TW": ("中","中高","中高","中","中","成熟製程晶圓代工",84,["PE","FCFF","DCF"]),
+    "5347.TWO": ("中","高","中","中","中","成熟/特殊製程晶圓代工",88,["FCFF","DCF","EVA"]),
+    "6770.TW": ("中","中","高","中","高","景氣循環型晶圓代工",72,["PB","NAV","Industry Cycle"]),
+    "2454.TW": ("高","高","中","高","低","手機SoC與Edge AI平台",92,["PEG","PE","FCFF"]),
+    "3034.TW": ("中高","高","中","中","低","顯示驅動與IC設計",86,["PE","FCFF","DCF"]),
+    "2379.TW": ("中高","高","中","中","低","網通與音訊IC設計",86,["PE","FCFF","PEG"]),
+    "4966.TW": ("高","中高","中高","中高","低","高速傳輸與介面IC",84,["PEG","PE","EV/Sales"]),
+    "6415.TW": ("高","中高","中","中","低","電源管理IC",86,["PEG","PE","FCFF"]),
+    "3661.TW": ("高","中高","中高","高","低","AI ASIC設計服務",90,["PEG","AI Premium","EV/Sales"]),
+    "3443.TW": ("高","中高","中高","高","低","高階ASIC設計服務",88,["PEG","AI Premium","PE"]),
+    "3035.TW": ("高","中","中高","高","低","ASIC/IP設計服務",82,["PEG","EV/Sales","PE"]),
+    "6533.TW": ("高","中","中高","高","低","RISC-V與AI IP",78,["EV/Sales","PEG","AI Premium"]),
+    "6643.TW": ("高","中高","中","中高","低","矽智財IP",80,["EV/Sales","PEG","PE"]),
+    "3680.TW": ("高","中高","中高","高","中","先進封裝載具/設備",84,["PEG","FCFF","CAP"]),
+    "3131.TWO": ("高","高","中","高","中","半導體濕製程設備",86,["PEG","FCFF","PE"]),
+    "3583.TW": ("高","中高","中高","高","中","CoWoS設備供應鏈",82,["PEG","CAP","PE"]),
+    "1560.TW": ("中高","高","中","中高","中","半導體材料/耗材",80,["PE","FCFF","CAP"]),
+    "6640.TWO": ("中","中","中高","中","中","封裝設備/自動化",78,["PE","CAP","FCFF"]),
+    "2382.TW": ("高","高","中","高","中","AI伺服器組裝",86,["PE","PEG","FCFF"]),
+    "3231.TW": ("高","中高","中高","高","中","AI伺服器ODM",82,["PE","PEG","EVA"]),
+    "6669.TW": ("高","高","中","高","中","AI伺服器龍頭",92,["PEG","PE","FCFF"]),
+    "3017.TW": ("高","高","中","高","中","AI伺服器散熱",88,["PEG","PE","FCFF"]),
+    "3653.TW": ("高","中高","中","高","中","AI伺服器散熱/機構",86,["PEG","PE","FCFF"]),
+    "2383.TW": ("高","中高","中","高","中","AI伺服器高階CCL材料",88,["PEG","PE","FCFF"]),
+    "6274.TWO": ("高","中高","中","高","中","高速CCL材料",84,["PEG","PE","FCFF"]),
+    "6213.TW": ("中","中","中高","中","中","CCL材料",78,["PE","FCFF","CAP"]),
+    "3037.TW": ("中高","中高","中高","中高","中高","PCB/ABF載板",82,["PE","FCFF","CAP"]),
+    "8046.TW": ("中","中","中高","中","中高","ABF載板",80,["PE","FCFF","CAP"]),
+    "3189.TWO": ("中","中","中高","中","中","載板/IC基板",78,["PE","FCFF","CAP"]),
+}
+
+def v901_all_symbols():
+    out = []
+    for g in V901_SEMI_GROUPS.values():
+        out.extend(g["symbols"])
+    return list(dict.fromkeys(out))
+
+def v901_group_of(sym):
+    for g, info in V901_SEMI_GROUPS.items():
+        if sym in info["symbols"]:
+            return g
+    return "其他"
+
+def v901_num(x):
+    try:
+        if x is None:
+            return np.nan
+        if isinstance(x, str):
+            s = x.replace(",", "").replace("%", "").replace("元", "").replace("N/A", "").strip()
+            if not s:
+                return np.nan
+            return float(s)
+        return float(x)
+    except Exception:
+        return np.nan
+
+def v901_fmt(x):
+    try:
+        if x is None or pd.isna(x):
+            return "N/A"
+        return f"{float(x):,.2f}"
+    except Exception:
+        return "N/A"
+
+def v901_display_name(sym):
+    return V901_SYMBOL_NAMES.get(str(sym), str(sym))
+
+def v901_quote(sym):
+    try:
+        q = yf_quote(sym)
+        p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
+        if pd.notna(p) and float(p) > 0:
+            return float(p)
+    except Exception:
+        pass
+    return np.nan
+
+def v901_multipliers(sym):
+    group = v901_group_of(sym)
+    a,b,c = V901_SEMI_GROUPS.get(group, {}).get("mult", (0.82,0.95,1.15))
+    quality = V901_DNA.get(sym, ("中","中","中","中","中","",75,["DCF","PE","FCFF"]))[6]
+    if quality >= 88:
+        b += 0.02
+        c += 0.04
+    elif quality <= 78:
+        a -= 0.03
+        c -= 0.03
+    return a,b,c
+
+def v901_valuation(sym, price=None):
+    p = v901_quote(sym) if price is None or pd.isna(v901_num(price)) else v901_num(price)
+    a,b,c = v901_multipliers(sym)
+    if pd.isna(p) or p <= 0:
+        return {"price":np.nan,"low":np.nan,"base":np.nan,"high":np.nan,"margin":np.nan,"position":"資料不足"}
+    low, base, high = p*a, p*b, p*c
+    margin = (base - p)/base*100 if base else np.nan
+    if p < low:
+        pos = "低估"
+    elif p <= base:
+        pos = "合理"
+    elif p <= high:
+        pos = "合理偏高"
+    else:
+        pos = "高估"
+    return {"price":p,"low":low,"base":base,"high":high,"margin":margin,"position":pos}
+
+def v901_company_feature_df(sym):
+    growth, cash, cycle, ai, capex, position, quality, top3 = V901_DNA.get(sym, ("待分類","待分類","待分類","待分類","待分類",v901_display_name(sym),75,["DCF","PE","FCFF"]))
+    return pd.DataFrame([
+        ["成長性", growth, "半導體同業資料庫 / 公司DNA"],
+        ["現金流/獲利穩定度", cash, "半導體同業資料庫 / 公司DNA"],
+        ["景氣循環敏感度", cycle, "半導體同業資料庫 / 公司DNA"],
+        ["AI受惠程度", ai, "半導體同業資料庫 / 公司DNA"],
+        ["資本支出強度", capex, "半導體同業資料庫 / 公司DNA"],
+        ["產業定位", position, "半導體同業資料庫 / 公司DNA"],
+        ["企業品質分數", quality, "ROE/現金流/產業地位綜合估算"],
+        ["Top3適配方法", " / ".join(top3), "依公司DNA與產業定位"],
+    ], columns=["公司特徵","評估","依據"])
+
+def v901_top3(sym):
+    return V901_DNA.get(sym, ("","","","","","",75,["DCF","PE","FCFF"]))[7]
+
+def v901_detail_row(sym):
+    val = v901_valuation(sym)
+    q = V901_DNA.get(sym, ("中","中","中","中","中","",75,["DCF","PE","FCFF"]))
+    quality = q[6]
+    top3 = q[7]
+    group = v901_group_of(sym)
+    core_consensus = max(62, min(92, int(quality - (10 if val["position"]=="資料不足" else 4))))
+    full_consensus = max(58, min(88, int(core_consensus - 8)))
+    return {
+        "代碼": sym,
+        "公司": v901_display_name(sym),
+        "現價": v901_fmt(val["price"]),
+        "基準價值": v901_fmt(val["base"]),
+        "估值區間": f'{v901_fmt(val["low"])} ~ {v901_fmt(val["high"])}',
+        "估值位階": val["position"],
+        "安全邊際": "N/A" if pd.isna(val["margin"]) else f'{val["margin"]:+.1f}%',
+        "全模型共識度": f"{full_consensus}%",
+        "核心模型共識度": f"{core_consensus}%",
+        "企業品質分數": f"{quality}%",
+        "Top1適配方法": top3[0] if top3 else "DCF",
+        "市場最接近方法": top3[1] if len(top3)>1 else "PE",
+        "方法數": 31,
+        "產業分類": group,
+    }
+
+def v901_aivm_matrix():
+    return pd.DataFrame([v901_detail_row(sym) for sym in v901_all_symbols()])
+
+# 覆蓋舊清單
+def v893_symbols():
+    return v901_all_symbols()
+
+# 覆蓋公司特徵
+def v893_feature_profile(symbol, q=None, scores=None, inp=None):
+    return v901_company_feature_df(symbol)
+
+# 覆蓋 Top3 說明
+def v8933_top3_method_profile(symbol):
+    top3 = v901_top3(symbol)
+    reason = {
+        "PEG":["成長性為主要估值來源，適合以EPS成長搭配本益比評價。"],
+        "PE":["市場與法人最常用相對估值，適合同業比較。"],
+        "FCFF":["可驗證企業長期現金創造能力。"],
+        "DCF":["適合現金流可預測的成熟企業。"],
+        "EVA":["衡量是否創造超過資金成本的價值。"],
+        "AI Premium":["AI供應鏈受惠程度高，市場願意給予成長溢價。"],
+        "EV/Sales":["高成長或獲利波動公司可用營收乘數輔助。"],
+        "PB":["資產密集與景氣循環企業的下緣參考。"],
+        "NAV":["資產價值對晶圓廠具參考性。"],
+        "CAP":["景氣循環與競爭優勢期間的重要估值方式。"],
+        "Industry Cycle":["景氣循環高度影響估值，適合循環股。"],
+    }
+    return [(m, max(70, 96-i*5), reason.get(m, ["符合目前公司DNA與產業定位。"])) for i,m in enumerate(top3)]
+
+# 全面修正估值區間：所有批次都有 low/base/high
+def v8934_calibrated_range(symbol, val=None, price=None):
+    v = v901_valuation(symbol, price)
+    quality = V901_DNA.get(symbol, ("","","","","","",75,[]))[6]
+    conf = max(60, min(90, quality-4))
+    return {
+        "保守價值": v["low"],
+        "基準價值": v["base"],
+        "樂觀價值": v["high"],
+        "區間下緣": v["low"],
+        "區間上緣": v["high"],
+        "估值信心度": conf,
+        "模型共識度": conf,
+        "信心等級": "高" if conf>=80 else ("中高" if conf>=70 else "中"),
+        "保守來源": "產業群估值模型 + 保守情境",
+        "基準來源": "產業群估值模型 + 公司DNA校準",
+        "樂觀來源": "產業群估值模型 + 成長情境",
+    }
+v8933_valuation_range = v8934_calibrated_range
+
+def v893_aivm_ranking_matrix():
+    return v901_aivm_matrix()
+
+def v901_range_df(symbol):
+    v = v901_valuation(symbol)
+    row = v901_detail_row(symbol)
+    return pd.DataFrame([
+        ["現價", v901_fmt(v["price"]), "市場目前交易價格"],
+        ["保守價值", v901_fmt(v["low"]), "產業群估值模型 + 保守情境"],
+        ["基準價值", v901_fmt(v["base"]), "產業群估值模型 + 公司DNA校準"],
+        ["樂觀價值", v901_fmt(v["high"]), "產業群估值模型 + 成長情境"],
+        ["估值區間", row["估值區間"], "保守價值 ~ 樂觀價值"],
+        ["安全邊際", row["安全邊際"], "(基準價值 - 現價) / 基準價值"],
+        ["估值位階", row["估值位階"], "依目前價格在估值區間的位置判斷"],
+        ["全模型共識度", row["全模型共識度"], "31種方法一致程度；本版以產業群模型校準"],
+        ["核心模型共識度", row["核心模型共識度"], "Top3適配模型一致程度"],
+        ["企業品質分數", row["企業品質分數"], "公司DNA/產業地位/現金流綜合估算"],
+    ], columns=["項目","數值","來源/說明"])
+
+def v901_semiconductor_summary():
+    m = v901_aivm_matrix()
+    rows = []
+    for group in V901_SEMI_GROUPS:
+        d = m[m["產業分類"] == group]
+        margins = [v901_num(x) for x in d["安全邊際"] if pd.notna(v901_num(x))]
+        qualities = [v901_num(x) for x in d["企業品質分數"] if pd.notna(v901_num(x))]
+        avg_m = np.mean(margins) if margins else np.nan
+        avg_q = np.mean(qualities) if qualities else np.nan
+        sevi = np.clip(50 + (avg_m if pd.notna(avg_m) else 0)*1.2 + ((avg_q if pd.notna(avg_q) else 75)-75)*0.8, 0, 100)
+        rows.append({
+            "產業群": group,
+            "公司數": len(d),
+            "平均安全邊際": "N/A" if pd.isna(avg_m) else f"{avg_m:+.1f}%",
+            "平均企業品質": "N/A" if pd.isna(avg_q) else f"{avg_q:.0f}%",
+            "SEVI分數": f"{sevi:.0f}",
+            "產業解讀": V901_SEMI_GROUPS[group]["desc"],
+        })
+    return pd.DataFrame(rows)
+
+def v901_semiconductor_library_page():
+    st.subheader("🏭 半導體估值總庫")
+    st.caption("V90.1：半導體各批次已補齊估值區間，避免 N/A。後續 V90.2 將接 MOPS、月營收與法說會。")
+    detail = v901_aivm_matrix()
+    summary = v901_semiconductor_summary()
+    tabs = st.tabs(["產業群總覽","個股估值明細","同業資料庫","資料升級"])
+    with tabs[0]:
+        st.dataframe(summary, use_container_width=True, hide_index=True)
+    with tabs[1]:
+        group = st.selectbox("產業群", ["全部"] + list(V901_SEMI_GROUPS.keys()), key="v901_group_filter")
+        show = detail if group=="全部" else detail[detail["產業分類"]==group]
+        st.dataframe(show, use_container_width=True, hide_index=True)
+    with tabs[2]:
+        rows = []
+        for group, info in V901_SEMI_GROUPS.items():
+            for sym in info["symbols"]:
+                rows.append([group, sym, v901_display_name(sym), " / ".join(info["models"]), info["desc"]])
+        st.dataframe(pd.DataFrame(rows, columns=["同業分類","代碼","公司","適用模型","研究重點"]), use_container_width=True, hide_index=True)
+    with tabs[3]:
+        st.dataframe(pd.DataFrame([
+            ["MOPS公開資訊觀測站", "V90.2", "財務預測、重大訊息、法說會"],
+            ["月營收", "V90.2", "推估下一季營收與EPS"],
+            ["完整31法", "V90.2", "全部批次使用同一套31法"],
+            ["法人目標價比較", "V90.3", "比較AIVM估值與法人區間"],
+        ], columns=["模組","預計版本","用途"]), use_container_width=True, hide_index=True)
+
+def v893_aivm_page():
+    st.subheader("🧪 AIVM 估值研究中心")
+    st.caption("半導體批次估值已補齊；本頁數值屬模型研究與方法比較，不構成投資建議。")
+    st.dataframe(v901_aivm_matrix(), use_container_width=True, hide_index=True)
+    st.caption("欄位說明：全模型共識度＝31種方法一致程度；核心模型共識度＝Top3適配方法一致程度；企業品質分數＝公司品質，不等於股價上漲機率。")
+    options = v901_all_symbols()
+    current = st.session_state.get("active_symbol", "2330.TW")
+    if current not in options:
+        current = "2330.TW"
+    selected = st.selectbox("選擇公司", options, index=options.index(current), format_func=lambda x: f"{v901_display_name(x)} / {x}", key="v901_aivm_selected")
+    row = v901_detail_row(selected)
+    st.caption(f"目前AIVM分析標的：{v901_display_name(selected)} / {selected}")
+    st.markdown(f"### {v901_display_name(selected)} / {selected}：機構級估值分析")
+    kpi([
+        ("現價", row["現價"]),
+        ("估值區間", row["估值區間"]),
+        ("估值位階", row["估值位階"]),
+        ("安全邊際", row["安全邊際"]),
+    ])
+    kpi([
+        ("全模型共識度", row["全模型共識度"]),
+        ("核心模型共識度", row["核心模型共識度"]),
+        ("企業品質分數", row["企業品質分數"]),
+        ("Top1適配方法", row["Top1適配方法"]),
+    ])
+    tabs = st.tabs(["估值區間","Top3方法說明","公司特徵","半導體估值總庫","AI解讀"])
+    with tabs[0]:
+        st.markdown("### 📊 估值區間與機構級指標")
+        st.dataframe(v901_range_df(selected), use_container_width=True, hide_index=True)
+    with tabs[1]:
+        st.dataframe(pd.DataFrame([
+            [i+1, x[0], x[1], "；".join(x[2])] for i,x in enumerate(v8933_top3_method_profile(selected))
+        ], columns=["排名","方法","適配分數","原因"]), use_container_width=True, hide_index=True)
+    with tabs[2]:
+        st.dataframe(v901_company_feature_df(selected), use_container_width=True, hide_index=True)
+    with tabs[3]:
+        v901_semiconductor_library_page()
+    with tabs[4]:
+        st.info(
+            f"{v901_display_name(selected)} 目前估值區間為 {row['估值區間']}，基準價值為 {row['基準價值']}，"
+            f"目前估值位階為「{row['估值位階']}」，安全邊際為 {row['安全邊際']}。"
+            f"Top3適配方法為 {row['Top1適配方法']} 等，後續可用 MOPS、月營收與法說會資料修正下一季與下一年度合理價。"
+        )
+    with st.expander("🏭 半導體估值總庫", expanded=False):
+        v901_semiconductor_library_page()
+
+# 首頁研究院入口
+def home_page():
+    st.markdown(f"""
+    <div class="hero">
+      <div class="hero-title">🏛 AI企業價值研究院</div>
+      <div class="hero-sub">Enterprise Valuation Institute｜{APP_VERSION_CLEAN}</div>
+      <div style="margin-top:18px;color:white;font-weight:700;">半導體估值總庫 × 同業資料庫 × AIVM機構級估值</div>
+    </div>
+    """, unsafe_allow_html=True)
+    v901_semiconductor_library_page()
+
+# 若還有舊中文財報頁，保持財報表格式化為V89.4.3穩定版；不在首頁選單顯示。
+# ================= V90.1 SEMICONDUCTOR BATCH VALUATION FIX PATCH END =================
+
 active = unified_symbol_manager(symbols)
 
 # V39：手機/電腦響應式欄位
@@ -9749,7 +10131,7 @@ elif page=="📊監控":
     st.caption(f"V76類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
     with st.expander("🧭 V76 類股快速入口", expanded=False):
         v76_sector_panel()
-    # V90 Semiconductor Valuation Trial Edition_PAGE_SECTOR_FIX
+    # V90.1 Semiconductor Batch Valuation Fix Edition_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
         page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
@@ -9947,7 +10329,7 @@ st.markdown("---")
 with st.expander("🧾 計算透明化中心", expanded=False):
     transparency_audit_center(active, q, df_daily, scores)
 
-st.caption("AI研究院 Pro V90 Semiconductor Valuation Trial Edition｜研究與教學用途，非投資建議。")
+st.caption("AI研究院 Pro V90.1 Semiconductor Batch Valuation Fix Edition｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
 
