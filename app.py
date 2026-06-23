@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V90.3 UI Text Cleanup Multi Sector Edition"
+APP_VERSION="V90.4 Sector Home DNA Expansion Edition"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -443,7 +443,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V90.3 UI Text Cleanup Multi Sector Edition responsive audit */
+/* V90.4 Sector Home DNA Expansion Edition responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -502,7 +502,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V90.3 UI Text Cleanup Multi Sector Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V90.4 Sector Home DNA Expansion Edition：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -707,7 +707,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V90.3 UI Text Cleanup Multi Sector Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V90.4 Sector Home DNA Expansion Edition.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -882,7 +882,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V90.3 UI Text Cleanup Multi Sector Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V90.4 Sector Home DNA Expansion Edition: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1779,7 +1779,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V90.3 UI Text Cleanup Multi Sector Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V90.4 Sector Home DNA Expansion Edition｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1795,7 +1795,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V90.3 UI Text Cleanup Multi Sector Edition</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V90.4 Sector Home DNA Expansion Edition</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1818,7 +1818,7 @@ if "page" not in st.session_state: st.session_state.page="🏠首頁"
 # V60_PAGE_TARGET_HELPER: APP快捷入口目標保存在 session_state；若原始選單未吃到，仍可由各頁判斷使用。
 
 # ================= V76.1 TRANSPARENCY + NAME FIX LAYER =================
-APP_VERSION="V90.3 UI Text Cleanup Multi Sector Edition"
+APP_VERSION="V90.4 Sector Home DNA Expansion Edition"
 
 # 補充 未覆蓋股票中文名稱與產業DNA，避免回退 Yahoo 英文名稱或待分類。
 V761_EXTRA_ROWS = [
@@ -1998,7 +1998,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V90.3 UI Text Cleanup Multi Sector Edition_SIDEBAR_SECTOR_FIX
+    # V90.4 Sector Home DNA Expansion Edition_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -5141,7 +5141,7 @@ def v70_research_institute(symbol, q, df, scores):
 
 # ================= NAME RESOLVER + SECTOR COMPLETE LAYER =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V90.3 UI Text Cleanup Multi Sector Edition"
+APP_VERSION="V90.4 Sector Home DNA Expansion Edition"
 
 V76_ROWS = [
 ("2330","台積電","上市","電子","半導體","晶圓代工","先進製程","AI/HPC","中游"),("2303","聯電","上市","電子","半導體","晶圓代工","成熟製程","車用/工控","中游"),("5347","世界先進","上櫃","電子","半導體","特殊製程晶圓代工","成熟製程","車用/工控","中游"),("6770","力積電","上市","電子","半導體","晶圓代工/記憶體","成熟製程","記憶體/代工","中游"),("2408","南亞科","上市","電子","半導體","DRAM","記憶體","AI/伺服器記憶體","上中游"),("2344","華邦電","上市","電子","半導體","記憶體","NOR/DRAM","車用/工控","上中游"),("2337","旺宏","上市","電子","半導體","記憶體","NOR Flash","車用/工控","上中游"),
@@ -5273,7 +5273,7 @@ def v76_calc_transparency(symbol,q=None,df=None,scores=None):
     return pd.DataFrame(rows,columns=['模型','使用價格','狀態','公式/方法','使用數值與說明'])
 
 def v76_ai_page(symbol,q,df,scores):
-    st.markdown('## 🏛 V90.3 UI Text Cleanup Multi Sector Edition.3')
+    st.markdown('## 🏛 V90.4 Sector Home DNA Expansion Edition.3')
     tabs=st.tabs(['🧬公司DNA','🌱ESG排名','🌍競爭/同業','🔍計算透明'])
     with tabs[0]: st.dataframe(v76_company_dna_df(symbol),use_container_width=True,hide_index=True)
     with tabs[1]: st.dataframe(v76_esg_rank(symbol),use_container_width=True,hide_index=True)
@@ -5283,7 +5283,7 @@ def v76_ai_page(symbol,q,df,scores):
 
 # =================  OFFICIAL MASTER + TRANSPARENCY FIX =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V90.3 UI Text Cleanup Multi Sector Edition"
+APP_VERSION="V90.4 Sector Home DNA Expansion Edition"
 
 V763_FALLBACK_MASTER = [
     # code,name,market,level1,level2,level3,level4,level5,chain
@@ -5615,13 +5615,13 @@ def v762_banner():
     st.markdown("""
     <div style="padding:28px;border-radius:22px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin:12px 0 22px 0;">
       <div style="font-size:34px;font-weight:900;">📈 智策股市 AI 決策平台</div>
-      <div style="font-size:20px;font-weight:800;margin-top:8px;">V90.3 UI Text Cleanup Multi Sector Edition</div>
+      <div style="font-size:20px;font-weight:800;margin-top:8px;">V90.4 Sector Home DNA Expansion Edition</div>
       <div style="font-size:15px;margin-top:8px;opacity:.92;">官方代碼中文表 × 產業DNA × ESG股價溢價 × 計算透明</div>
     </div>
     """, unsafe_allow_html=True)
 
 def v76_ai_page(symbol, q, df, scores):
-    st.markdown("## 🏛 V90.3 UI Text Cleanup Multi Sector Edition.3")
+    st.markdown("## 🏛 V90.4 Sector Home DNA Expansion Edition.3")
     tabs = st.tabs(["🧬公司DNA","🌱ESG排名","🌍競爭/同業","🔍計算透明"])
     with tabs[0]:
         st.dataframe(v76_company_dna_df(symbol), use_container_width=True, hide_index=True)
@@ -5642,7 +5642,7 @@ def v762_master_panel():
 
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER =================
 # 基底：。首頁、監控、K線、設定不重寫；只把原四大中心原封不動嵌入研究院。
-APP_VERSION="V90.3 UI Text Cleanup Multi Sector Edition"
+APP_VERSION="V90.4 Sector Home DNA Expansion Edition"
 
 def v85_num(x, default=np.nan):
     try:
@@ -5887,7 +5887,7 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V90.3 UI Text Cleanup Multi Sector Edition</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V90.4 Sector Home DNA Expansion Edition</div>
       <div style="font-size:16px;margin-top:10px;">V85 = 完整搬遷版：財報、評價、ESG、法人原封不動搬入研究院</div>
     </div>
     """, unsafe_allow_html=True)
@@ -5939,7 +5939,7 @@ def v80_enterprise_value_page(symbol, q=None, df=None, scores=None): return v85_
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER END =================
 
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER =================
-APP_VERSION="V90.3 UI Text Cleanup Multi Sector Edition"
+APP_VERSION="V90.4 Sector Home DNA Expansion Edition"
 
 def v861_profile_data(active):
     code0 = str(active).split(".")[0]
@@ -6167,7 +6167,7 @@ def v87_research_institute(active, q, df_daily, scores):
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER END =================
 
 # ================= V87 STABLE RESEARCH LAYER =================
-APP_VERSION="V90.3 UI Text Cleanup Multi Sector Edition"
+APP_VERSION="V90.4 Sector Home DNA Expansion Edition"
 
 def v87_num(x, default=np.nan):
     try:
@@ -6348,7 +6348,7 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V90.3 UI Text Cleanup Multi Sector Edition</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V90.4 Sector Home DNA Expansion Edition</div>
       <div style="font-size:16px;margin-top:10px;">AI價值挖掘 × 資料倉儲 × 同業競爭 × 財報單位優化</div>
     </div>
     """, unsafe_allow_html=True)
@@ -9247,7 +9247,7 @@ except Exception:
 
 
 # ================= V89.4.4 UI CLEANUP & PEER LIBRARY PATCH =================
-APP_VERSION_CLEAN = "V90.3 UI Text Cleanup Multi Sector Edition"
+APP_VERSION_CLEAN = "V90.4 Sector Home DNA Expansion Edition"
 
 V8944_ALLOWED_PAGES = [
     "🏠首頁",
@@ -9392,7 +9392,7 @@ main_tabs = V8944_ALLOWED_PAGES
 # 4. 首頁/主選單再次強制精簡
 # 5. 清理  / 測試 / 舊版字樣
 
-APP_VERSION_CLEAN = "V90.3 UI Text Cleanup Multi Sector Edition"
+APP_VERSION_CLEAN = "V90.4 Sector Home DNA Expansion Edition"
 
 V90_ALLOWED_PAGES = [
     "🏠首頁",
@@ -9720,7 +9720,7 @@ main_tabs = V90_ALLOWED_PAGES
 
 
 # ================= V90.1 SEMICONDUCTOR BATCH VALUATION FIX PATCH =================
-APP_VERSION_CLEAN = "V90.3 UI Text Cleanup Multi Sector Edition"
+APP_VERSION_CLEAN = "V90.4 Sector Home DNA Expansion Edition"
 
 # 最終主選單：法人也刪除
 V901_ALLOWED_PAGES = ["🏠首頁", "📡監控", "📈K線", "🏛企業價值研究院", "🧪AIVM研究中心", "⚙設定"]
@@ -10102,7 +10102,7 @@ def home_page():
 
 
 # ================= V90.2 MENU + FINANCIAL UNIT FINAL FIX =================
-APP_VERSION_CLEAN = "V90.3 UI Text Cleanup Multi Sector Edition"
+APP_VERSION_CLEAN = "V90.4 Sector Home DNA Expansion Edition"
 
 # 1) 財報單位最終修正：不要再吃舊 zh_financial_df，直接產生顯示表
 def v902_num(x):
@@ -10319,7 +10319,7 @@ def v902_normalize_main_choice(x):
 
 
 # ================= V90.3 UI TEXT CLEANUP + MULTI SECTOR PATCH =================
-APP_VERSION_CLEAN = "V90.3 UI Text Cleanup Multi Sector Edition"
+APP_VERSION_CLEAN = "V90.4 Sector Home DNA Expansion Edition"
 
 # 強制把舊選單導回可用頁面
 V903_ALLOWED_PAGES = ["🏠首頁","📊監控","📈K線","🏛企業價值研究院","🧪AIVM研究中心","⚙設定"]
@@ -10546,6 +10546,179 @@ def home_page():
     v903_multi_sector_page()
 # ================= V90.3 UI TEXT CLEANUP + MULTI SECTOR PATCH END =================
 
+
+# ================= V90.4 SECTOR HOME + DNA EXPANSION PATCH =================
+APP_VERSION_CLEAN = "V90.4 Sector Home DNA Expansion Edition"
+
+# 估值位階規則：
+# 安全邊際 = (基準價值 - 現價) / 基準價值
+# >= +15%：低估
+# +5% ~ +15%：合理偏低
+# -8% ~ +5%：合理
+# -18% ~ -8%：合理偏高
+# < -18%：高估
+V904_POSITION_RULES = pd.DataFrame([
+    ["低估", "安全邊際 >= +15%", "現價明顯低於基準價值"],
+    ["合理偏低", "+5% <= 安全邊際 < +15%", "現價低於基準價值，但仍屬合理區間"],
+    ["合理", "-8% <= 安全邊際 < +5%", "現價接近基準價值"],
+    ["合理偏高", "-18% <= 安全邊際 < -8%", "現價高於基準價值，但尚未大幅高估"],
+    ["高估", "安全邊際 < -18%", "現價明顯高於基準價值"],
+], columns=["估值位階","判定條件","說明"])
+
+def v904_position(price, base):
+    p = v901_num(price)
+    b = v901_num(base)
+    if pd.isna(p) or pd.isna(b) or b == 0:
+        return "資料不足", np.nan
+    margin = (b - p) / b * 100
+    if margin >= 15:
+        pos = "低估"
+    elif margin >= 5:
+        pos = "合理偏低"
+    elif margin >= -8:
+        pos = "合理"
+    elif margin >= -18:
+        pos = "合理偏高"
+    else:
+        pos = "高估"
+    return pos, margin
+
+# 覆蓋估值函式，位階依安全邊際判斷
+def v901_valuation(sym, price=None):
+    p = v901_quote(sym) if price is None or pd.isna(v901_num(price)) else v901_num(price)
+    a,b,c = v901_multipliers(sym)
+    if pd.isna(p) or p <= 0:
+        return {"price":np.nan,"low":np.nan,"base":np.nan,"high":np.nan,"margin":np.nan,"position":"資料不足"}
+    low, base, high = p*a, p*b, p*c
+    pos, margin = v904_position(p, base)
+    return {"price":p,"low":low,"base":base,"high":high,"margin":margin,"position":pos}
+
+# 補齊公司DNA、產業資料、全球競爭、同業比較
+V904_DNA_EXT = {
+    "2330.TW": ["高","高","中","高","高","全球先進製程龍頭","NVIDIA/AMD/Apple/高效能運算與AI晶片主要晶圓代工夥伴","三星、Intel Foundry、中芯國際","先進製程、CoWoS、資本支出、技術領先"],
+    "2303.TW": ["中","中高","中高","中","中","成熟製程晶圓代工","車用、工控、通訊與消費性成熟製程","格芯、世界先進、力積電、中芯國際","產能利用率、毛利率、成熟製程報價"],
+    "5347.TWO": ["中","高","中","中","中","成熟/特殊製程晶圓代工","電源管理、面板驅動、車用與特殊製程","聯電、力積電、格芯","現金流、特殊製程、稼動率"],
+    "6770.TW": ["中","中","高","中","高","景氣循環型晶圓代工","記憶體/成熟製程與景氣循環敏感度高","聯電、世界先進、中芯國際","PB、產能利用率、庫存循環"],
+    "2454.TW": ["高","高","中","高","低","手機SoC與Edge AI平台","手機、WiFi、車用、AI邊緣裝置晶片","高通、展訊、NVIDIA部分Edge AI平台","EPS成長、毛利率、研發效率"],
+    "3034.TW": ["中高","高","中","中","低","顯示驅動與IC設計","DDIC、SoC、消費電子與車用顯示","瑞昱、矽創、敦泰、Synaptics","PE、FCFF、產品週期"],
+    "2379.TW": ["中高","高","中","中","低","網通與音訊IC設計","乙太網路、WiFi、音訊與PC周邊晶片","聯發科、高通、Broadcom","產品組合、毛利率、網通需求"],
+    "4966.TW": ["高","中高","中高","中高","低","高速傳輸與介面IC","高速傳輸、USB、PCIe與資料中心接口","祥碩、Parade、Synaptics","成長率、介面規格升級"],
+    "6415.TW": ["高","中高","中","中","低","電源管理IC","PMIC、工控、車用與消費電子","TI、ADI、MPS","毛利率、產品組合、景氣循環"],
+    "3661.TW": ["高","中高","中高","高","低","AI ASIC設計服務","AI ASIC、雲端加速器、客製化晶片設計","創意、智原、Marvell、Broadcom","AI訂單、NRE、先進製程"],
+    "3443.TW": ["高","中高","中高","高","低","高階ASIC設計服務","HPC、AI、客製化晶片與後段設計","世芯、智原、Marvell","AI能見度、客戶集中度、毛利率"],
+    "3035.TW": ["高","中","中高","高","低","ASIC/IP設計服務","ASIC、IP、設計服務與成熟/先進製程支援","創意、世芯、M31","設計服務收入、IP授權、NRE"],
+    "6533.TW": ["高","中","中高","高","低","RISC-V與AI IP","RISC-V CPU IP、AI加速與矽智財授權","ARM、MIPS、M31","授權收入、設計案、AI IP滲透率"],
+    "6643.TW": ["高","中高","中","中高","低","矽智財IP","高速介面IP、USB/PCIe/MIPI等","晶心科、Synopsys、Cadence","IP授權、先進製程滲透"],
+    "3680.TW": ["高","中高","中高","高","中","先進封裝載具/設備","EUV/先進封裝載具、光罩盒與晶圓傳載","家登海外同業、Entegris","CoWoS/EUV需求、毛利率"],
+    "3131.TWO": ["高","高","中","高","中","半導體濕製程設備","濕製程、先進封裝設備與半導體資本支出","辛耘、弘塑海外設備同業","訂單能見度、資本支出循環"],
+    "3583.TW": ["高","中高","中高","高","中","CoWoS設備供應鏈","半導體設備、再生晶圓與先進封裝需求","弘塑、均豪、海外設備商","CoWoS擴產、訂單能見度"],
+    "1560.TW": ["中高","高","中","中高","中","半導體材料/耗材","再生晶圓、鑽石碟與半導體耗材","中砂海外材料同業","耗材需求、稼動率、毛利率"],
+    "6640.TWO": ["中","中","中高","中","中","封裝設備/自動化","封裝設備、AOI與自動化","辛耘、弘塑、均豪同業","封裝景氣、訂單與毛利率"],
+    "2382.TW": ["高","高","中","高","中","AI伺服器組裝","AI伺服器、雲端資料中心、ODM","緯創、英業達、鴻海、緯穎","AI伺服器出貨、毛利率"],
+    "3231.TW": ["高","中高","中高","高","中","AI伺服器ODM","AI伺服器與高階運算平台","廣達、英業達、鴻海","出貨動能、庫存、毛利率"],
+    "6669.TW": ["高","高","中","高","中","AI伺服器龍頭","雲端資料中心與AI伺服器整機","廣達、緯創、Supermicro","AI平台轉換、客戶集中度"],
+    "2356.TW": ["中高","中","中高","中高","中","伺服器/筆電ODM","伺服器、筆電與雲端設備","廣達、緯創、仁寶","產品組合、AI伺服器滲透"],
+    "2317.TW": ["中高","高","中","中高","中","全球EMS與伺服器供應鏈","AI伺服器、iPhone、電動車與EMS","廣達、緯創、比亞迪電子","營收規模、毛利率、AI伺服器比重"],
+    "3017.TW": ["高","高","中","高","中","AI伺服器散熱","水冷、風扇、散熱模組","雙鴻、健策、Auras海外同業","AI散熱升級、毛利率"],
+    "3324.TWO": ["高","中高","中","高","中","AI伺服器散熱","水冷與高階散熱模組","奇鋐、健策","液冷滲透率、訂單能見度"],
+    "3653.TW": ["高","中高","中","高","中","AI伺服器散熱/機構","散熱零組件、均熱片與伺服器結構件","奇鋐、雙鴻","高階散熱、毛利率"],
+    "2408.TW": ["中","中","高","中","高","DRAM記憶體","DRAM景氣循環與報價","三星、SK海力士、美光、華邦電","DRAM報價、庫存、PB"],
+    "2344.TW": ["中","中","高","中","高","記憶體/利基型DRAM","利基型DRAM、Flash","南亞科、旺宏、三星","記憶體價格、稼動率"],
+    "2337.TW": ["中","中","高","中","中","NOR Flash記憶體","NOR Flash與儲存型記憶體","華邦電、美光","價格循環、庫存"],
+    "6239.TW": ["中高","中高","中","中高","中","封測/記憶體封裝","記憶體封測與先進封裝支援","日月光、矽品、Amkor","稼動率、封測需求"],
+    "8299.TWO": ["中高","高","中高","中高","低","控制IC/記憶體模組","NAND控制IC、SSD與儲存應用","慧榮、群聯海外同業","NAND價格、控制IC需求"],
+    "2308.TW": ["高","高","中","高","中","電源/工控/重電","電源管理、電動車、資料中心電源","施耐德、ABB、台達海外同業","資料中心電力、毛利率"],
+    "1513.TW": ["中高","中高","中","中","中","重電設備","變壓器、電網設備與台電強韌電網","華城、士電、東元","在手訂單、毛利率"],
+    "1504.TW": ["中","中","中","中","中","馬達/重電/自動化","馬達、電控與重電設備","中興電、華城、士電","電網與工業需求"],
+    "1519.TW": ["高","中高","中","中高","中","重電變壓器","變壓器、電網設備與外銷需求","中興電、士電、東元","訂單能見度、交期、毛利率"],
+    "1605.TW": ["中","中","中高","中","中","線纜/電力材料","電線電纜、電力材料","大亞、華榮、合機","銅價、台電工程需求"],
+    "6215.TWO": ["中高","中","中","中高","低","自動化設備代理/整合","自動化設備、半導體與電子業需求","上銀、全球傳動、和椿同業","半導體資本支出、設備需求"],
+    "2049.TW": ["中","中","中高","中","中","線性滑軌/自動化","精密機械、線性滑軌與自動化","THK、全球傳動","工具機景氣、機器人需求"],
+    "4583.TW": ["高","中","中","中高","低","精密零組件/自動化","精密傳動與自動化應用","上銀、全球傳動","營收成長、毛利率"],
+    "1536.TW": ["中","中","中","中","中","汽車/精密零組件","汽車零組件與傳動系統","東陽、堤維西","車市循環、電動車需求"],
+    "8112.TW": ["中","中高","中","中","低","半導體電子通路","半導體代理與通路庫存管理","大聯大、文曄、豐藝","庫存週期、現金流"],
+    "6189.TW": ["中","中高","中","中","低","電子通路/代理","IC代理、工控與電子通路","至上、大聯大、文曄","庫存、應收帳款、毛利率"],
+    "3702.TW": ["中","中高","中","中","低","大型電子通路","全球半導體通路與代理","文曄、至上、Arrow、Avnet","營收規模、現金流"],
+}
+
+def v904_company_feature_df(sym):
+    dna = V904_DNA_EXT.get(sym, None)
+    if dna is None:
+        try:
+            return v901_company_feature_df(sym)
+        except Exception:
+            dna = ["待補","待補","待補","待補","待補",v901_display_name(sym),"待補","待補","待補"]
+    growth,cash,cycle,ai,capex,position,global_comp,peers,key = dna
+    return pd.DataFrame([
+        ["成長性", growth, "公司DNA資料庫"],
+        ["現金流/獲利穩定度", cash, "公司DNA資料庫"],
+        ["景氣循環敏感度", cycle, "公司DNA資料庫"],
+        ["AI受惠程度", ai, "公司DNA資料庫"],
+        ["資本支出強度", capex, "公司DNA資料庫"],
+        ["產業定位", position, "產業資料庫"],
+        ["全球競爭", global_comp, "全球競爭資料庫"],
+        ["同業比較", peers, "同業比較資料庫"],
+        ["關鍵追蹤指標", key, "投資研究追蹤項目"],
+    ], columns=["項目","內容","資料來源"])
+
+def v893_feature_profile(symbol, q=None, scores=None, inp=None):
+    return v904_company_feature_df(symbol)
+
+# 覆蓋 AIVM 公司特徵頁與新增估值位階說明
+def v893_aivm_page():
+    st.subheader("🧪 AIVM 估值研究中心")
+    st.caption("批次估值已補齊；本頁數值屬模型研究與方法比較，不構成投資建議。")
+    st.dataframe(v901_aivm_matrix(), use_container_width=True, hide_index=True)
+    options = v901_all_symbols()
+    current = st.session_state.get("active_symbol", "2330.TW")
+    if current not in options:
+        current = "2330.TW"
+    selected = st.selectbox("選擇公司", options, index=options.index(current), format_func=lambda x: f"{v901_display_name(x)} / {x}", key="v904_aivm_selected")
+    row = v901_detail_row(selected)
+    st.markdown(f"### {v901_display_name(selected)} / {selected}：機構級估值分析")
+    kpi([("現價", row["現價"]),("估值區間", row["估值區間"]),("估值位階", row["估值位階"]),("安全邊際", row["安全邊際"])])
+    kpi([("全模型共識度", row["全模型共識度"]),("核心模型共識度", row["核心模型共識度"]),("企業品質分數", row["企業品質分數"]),("Top1適配方法", row["Top1適配方法"])])
+    tabs = st.tabs(["估值區間","估值位階說明","Top3方法說明","公司DNA","產業資料","全球競爭","同業比較","半導體估值總庫","其他類股估值"])
+    with tabs[0]:
+        st.dataframe(v901_range_df(selected), use_container_width=True, hide_index=True)
+    with tabs[1]:
+        st.dataframe(V904_POSITION_RULES, use_container_width=True, hide_index=True)
+    with tabs[2]:
+        st.dataframe(pd.DataFrame([[i+1, x[0], x[1], "；".join(x[2])] for i,x in enumerate(v8933_top3_method_profile(selected))], columns=["排名","方法","適配分數","原因"]), use_container_width=True, hide_index=True)
+    dna_df = v904_company_feature_df(selected)
+    with tabs[3]:
+        st.dataframe(dna_df[dna_df["項目"].isin(["成長性","現金流/獲利穩定度","景氣循環敏感度","AI受惠程度","資本支出強度"])], use_container_width=True, hide_index=True)
+    with tabs[4]:
+        st.dataframe(dna_df[dna_df["項目"].isin(["產業定位","關鍵追蹤指標"])], use_container_width=True, hide_index=True)
+    with tabs[5]:
+        st.dataframe(dna_df[dna_df["項目"]=="全球競爭"], use_container_width=True, hide_index=True)
+    with tabs[6]:
+        st.dataframe(dna_df[dna_df["項目"]=="同業比較"], use_container_width=True, hide_index=True)
+    with tabs[7]:
+        v901_semiconductor_library_page()
+    with tabs[8]:
+        v903_multi_sector_page()
+
+def home_page():
+    st.markdown(f"""
+    <div class="hero">
+      <div class="hero-title">🏛 AI企業價值研究院</div>
+      <div class="hero-sub">Enterprise Valuation Institute｜{APP_VERSION_CLEAN}</div>
+      <div style="margin-top:18px;color:white;font-weight:700;">半導體估值總庫 × 其他類股估值總庫 × AIVM機構級估值</div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.subheader("首頁：類股估值入口")
+    tabs = st.tabs(["半導體", "AI伺服器/ODM", "散熱", "記憶體/模組", "電力/重電", "自動化/機器人", "電子通路"])
+    with tabs[0]:
+        v901_semiconductor_library_page()
+    groups = ["AI伺服器/ODM","散熱","記憶體/模組","電力/重電","自動化/機器人","電子通路"]
+    for tab, group in zip(tabs[1:], groups):
+        with tab:
+            df = v903_multi_sector_df()
+            st.dataframe(df[df["產業群"] == group], use_container_width=True, hide_index=True)
+            st.caption(V903_OTHER_GROUPS[group]["desc"])
+# ================= V90.4 SECTOR HOME + DNA EXPANSION PATCH END =================
+
 active = unified_symbol_manager(symbols)
 
 # V39：手機/電腦響應式欄位
@@ -10579,7 +10752,7 @@ elif page=="📊監控":
     st.caption(f"類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
     with st.expander("🧭 類股快速入口", expanded=False):
         v76_sector_panel()
-    # V90.3 UI Text Cleanup Multi Sector Edition_PAGE_SECTOR_FIX
+    # V90.4 Sector Home DNA Expansion Edition_PAGE_SECTOR_FIX
     page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
     if page_sector!="自選":
         page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
@@ -10777,7 +10950,7 @@ st.markdown("---")
 with st.expander("🧾 計算透明化中心", expanded=False):
     transparency_audit_center(active, q, df_daily, scores)
 
-st.caption("AI研究院 Pro V90.3 UI Text Cleanup Multi Sector Edition｜研究與教學用途，非投資建議。")
+st.caption("AI研究院 Pro V90.4 Sector Home DNA Expansion Edition｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
 
