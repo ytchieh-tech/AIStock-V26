@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V92.0 AIVM Lab MVP"
+APP_VERSION="V92.1 AIVM Lab Route Final"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -443,7 +443,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V92.0 AIVM Lab MVP responsive audit */
+/* V92.1 AIVM Lab Route Final responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -502,7 +502,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V92.0 AIVM Lab MVP：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V92.1 AIVM Lab Route Final：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -707,7 +707,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V92.0 AIVM Lab MVP.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V92.1 AIVM Lab Route Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -882,7 +882,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V92.0 AIVM Lab MVP: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V92.1 AIVM Lab Route Final: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1779,7 +1779,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V92.0 AIVM Lab MVP｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V92.1 AIVM Lab Route Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1795,7 +1795,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V92.0 AIVM Lab MVP</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V92.1 AIVM Lab Route Final</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1818,7 +1818,7 @@ if "page" not in st.session_state: st.session_state.page="🏠首頁"
 # V60_PAGE_TARGET_HELPER: APP快捷入口目標保存在 session_state；若原始選單未吃到，仍可由各頁判斷使用。
 
 # ================= V76.1 TRANSPARENCY + NAME FIX LAYER =================
-APP_VERSION="V92.0 AIVM Lab MVP"
+APP_VERSION="V92.1 AIVM Lab Route Final"
 
 # 補充 未覆蓋股票中文名稱與產業DNA，避免回退 Yahoo 英文名稱或待分類。
 V761_EXTRA_ROWS = [
@@ -1998,7 +1998,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V92.0 AIVM Lab MVP_SIDEBAR_SECTOR_FIX
+    # V92.1 AIVM Lab Route Final_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -5141,7 +5141,7 @@ def v70_research_institute(symbol, q, df, scores):
 
 # ================= NAME RESOLVER + SECTOR COMPLETE LAYER =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V92.0 AIVM Lab MVP"
+APP_VERSION="V92.1 AIVM Lab Route Final"
 
 V76_ROWS = [
 ("2330","台積電","上市","電子","半導體","晶圓代工","先進製程","AI/HPC","中游"),("2303","聯電","上市","電子","半導體","晶圓代工","成熟製程","車用/工控","中游"),("5347","世界先進","上櫃","電子","半導體","特殊製程晶圓代工","成熟製程","車用/工控","中游"),("6770","力積電","上市","電子","半導體","晶圓代工/記憶體","成熟製程","記憶體/代工","中游"),("2408","南亞科","上市","電子","半導體","DRAM","記憶體","AI/伺服器記憶體","上中游"),("2344","華邦電","上市","電子","半導體","記憶體","NOR/DRAM","車用/工控","上中游"),("2337","旺宏","上市","電子","半導體","記憶體","NOR Flash","車用/工控","上中游"),
@@ -5273,7 +5273,7 @@ def v76_calc_transparency(symbol,q=None,df=None,scores=None):
     return pd.DataFrame(rows,columns=['模型','使用價格','狀態','公式/方法','使用數值與說明'])
 
 def v76_ai_page(symbol,q,df,scores):
-    st.markdown('## 🏛 V92.0 AIVM Lab MVP.3')
+    st.markdown('## 🏛 V92.1 AIVM Lab Route Final.3')
     tabs=st.tabs(['🧬公司DNA','🌱ESG排名','🌍競爭/同業','🔍計算透明'])
     with tabs[0]: st.dataframe(v76_company_dna_df(symbol),use_container_width=True,hide_index=True)
     with tabs[1]: st.dataframe(v76_esg_rank(symbol),use_container_width=True,hide_index=True)
@@ -5283,7 +5283,7 @@ def v76_ai_page(symbol,q,df,scores):
 
 # =================  OFFICIAL MASTER + TRANSPARENCY FIX =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V92.0 AIVM Lab MVP"
+APP_VERSION="V92.1 AIVM Lab Route Final"
 
 V763_FALLBACK_MASTER = [
     # code,name,market,level1,level2,level3,level4,level5,chain
@@ -5615,13 +5615,13 @@ def v762_banner():
     st.markdown("""
     <div style="padding:28px;border-radius:22px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin:12px 0 22px 0;">
       <div style="font-size:34px;font-weight:900;">📈 智策股市 AI 決策平台</div>
-      <div style="font-size:20px;font-weight:800;margin-top:8px;">V92.0 AIVM Lab MVP</div>
+      <div style="font-size:20px;font-weight:800;margin-top:8px;">V92.1 AIVM Lab Route Final</div>
       <div style="font-size:15px;margin-top:8px;opacity:.92;">官方代碼中文表 × 產業DNA × ESG股價溢價 × 計算透明</div>
     </div>
     """, unsafe_allow_html=True)
 
 def v76_ai_page(symbol, q, df, scores):
-    st.markdown("## 🏛 V92.0 AIVM Lab MVP.3")
+    st.markdown("## 🏛 V92.1 AIVM Lab Route Final.3")
     tabs = st.tabs(["🧬公司DNA","🌱ESG排名","🌍競爭/同業","🔍計算透明"])
     with tabs[0]:
         st.dataframe(v76_company_dna_df(symbol), use_container_width=True, hide_index=True)
@@ -5642,7 +5642,7 @@ def v762_master_panel():
 
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER =================
 # 基底：。首頁、監控、K線、設定不重寫；只把原四大中心原封不動嵌入研究院。
-APP_VERSION="V92.0 AIVM Lab MVP"
+APP_VERSION="V92.1 AIVM Lab Route Final"
 
 def v85_num(x, default=np.nan):
     try:
@@ -5887,7 +5887,7 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V92.0 AIVM Lab MVP</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V92.1 AIVM Lab Route Final</div>
       <div style="font-size:16px;margin-top:10px;">V85 = 完整搬遷版：財報、評價、ESG、法人原封不動搬入研究院</div>
     </div>
     """, unsafe_allow_html=True)
@@ -5939,7 +5939,7 @@ def v80_enterprise_value_page(symbol, q=None, df=None, scores=None): return v85_
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER END =================
 
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER =================
-APP_VERSION="V92.0 AIVM Lab MVP"
+APP_VERSION="V92.1 AIVM Lab Route Final"
 
 def v861_profile_data(active):
     code0 = str(active).split(".")[0]
@@ -6167,7 +6167,7 @@ def v87_research_institute(active, q, df_daily, scores):
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER END =================
 
 # ================= V87 STABLE RESEARCH LAYER =================
-APP_VERSION="V92.0 AIVM Lab MVP"
+APP_VERSION="V92.1 AIVM Lab Route Final"
 
 def v87_num(x, default=np.nan):
     try:
@@ -6348,7 +6348,7 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V92.0 AIVM Lab MVP</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V92.1 AIVM Lab Route Final</div>
       <div style="font-size:16px;margin-top:10px;">AI價值挖掘 × 資料倉儲 × 同業競爭 × 財報單位優化</div>
     </div>
     """, unsafe_allow_html=True)
@@ -9247,7 +9247,7 @@ except Exception:
 
 
 # ================= V89.4.4 UI CLEANUP & PEER LIBRARY PATCH =================
-APP_VERSION_CLEAN = "V92.0 AIVM Lab MVP"
+APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
 
 V8944_ALLOWED_PAGES = [
     "🏠首頁",
@@ -9392,7 +9392,7 @@ main_tabs = V8944_ALLOWED_PAGES
 # 4. 首頁/主選單再次強制精簡
 # 5. 清理  / 測試 / 舊版字樣
 
-APP_VERSION_CLEAN = "V92.0 AIVM Lab MVP"
+APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
 
 V90_ALLOWED_PAGES = [
     "🏠首頁",
@@ -9720,7 +9720,7 @@ main_tabs = V90_ALLOWED_PAGES
 
 
 # ================= V90.1 SEMICONDUCTOR BATCH VALUATION FIX PATCH =================
-APP_VERSION_CLEAN = "V92.0 AIVM Lab MVP"
+APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
 
 # 最終主選單：法人也刪除
 V901_ALLOWED_PAGES = ["🏠首頁", "📡監控", "📈K線", "🏛企業價值研究院", "🧪AIVM研究中心", "⚙設定"]
@@ -10102,7 +10102,7 @@ def home_page():
 
 
 # ================= V90.2 MENU + FINANCIAL UNIT FINAL FIX =================
-APP_VERSION_CLEAN = "V92.0 AIVM Lab MVP"
+APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
 
 # 1) 財報單位最終修正：不要再吃舊 zh_financial_df，直接產生顯示表
 def v902_num(x):
@@ -10319,10 +10319,10 @@ def v902_normalize_main_choice(x):
 
 
 # ================= V90.3 UI TEXT CLEANUP + MULTI SECTOR PATCH =================
-APP_VERSION_CLEAN = "V92.0 AIVM Lab MVP"
+APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
 
 # 強制把舊選單導回可用頁面
-V903_ALLOWED_PAGES = ["🏠首頁","📊監控","📈K線","🏛企業價值研究院","🧪AIVM研究中心","⚙設定"]
+V903_ALLOWED_PAGES = ["🏠首頁","📊監控","📈K線","🏛企業價值研究院","🧪AIVM研究中心","🧪AIVM Lab","⚙設定"]
 MAIN = V903_ALLOWED_PAGES
 menu_items = V903_ALLOWED_PAGES
 main_tabs = V903_ALLOWED_PAGES
@@ -10548,7 +10548,7 @@ def home_page():
 
 
 # ================= V90.4 SECTOR HOME + DNA EXPANSION PATCH =================
-APP_VERSION_CLEAN = "V92.0 AIVM Lab MVP"
+APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
 
 # 估值位階規則：
 # 安全邊際 = (基準價值 - 現價) / 基準價值
@@ -10721,7 +10721,7 @@ def home_page():
 
 
 # ================= V90.5 HOME SECTOR DASHBOARD PATCH =================
-APP_VERSION_CLEAN = "V92.0 AIVM Lab MVP"
+APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
 
 # 擴充其他產業類股
 V905_EXTRA_SECTORS = {
@@ -10916,10 +10916,10 @@ except Exception:
 
 
 # ================= V90.6 HARD OVERRIDE HOME DASHBOARD PATCH =================
-APP_VERSION_CLEAN = "V92.0 AIVM Lab MVP"
+APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
 
 # 這版直接覆蓋 page dispatch，避免舊首頁仍呼叫舊 AIVM 表格。
-V906_ALLOWED_PAGES = ["🏠首頁","📊監控","📈K線","🏛企業價值研究院","🧪AIVM研究中心","⚙設定"]
+V906_ALLOWED_PAGES = ["🏠首頁","📊監控","📈K線","🏛企業價值研究院","🧪AIVM研究中心","🧪AIVM Lab","⚙設定"]
 MAIN = V906_ALLOWED_PAGES
 menu_items = V906_ALLOWED_PAGES
 main_tabs = V906_ALLOWED_PAGES
@@ -11152,7 +11152,7 @@ def v906_force_home():
 
 
 # ================= V92.0 AIVM LAB MVP START =================
-APP_VERSION_CLEAN = "V92.0 AIVM Lab MVP"
+APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
 
 AIVM_LAB_STOCKS = {
     "2330.TW": {"公司":"台積電","產業":"晶圓代工 / AI先進製程","財報PE":24,"財報PB":5.0,"市場PE":28,"市場PB":6.0,"產業係數":1.08,"產業重點":"AI、CoWoS、N3/N2、先進封裝"},
@@ -11310,6 +11310,13 @@ def aivm_lab_page():
 
 active = unified_symbol_manager(symbols)
 
+# ===== V92.1 AIVM Lab route guard =====
+if page in ["🧪AIVM Lab", "🧪 AIVM Lab"]:
+    aivm_lab_page()
+    st.stop()
+# ===== V92.1 AIVM Lab route guard end =====
+
+
 # V39：手機/電腦響應式欄位
 if "layout_mode" not in locals():
     layout_mode = "自動"
@@ -11322,7 +11329,7 @@ if pd.isna(effective_price(q, df_daily)) and df_daily.empty:
 # ================= V90.7 TRUE HOME DISPATCH OVERRIDE =================
 # 重新路由頁面：首頁一定顯示全產業類股估值入口，不再顯示 AIVM 舊表格。
 try:
-    if page not in ["🏠首頁","📊監控","📈K線","🏛企業價值研究院","🧪AIVM研究中心","⚙設定"]:
+    if page not in ["🏠首頁","📊監控","📈K線","🏛企業價值研究院","🧪AIVM研究中心","🧪AIVM Lab","⚙設定"]:
         page = "🏠首頁"
         st.session_state.page = page
 except Exception:
