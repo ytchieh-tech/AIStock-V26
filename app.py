@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V92.5 AIVM Weight Backtest Lab"
+APP_VERSION="V93.0 AIVM Real Backtest Trial"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -11158,7 +11158,300 @@ def v906_force_home():
 
 
 # ================= V92.3 AIVM QUARTERLY FIXED VALUE LAB START =================
-APP_VERSION_CLEAN = "V92.5 AIVM Weight Backtest Lab"
+APP_VERSION_CLEAN = "V93.0 AIVM Real Backtest Trial"
+
+# ===== V93.0 真實回測試作 START =====
+# 目的：先建立「真實資料回測流程」，但不動主系統。
+# 本版使用 yfinance 歷史股價 + Lab EPS/BVPS/FCF 基準資料，
+# 模擬季報公布後持有至下一季的估值誤差。
+# 正式版下一步再串公開資訊觀測站季報與歷史財報表。
+
+AIVM_REAL_BACKTEST_INPUTS = {
+    "2330.TW": {
+        "公司": "台積電",
+        "產業": "晶圓代工 / AI先進製程",
+        "eps_ttm": 73.54,
+        "bvps": 216.35,
+        "fcff_ps": 66.5,
+        "fcfe_ps": 58.0,
+        "eva_ps": 62.0,
+        "cap_ps": 70.0,
+        "ebo_ps": 65.0,
+        "period_start": "2021-01-01",
+        "period_end": "2026-12-31",
+    },
+    "2303.TW": {
+        "公司": "聯電",
+        "產業": "成熟製程晶圓代工",
+        "eps_ttm": 5.20,
+        "bvps": 32.5,
+        "fcff_ps": 5.8,
+        "fcfe_ps": 5.5,
+        "eva_ps": 4.8,
+        "cap_ps": 5.2,
+        "ebo_ps": 4.9,
+        "period_start": "2021-01-01",
+        "period_end": "2026-12-31",
+    },
+    "5347.TWO": {
+        "公司": "世界先進",
+        "產業": "成熟製程 / 特殊製程",
+        "eps_ttm": 4.30,
+        "bvps": 36.64,
+        "fcff_ps": 5.6,
+        "fcfe_ps": 5.3,
+        "eva_ps": 4.9,
+        "cap_ps": 5.1,
+        "ebo_ps": 5.0,
+        "period_start": "2021-01-01",
+        "period_end": "2026-12-31",
+    },
+    "2308.TW": {
+        "公司": "台達電",
+        "產業": "AI電源 / 自動化",
+        "eps_ttm": 23.09,
+        "bvps": 115.32,
+        "fcff_ps": 24.0,
+        "fcfe_ps": 22.0,
+        "eva_ps": 24.5,
+        "cap_ps": 26.0,
+        "ebo_ps": 25.0,
+        "period_start": "2021-01-01",
+        "period_end": "2026-12-31",
+    },
+}
+
+AIVM_REAL_BACKTEST_MULTIPLIERS = {
+    "晶圓代工 / AI先進製程": {
+        "PE": 32, "PB": 10.0, "FCFF": 38, "FCFE": 34, "EVA": 36, "CAP": 37, "EBO": 35
+    },
+    "成熟製程晶圓代工": {
+        "PE": 24, "PB": 3.6, "FCFF": 30, "FCFE": 28, "EVA": 26, "CAP": 25, "EBO": 24
+    },
+    "成熟製程 / 特殊製程": {
+        "PE": 28, "PB": 4.2, "FCFF": 34, "FCFE": 32, "EVA": 30, "CAP": 31, "EBO": 30
+    },
+    "AI電源 / 自動化": {
+        "PE": 60, "PB": 13.0, "FCFF": 62, "FCFE": 58, "EVA": 60, "CAP": 64, "EBO": 62
+    },
+}
+
+def v93_num(x):
+    try:
+        if x is None or pd.isna(x):
+            return np.nan
+        return float(x)
+    except Exception:
+        return np.nan
+
+def v93_fmt(x):
+    try:
+        if x is None or pd.isna(x):
+            return "N/A"
+        return f"{float(x):,.2f}"
+    except Exception:
+        return "N/A"
+
+def v93_pct(x):
+    try:
+        if x is None or pd.isna(x):
+            return "N/A"
+        return f"{float(x):.1f}%"
+    except Exception:
+        return "N/A"
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def v93_download_prices(symbol, start, end):
+    try:
+        dfp = yf.download(symbol, start=start, end=end, progress=False, auto_adjust=True)
+        if dfp is None or len(dfp) == 0:
+            return pd.DataFrame()
+        dfp = dfp.reset_index()
+        if "Close" not in dfp.columns:
+            return pd.DataFrame()
+        dfp["Date"] = pd.to_datetime(dfp["Date"])
+        dfp = dfp[["Date", "Close"]].dropna()
+        return dfp
+    except Exception:
+        return pd.DataFrame()
+
+def v93_make_quarter_dates(start="2021-01-01", end="2026-12-31"):
+    # 季報公布日試作：5/15、8/14、11/14、3/31
+    years = list(range(pd.to_datetime(start).year, pd.to_datetime(end).year + 1))
+    dates = []
+    for y in years:
+        dates += [
+            (f"{y}-03-31", f"{y-1} Q4"),
+            (f"{y}-05-15", f"{y} Q1"),
+            (f"{y}-08-14", f"{y} Q2"),
+            (f"{y}-11-14", f"{y} Q3"),
+        ]
+    out = []
+    sdt, edt = pd.to_datetime(start), pd.to_datetime(end)
+    for d, q in dates:
+        dt = pd.to_datetime(d)
+        if sdt <= dt <= edt:
+            out.append({"財報公布日": dt, "財報季度": q})
+    return pd.DataFrame(out)
+
+def v93_price_on_or_after(dfp, dt):
+    if dfp is None or dfp.empty:
+        return np.nan
+    m = dfp[dfp["Date"] >= pd.to_datetime(dt)]
+    if m.empty:
+        return np.nan
+    return float(m.iloc[0]["Close"])
+
+def v93_price_after_days(dfp, dt, days=63):
+    if dfp is None or dfp.empty:
+        return np.nan
+    target = pd.to_datetime(dt) + pd.Timedelta(days=days)
+    return v93_price_on_or_after(dfp, target)
+
+def v93_model_values(symbol, base_price=None):
+    cfg = AIVM_REAL_BACKTEST_INPUTS[symbol]
+    mult = AIVM_REAL_BACKTEST_MULTIPLIERS.get(cfg["產業"], AIVM_REAL_BACKTEST_MULTIPLIERS["成熟製程晶圓代工"])
+    eps = cfg["eps_ttm"]
+    bvps = cfg["bvps"]
+    values = {
+        "PE": eps * mult["PE"],
+        "PB": bvps * mult["PB"],
+        "FCFF": cfg["fcff_ps"] * mult["FCFF"],
+        "FCFE": cfg["fcfe_ps"] * mult["FCFE"],
+        "EVA": cfg["eva_ps"] * mult["EVA"],
+        "CAP": cfg["cap_ps"] * mult["CAP"],
+        "EBO": cfg["ebo_ps"] * mult["EBO"],
+    }
+    return values
+
+def v93_backtest_for_symbol(symbol):
+    cfg = AIVM_REAL_BACKTEST_INPUTS[symbol]
+    dfp = v93_download_prices(symbol, cfg["period_start"], cfg["period_end"])
+    qdf = v93_make_quarter_dates(cfg["period_start"], cfg["period_end"])
+    vals = v93_model_values(symbol)
+    rows = []
+    for _, r in qdf.iterrows():
+        dt = r["財報公布日"]
+        price_t = v93_price_on_or_after(dfp, dt)
+        price_next = v93_price_after_days(dfp, dt, 63)
+        if pd.isna(price_next):
+            continue
+        row = {
+            "公司": cfg["公司"],
+            "代碼": symbol,
+            "產業": cfg["產業"],
+            "財報季度": r["財報季度"],
+            "財報公布日": dt.strftime("%Y-%m-%d"),
+            "公布日股價": price_t,
+            "下一季股價": price_next,
+        }
+        for m, v in vals.items():
+            row[m + "估值"] = v
+            row[m + "誤差"] = abs(v - price_next) / price_next * 100 if price_next else np.nan
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def v93_all_backtest_df():
+    frames = []
+    for sym in AIVM_REAL_BACKTEST_INPUTS:
+        try:
+            frames.append(v93_backtest_for_symbol(sym))
+        except Exception:
+            pass
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+
+def v93_model_error_summary(df):
+    models = ["PE", "PB", "FCFF", "FCFE", "EVA", "CAP", "EBO"]
+    rows = []
+    for company in df["公司"].dropna().unique():
+        sub = df[df["公司"] == company]
+        industry = sub["產業"].iloc[0] if len(sub) else ""
+        for m in models:
+            col = m + "誤差"
+            if col in sub.columns:
+                rows.append({
+                    "公司": company,
+                    "產業": industry,
+                    "模型": m,
+                    "平均誤差": sub[col].mean(),
+                    "中位誤差": sub[col].median(),
+                    "樣本數": sub[col].count(),
+                })
+    return pd.DataFrame(rows)
+
+def v93_suggest_weights(summary_df, company):
+    sub = summary_df[summary_df["公司"] == company].copy()
+    if sub.empty:
+        return pd.DataFrame()
+    inv = {}
+    for _, r in sub.iterrows():
+        inv[r["模型"]] = 1 / max(float(r["平均誤差"]), 1e-6)
+    total = sum(inv.values())
+    weights = {k: int(round(v / total * 100)) for k, v in inv.items()} if total else {}
+    if weights:
+        best = min(sub.to_dict("records"), key=lambda x: x["平均誤差"])["模型"]
+        weights[best] = weights.get(best, 0) + (100 - sum(weights.values()))
+    rows = []
+    for _, r in sub.sort_values("平均誤差").iterrows():
+        rows.append({
+            "模型": r["模型"],
+            "平均誤差": v93_pct(r["平均誤差"]),
+            "中位誤差": v93_pct(r["中位誤差"]),
+            "建議權重": f"{weights.get(r['模型'], 0)}%",
+            "說明": "誤差越低，建議權重越高",
+        })
+    return pd.DataFrame(rows)
+
+def v93_backtest_page_block():
+    st.markdown("### V93.0 真實回測試作")
+    st.info("本頁用 yfinance 歷史股價 + Lab 財報基準資料，先驗證回測流程；正式版再接公開資訊觀測站季報與歷史財報。")
+
+    bt = v93_all_backtest_df()
+    if bt.empty:
+        st.warning("目前無法取得歷史股價資料，請稍後重試或檢查 yfinance 連線。")
+        return
+
+    summary = v93_model_error_summary(bt)
+    companies = summary["公司"].dropna().unique().tolist()
+    selected = st.selectbox("選擇公司", companies, key="v930_real_backtest_company")
+
+    tabs2 = st.tabs(["回測摘要", "模型誤差", "建議權重", "逐季明細", "方法說明"])
+    with tabs2[0]:
+        s = summary[summary["公司"] == selected].copy()
+        best = s.sort_values("平均誤差").head(3)
+        st.dataframe(best.assign(平均誤差=best["平均誤差"].apply(v93_pct), 中位誤差=best["中位誤差"].apply(v93_pct)), use_container_width=True, hide_index=True)
+        st.caption("顯示平均誤差最低的前三個模型。")
+    with tabs2[1]:
+        s = summary[summary["公司"] == selected].copy()
+        s["平均誤差"] = s["平均誤差"].apply(v93_pct)
+        s["中位誤差"] = s["中位誤差"].apply(v93_pct)
+        st.dataframe(s, use_container_width=True, hide_index=True)
+    with tabs2[2]:
+        st.dataframe(v93_suggest_weights(summary, selected), use_container_width=True, hide_index=True)
+    with tabs2[3]:
+        d = bt[bt["公司"] == selected].copy()
+        for c in d.columns:
+            if c.endswith("估值") or c in ["公布日股價", "下一季股價"]:
+                d[c] = d[c].apply(v93_fmt)
+            if c.endswith("誤差"):
+                d[c] = d[c].apply(v93_pct)
+        st.dataframe(d, use_container_width=True, hide_index=True)
+    with tabs2[4]:
+        st.markdown("""
+        **回測邏輯**
+        1. 以財報公布日作為估值建立日。
+        2. 使用當期 Lab 財報基準資料估算 PE、PB、FCFF、FCFE、EVA、CAP、EBO 七模型價值。
+        3. 與下一季市場價格比較。
+        4. 模型平均誤差越低，建議權重越高。
+
+        **目前限制**
+        - EPS、BVPS、FCFF 等仍為 Lab 基準資料。
+        - 歷史股價使用 yfinance。
+        - 正式版需串接公開資訊觀測站歷史季報。
+        """)
+# ===== V93.0 真實回測試作 END =====
+
 
 # ===== V92.5 AIVM 權重回測中心 START =====
 # 本版為 Lab 回測展示版：
@@ -11657,7 +11950,7 @@ def aivm_lab_page():
 
     st.info("固定AIVM價值以最近一期財報、產業景氣與市場評價建立，每季財報公布後更新一次；日常股價波動不影響固定價值。")
 
-    tabs = st.tabs(["① 固定價值總覽", "② 固定 vs 動態", "③ 財報公布日", "④ 產業權重說明", "⑤ 權重總覽", "⑥ 權重回測", "⑦ 最佳權重建議", "⑧ 區間校準", "⑨ 誤差分析", "⑩ 方法說明"])
+    tabs = st.tabs(["① 固定價值總覽", "② 固定 vs 動態", "③ 財報公布日", "④ 產業權重說明", "⑤ 權重總覽", "⑥ 權重回測", "⑦ 最佳權重建議", "⑧ 真實回測試作", "⑨ 區間校準", "⑩ 誤差分析", "⑪ 方法說明"])
 
     with tabs[0]:
         cols = ["公司","代碼","產業","現價","固定AIVM價值","固定安全邊際","固定估值位階","財報季度","財報公布日","固定價值有效至"]
@@ -11703,6 +11996,9 @@ def aivm_lab_page():
         st.warning("V92.5 僅作權重回測流程驗證，不直接取代主系統權重。")
 
     with tabs[7]:
+        v93_backtest_page_block()
+
+    with tabs[8]:
         cols = [
             "公司","現價",
             "財報保守","財報價值","財報樂觀",
@@ -11711,13 +12007,13 @@ def aivm_lab_page():
         ]
         st.dataframe(show[cols], use_container_width=True, hide_index=True)
 
-    with tabs[8]:
+    with tabs[9]:
         cols = ["公司","現價","財報價值","市場價值","產業價值","財報誤差","市場誤差","產業誤差"]
         st.dataframe(show[cols], use_container_width=True, hide_index=True)
 
-    with tabs[9]:
+    with tabs[10]:
         st.markdown("""
-        ### V92.5 方法說明
+        ### V93.0 方法說明
 
         **固定AIVM價值**
         ```
@@ -11762,11 +12058,11 @@ def aivm_lab_page():
 
 active = unified_symbol_manager(symbols)
 
-# ===== V92.5 AIVM Lab route guard =====
+# ===== V93.0 AIVM Lab route guard =====
 if page in ["🧪AIVM Lab", "🧪 AIVM Lab"]:
     aivm_lab_page()
     st.stop()
-# ===== V92.5 AIVM Lab route guard end =====
+# ===== V93.0 AIVM Lab route guard end =====
 
 
 
