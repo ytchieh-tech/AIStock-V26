@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V92.2 AIVM Lab Historical PE PB Calibration"
+APP_VERSION="V92.3 AIVM Quarterly Fixed Value Lab"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -11154,14 +11154,16 @@ def v906_force_home():
 
 
 
-# ================= V92.2 AIVM LAB HISTORICAL PE PB CALIBRATION START =================
-APP_VERSION_CLEAN = "V92.2 AIVM Lab Historical PE/PB Calibration"
 
-# V92.2 目的：
-# 1. 不再使用單一固定 PE/PB。
-# 2. 改成歷史區間：保守 / 合理 / 樂觀。
-# 3. 若 Yahoo 基本面抓不到 EPS / PB / BVPS，使用 Lab 校準資料，避免 N/A。
-# 4. 本版仍然只影響 AIVM Lab，不動主系統。
+
+
+# ================= V92.3 AIVM QUARTERLY FIXED VALUE LAB START =================
+APP_VERSION_CLEAN = "V92.3 AIVM Quarterly Fixed Value Lab"
+
+# V92.3 核心：
+# 固定AIVM價值 = 每季財報公布後更新一次，不每日跟現價變動。
+# 動態AIVM價值 = 以現價做市場校準，僅作比較。
+# 本版只影響 AIVM Lab，不改主系統。
 
 AIVM_LAB_STOCKS = {
     "2330.TW": {
@@ -11175,6 +11177,11 @@ AIVM_LAB_STOCKS = {
         "market_pe": (30, 36, 42),
         "market_pb": (9.0, 11.5, 14.0),
         "industry_factor": (1.02, 1.08, 1.15),
+        "fixed_weights": (0.30, 0.40, 0.30),
+        "財報季度": "2026 Q2",
+        "財報基準日": "2026-06-30",
+        "財報公布日": "2026-08-10",
+        "固定價值有效至": "2026-11-10",
         "產業重點": "AI、CoWoS、N3/N2、先進封裝",
     },
     "2303.TW": {
@@ -11188,6 +11195,11 @@ AIVM_LAB_STOCKS = {
         "market_pe": (24, 30, 36),
         "market_pb": (3.8, 4.8, 5.8),
         "industry_factor": (0.95, 1.00, 1.08),
+        "fixed_weights": (0.30, 0.40, 0.30),
+        "財報季度": "2026 Q2",
+        "財報基準日": "2026-06-30",
+        "財報公布日": "2026-08-05",
+        "固定價值有效至": "2026-11-05",
         "產業重點": "成熟製程、車用、工控、產能利用率",
     },
     "5347.TWO": {
@@ -11201,6 +11213,11 @@ AIVM_LAB_STOCKS = {
         "market_pe": (32, 42, 52),
         "market_pb": (4.2, 5.2, 6.2),
         "industry_factor": (0.92, 0.98, 1.05),
+        "fixed_weights": (0.30, 0.40, 0.30),
+        "財報季度": "2026 Q2",
+        "財報基準日": "2026-06-30",
+        "財報公布日": "2026-08-08",
+        "固定價值有效至": "2026-11-08",
         "產業重點": "PMIC、DDIC、成熟製程、股利能力",
     },
     "2308.TW": {
@@ -11214,6 +11231,11 @@ AIVM_LAB_STOCKS = {
         "market_pe": (60, 75, 90),
         "market_pb": (12.0, 16.0, 20.0),
         "industry_factor": (1.08, 1.16, 1.25),
+        "fixed_weights": (0.30, 0.40, 0.30),
+        "財報季度": "2026 Q2",
+        "財報基準日": "2026-06-30",
+        "財報公布日": "2026-08-12",
+        "固定價值有效至": "2026-11-12",
         "產業重點": "AI電源、資料中心、散熱、工業自動化、機器人",
     },
 }
@@ -11246,6 +11268,23 @@ def aivm_lab_pct(x):
         return f"{float(x):.1f}%"
     except Exception:
         return "N/A"
+
+def aivm_lab_stage(margin_pct):
+    """
+    margin_pct = (固定AIVM價值 - 現價) / 固定AIVM價值 * 100
+    正數代表現價低於固定價值；負數代表現價高於固定價值。
+    """
+    if pd.isna(margin_pct):
+        return "資料不足"
+    if margin_pct >= 25:
+        return "明顯低估"
+    if margin_pct >= 10:
+        return "低估"
+    if margin_pct >= -10:
+        return "合理"
+    if margin_pct >= -25:
+        return "高估"
+    return "明顯高估"
 
 @st.cache_data(ttl=1800, show_spinner=False)
 def aivm_lab_quote(symbol):
@@ -11292,13 +11331,11 @@ def aivm_lab_quote(symbol):
                 out["PB"] = aivm_lab_num(info.get("priceToBook", np.nan))
             if pd.isna(out["BVPS"]):
                 out["BVPS"] = aivm_lab_num(info.get("bookValue", np.nan))
-
         if pd.isna(out["現價"]):
             out["現價"] = aivm_lab_num(fi.get("last_price", fi.get("lastPrice", np.nan)))
     except Exception:
         pass
 
-    # fallback：避免 Lab 結果全是 N/A；正式版再串公開資訊觀測站或財報庫
     used_fb = []
     if pd.isna(out["現價"]):
         out["現價"] = cfg.get("fallback_price", np.nan)
@@ -11319,21 +11356,8 @@ def aivm_lab_quote(symbol):
         out["資料來源"] = "Yahoo Finance + Lab校準資料：" + "、".join(used_fb)
     return out
 
-def aivm_lab_median_value(eps, bvps, pe_tuple, pb_tuple):
-    vals = []
-    for pe in pe_tuple:
-        if pd.notna(eps) and eps > 0:
-            vals.append(eps * pe)
-    for pb in pb_tuple:
-        if pd.notna(bvps) and bvps > 0:
-            vals.append(bvps * pb)
-    if not vals:
-        return np.nan
-    return float(np.median(vals))
-
 def aivm_lab_range_value(eps, bvps, pe_tuple, pb_tuple):
     low_vals, mid_vals, high_vals = [], [], []
-
     if pd.notna(eps) and eps > 0:
         low_vals.append(eps * pe_tuple[0])
         mid_vals.append(eps * pe_tuple[1])
@@ -11342,16 +11366,29 @@ def aivm_lab_range_value(eps, bvps, pe_tuple, pb_tuple):
         low_vals.append(bvps * pb_tuple[0])
         mid_vals.append(bvps * pb_tuple[1])
         high_vals.append(bvps * pb_tuple[2])
-
     if not low_vals:
         return np.nan, np.nan, np.nan
-
     return float(np.median(low_vals)), float(np.median(mid_vals)), float(np.median(high_vals))
 
 def aivm_lab_error(value, price):
     if pd.isna(value) or pd.isna(price) or price == 0:
         return np.nan
     return abs(value - price) / price * 100
+
+def aivm_fixed_value(financial_value, market_value, industry_value, weights):
+    if any(pd.isna(x) for x in [financial_value, market_value, industry_value]):
+        return np.nan
+    fw, mw, iw = weights
+    return financial_value * fw + market_value * mw + industry_value * iw
+
+def aivm_dynamic_value(price, fixed_value):
+    """
+    動態AIVM示範：保留固定價值70%，以現價校準30%。
+    用來觀察「若部分跟現價連動」會如何影響估值位階。
+    """
+    if pd.isna(price) or pd.isna(fixed_value):
+        return np.nan
+    return fixed_value * 0.70 + price * 0.30
 
 def aivm_lab_row(symbol, cfg):
     q = aivm_lab_quote(symbol)
@@ -11360,18 +11397,16 @@ def aivm_lab_row(symbol, cfg):
     f_low, f_mid, f_high = aivm_lab_range_value(eps, bvps, cfg["hist_pe"], cfg["hist_pb"])
     m_low, m_mid, m_high = aivm_lab_range_value(eps, bvps, cfg["market_pe"], cfg["market_pb"])
 
-    i_factor = cfg["industry_factor"]
-    i_low = m_mid * i_factor[0] if pd.notna(m_mid) else np.nan
-    i_mid = m_mid * i_factor[1] if pd.notna(m_mid) else np.nan
-    i_high = m_mid * i_factor[2] if pd.notna(m_mid) else np.nan
+    factor = cfg["industry_factor"]
+    i_low = m_mid * factor[0] if pd.notna(m_mid) else np.nan
+    i_mid = m_mid * factor[1] if pd.notna(m_mid) else np.nan
+    i_high = m_mid * factor[2] if pd.notna(m_mid) else np.nan
 
-    fe = aivm_lab_error(f_mid, price)
-    me = aivm_lab_error(m_mid, price)
-    ie = aivm_lab_error(i_mid, price)
+    fixed = aivm_fixed_value(f_mid, m_mid, i_mid, cfg["fixed_weights"])
+    dynamic = aivm_dynamic_value(price, fixed)
 
-    errs = {"財報價值": fe, "市場價值": me, "產業價值": ie}
-    valid = {k: v for k, v in errs.items() if pd.notna(v)}
-    best = min(valid, key=valid.get) if valid else "資料不足"
+    fixed_margin = (fixed - price) / fixed * 100 if pd.notna(fixed) and fixed != 0 and pd.notna(price) else np.nan
+    dynamic_margin = (dynamic - price) / dynamic * 100 if pd.notna(dynamic) and dynamic != 0 and pd.notna(price) else np.nan
 
     return {
         "公司": cfg["公司"],
@@ -11382,21 +11417,31 @@ def aivm_lab_row(symbol, cfg):
         "PE": q["PE"],
         "PB": q["PB"],
         "BVPS": bvps,
-        "財報保守": f_low,
         "財報價值": f_mid,
+        "市場價值": m_mid,
+        "產業價值": i_mid,
+        "固定AIVM價值": fixed,
+        "動態AIVM價值": dynamic,
+        "固定安全邊際": fixed_margin,
+        "動態安全邊際": dynamic_margin,
+        "固定估值位階": aivm_lab_stage(fixed_margin),
+        "動態估值位階": aivm_lab_stage(dynamic_margin),
+        "財報誤差": aivm_lab_error(f_mid, price),
+        "市場誤差": aivm_lab_error(m_mid, price),
+        "產業誤差": aivm_lab_error(i_mid, price),
+        "財報保守": f_low,
         "財報樂觀": f_high,
         "市場保守": m_low,
-        "市場價值": m_mid,
         "市場樂觀": m_high,
         "產業保守": i_low,
-        "產業價值": i_mid,
         "產業樂觀": i_high,
-        "財報誤差": fe,
-        "市場誤差": me,
-        "產業誤差": ie,
-        "最接近現價": best,
-        "產業重點": cfg["產業重點"],
+        "財報季度": cfg["財報季度"],
+        "財報基準日": cfg["財報基準日"],
+        "財報公布日": cfg["財報公布日"],
+        "固定價值有效至": cfg["固定價值有效至"],
+        "更新條件": "季報公布 / 法人目標價重大調整 / 產業景氣循環改變",
         "資料來源": q["資料來源"],
+        "產業重點": cfg["產業重點"],
     }
 
 @st.cache_data(ttl=1800, show_spinner=False)
@@ -11407,14 +11452,14 @@ def aivm_lab_display_df(df):
     show = df.copy()
     money_cols = [
         "現價","EPS","PE","PB","BVPS",
-        "財報保守","財報價值","財報樂觀",
-        "市場保守","市場價值","市場樂觀",
-        "產業保守","產業價值","產業樂觀",
+        "財報價值","市場價值","產業價值",
+        "固定AIVM價值","動態AIVM價值",
+        "財報保守","財報樂觀","市場保守","市場樂觀","產業保守","產業樂觀",
     ]
     for c in money_cols:
         if c in show.columns:
             show[c] = show[c].apply(aivm_lab_fmt)
-    for c in ["財報誤差","市場誤差","產業誤差"]:
+    for c in ["固定安全邊際","動態安全邊際","財報誤差","市場誤差","產業誤差"]:
         if c in show.columns:
             show[c] = show[c].apply(aivm_lab_pct)
     return show
@@ -11423,22 +11468,34 @@ def aivm_lab_page():
     st.markdown(f"""
     <div class="hero">
       <div class="hero-title">🧪 AIVM Lab V1.0</div>
-      <div class="hero-sub">四家公司驗證版｜歷史PE/PB校準｜{APP_VERSION_CLEAN}</div>
-      <div style="margin-top:12px;color:white;font-weight:700;">目的：先驗證哪種價值最接近市場，不直接改動原AIVM主系統。</div>
+      <div class="hero-sub">四家公司驗證版｜固定AIVM價值 vs 動態AIVM價值｜{APP_VERSION_CLEAN}</div>
+      <div style="margin-top:12px;color:white;font-weight:700;">目的：驗證固定價值是否比現價連動模型更能產生有效估值位階。</div>
     </div>
     """, unsafe_allow_html=True)
 
     df = aivm_lab_df()
     show = aivm_lab_display_df(df)
 
-    tabs = st.tabs(["① 三價值比較", "② 區間校準", "③ 誤差分析", "④ 驗證結論", "⑤ 方法說明"])
+    st.info("固定AIVM價值以最近一期財報、產業景氣與市場評價建立，每季財報公布後更新一次；日常股價波動不影響固定價值。")
+
+    tabs = st.tabs(["① 固定價值總覽", "② 固定 vs 動態", "③ 財報公布日", "④ 區間校準", "⑤ 誤差分析", "⑥ 方法說明"])
 
     with tabs[0]:
-        cols = ["公司","代碼","產業","現價","EPS","PE","PB","BVPS","財報價值","市場價值","產業價值","最接近現價"]
+        cols = ["公司","代碼","產業","現價","固定AIVM價值","固定安全邊際","固定估值位階","財報季度","財報公布日","固定價值有效至"]
         st.dataframe(show[cols], use_container_width=True, hide_index=True)
-        st.caption("V92.2：不再用單一固定PE/PB；改用歷史區間與Lab校準資料，避免四家公司大量 N/A。")
+        st.caption("固定安全邊際 = (固定AIVM價值 - 現價) / 固定AIVM價值。正數代表現價低於固定價值。")
 
     with tabs[1]:
+        cols = ["公司","現價","財報價值","市場價值","產業價值","固定AIVM價值","動態AIVM價值","固定估值位階","動態估值位階"]
+        st.dataframe(show[cols], use_container_width=True, hide_index=True)
+        st.caption("若動態模型永遠接近現價，估值位階容易長期停留在合理或合理偏高；固定模型較能產生低估/高估差異。")
+
+    with tabs[2]:
+        cols = ["公司","代碼","財報季度","財報基準日","財報公布日","固定價值有效至","更新條件","資料來源"]
+        st.dataframe(show[cols], use_container_width=True, hide_index=True)
+        st.caption("正式版可改為讀取公開資訊觀測站或公司法說會公告日期；目前先用Lab設定值測試版面。")
+
+    with tabs[3]:
         cols = [
             "公司","現價",
             "財報保守","財報價值","財報樂觀",
@@ -11446,64 +11503,50 @@ def aivm_lab_page():
             "產業保守","產業價值","產業樂觀",
         ]
         st.dataframe(show[cols], use_container_width=True, hide_index=True)
-        st.caption("保守 / 合理 / 樂觀：由 PE 與 PB 區間估算，中位數作為該價值層的代表值。")
-
-    with tabs[2]:
-        cols = ["公司","現價","財報價值","市場價值","產業價值","財報誤差","市場誤差","產業誤差"]
-        st.dataframe(show[cols], use_container_width=True, hide_index=True)
-        st.caption("誤差率 = abs(價值 - 現價) / 現價。誤差越低，代表越接近目前市場定價。")
-
-    with tabs[3]:
-        result = df[["公司","代碼","產業","最接近現價","財報誤差","市場誤差","產業誤差","產業重點","資料來源"]].copy()
-        for c in ["財報誤差","市場誤差","產業誤差"]:
-            result[c] = result[c].apply(aivm_lab_pct)
-        st.dataframe(result, use_container_width=True, hide_index=True)
-
-        counts = df["最接近現價"].value_counts().reset_index()
-        counts.columns = ["價值來源","公司數"]
-        st.markdown("### 初步觀察")
-        st.dataframe(counts, use_container_width=True, hide_index=True)
-        st.info("這一頁只用來判斷未來是否導入動態權重；本版不會改動主系統基準價值。")
 
     with tabs[4]:
+        cols = ["公司","現價","財報價值","市場價值","產業價值","財報誤差","市場誤差","產業誤差"]
+        st.dataframe(show[cols], use_container_width=True, hide_index=True)
+
+    with tabs[5]:
         st.markdown("""
-        ### V92.2 方法說明
+        ### V92.3 方法說明
 
-        **財報價值**  
-        使用 EPS × 歷史合理 PE、BVPS × 歷史合理 PB 的中位數。
+        **固定AIVM價值**
+        ```
+        固定AIVM價值
+        =
+        財報價值 × 30%
+        +
+        市場價值 × 40%
+        +
+        產業價值 × 30%
+        ```
 
-        **市場價值**  
-        使用 EPS × 市場合理 PE、BVPS × 市場合理 PB 的中位數。
+        **更新原則**
+        - 每季財報公布後更新一次。
+        - 日常股價波動不直接改變固定AIVM價值。
+        - 若法人目標價重大調整或產業景氣循環改變，可提前重新校準。
 
-        **產業價值**  
-        使用市場價值 × 產業係數，反映 AI、成熟製程、資料中心、電源等產業溢價或折價。
-
-        **為什麼先做 Lab？**  
-        因為世界先進這類公司若只用純財報價值，結果可能與市場落差過大。  
-        Lab 的目的，是先確認「財報、市場、產業」哪一層最能解釋市場定價，再決定是否正式導入 AIVM 主系統。
+        **估值位階**
+        - 安全邊際 ≥ 25%：明顯低估
+        - 10% ~ 25%：低估
+        - -10% ~ 10%：合理
+        - -25% ~ -10%：高估
+        - < -25%：明顯高估
         """)
-        method_rows = []
-        for sym, cfg in AIVM_LAB_STOCKS.items():
-            method_rows.append({
-                "公司": cfg["公司"],
-                "財報PE區間": f"{cfg['hist_pe'][0]} / {cfg['hist_pe'][1]} / {cfg['hist_pe'][2]}",
-                "財報PB區間": f"{cfg['hist_pb'][0]} / {cfg['hist_pb'][1]} / {cfg['hist_pb'][2]}",
-                "市場PE區間": f"{cfg['market_pe'][0]} / {cfg['market_pe'][1]} / {cfg['market_pe'][2]}",
-                "市場PB區間": f"{cfg['market_pb'][0]} / {cfg['market_pb'][1]} / {cfg['market_pb'][2]}",
-                "產業係數": f"{cfg['industry_factor'][0]} / {cfg['industry_factor'][1]} / {cfg['industry_factor'][2]}",
-                "產業重點": cfg["產業重點"],
-            })
-        st.dataframe(pd.DataFrame(method_rows), use_container_width=True, hide_index=True)
-# ================= V92.2 AIVM LAB HISTORICAL PE PB CALIBRATION END =================
+# ================= V92.3 AIVM QUARTERLY FIXED VALUE LAB END =================
 
 active = unified_symbol_manager(symbols)
 
-
-# ===== V92.2 AIVM Lab route guard =====
+# ===== V92.3 AIVM Lab route guard =====
 if page in ["🧪AIVM Lab", "🧪 AIVM Lab"]:
     aivm_lab_page()
     st.stop()
-# ===== V92.2 AIVM Lab route guard end =====
+# ===== V92.3 AIVM Lab route guard end =====
+
+
+
 
 
 
