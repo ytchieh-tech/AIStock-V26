@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V92.1 AIVM Lab Route Final"
+APP_VERSION="V92.2 AIVM Lab Historical PE PB Calibration"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -443,7 +443,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V92.1 AIVM Lab Route Final responsive audit */
+/* V92.2 AIVM Lab Historical PE PB Calibration responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -502,7 +502,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V92.1 AIVM Lab Route Final：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V92.2 AIVM Lab Historical PE PB Calibration：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -707,7 +707,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V92.1 AIVM Lab Route Final.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V92.2 AIVM Lab Historical PE PB Calibration.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -882,7 +882,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V92.1 AIVM Lab Route Final: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V92.2 AIVM Lab Historical PE PB Calibration: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1779,7 +1779,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V92.1 AIVM Lab Route Final｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V92.2 AIVM Lab Historical PE PB Calibration｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1795,7 +1795,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V92.1 AIVM Lab Route Final</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V92.2 AIVM Lab Historical PE PB Calibration</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1818,7 +1818,7 @@ if "page" not in st.session_state: st.session_state.page="🏠首頁"
 # V60_PAGE_TARGET_HELPER: APP快捷入口目標保存在 session_state；若原始選單未吃到，仍可由各頁判斷使用。
 
 # ================= V76.1 TRANSPARENCY + NAME FIX LAYER =================
-APP_VERSION="V92.1 AIVM Lab Route Final"
+APP_VERSION="V92.2 AIVM Lab Historical PE PB Calibration"
 
 # 補充 未覆蓋股票中文名稱與產業DNA，避免回退 Yahoo 英文名稱或待分類。
 V761_EXTRA_ROWS = [
@@ -1998,7 +1998,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V92.1 AIVM Lab Route Final_SIDEBAR_SECTOR_FIX
+    # V92.2 AIVM Lab Historical PE PB Calibration_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -5141,7 +5141,7 @@ def v70_research_institute(symbol, q, df, scores):
 
 # ================= NAME RESOLVER + SECTOR COMPLETE LAYER =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V92.1 AIVM Lab Route Final"
+APP_VERSION="V92.2 AIVM Lab Historical PE PB Calibration"
 
 V76_ROWS = [
 ("2330","台積電","上市","電子","半導體","晶圓代工","先進製程","AI/HPC","中游"),("2303","聯電","上市","電子","半導體","晶圓代工","成熟製程","車用/工控","中游"),("5347","世界先進","上櫃","電子","半導體","特殊製程晶圓代工","成熟製程","車用/工控","中游"),("6770","力積電","上市","電子","半導體","晶圓代工/記憶體","成熟製程","記憶體/代工","中游"),("2408","南亞科","上市","電子","半導體","DRAM","記憶體","AI/伺服器記憶體","上中游"),("2344","華邦電","上市","電子","半導體","記憶體","NOR/DRAM","車用/工控","上中游"),("2337","旺宏","上市","電子","半導體","記憶體","NOR Flash","車用/工控","上中游"),
@@ -5273,7 +5273,7 @@ def v76_calc_transparency(symbol,q=None,df=None,scores=None):
     return pd.DataFrame(rows,columns=['模型','使用價格','狀態','公式/方法','使用數值與說明'])
 
 def v76_ai_page(symbol,q,df,scores):
-    st.markdown('## 🏛 V92.1 AIVM Lab Route Final.3')
+    st.markdown('## 🏛 V92.2 AIVM Lab Historical PE PB Calibration.3')
     tabs=st.tabs(['🧬公司DNA','🌱ESG排名','🌍競爭/同業','🔍計算透明'])
     with tabs[0]: st.dataframe(v76_company_dna_df(symbol),use_container_width=True,hide_index=True)
     with tabs[1]: st.dataframe(v76_esg_rank(symbol),use_container_width=True,hide_index=True)
@@ -5283,7 +5283,7 @@ def v76_ai_page(symbol,q,df,scores):
 
 # =================  OFFICIAL MASTER + TRANSPARENCY FIX =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V92.1 AIVM Lab Route Final"
+APP_VERSION="V92.2 AIVM Lab Historical PE PB Calibration"
 
 V763_FALLBACK_MASTER = [
     # code,name,market,level1,level2,level3,level4,level5,chain
@@ -5615,13 +5615,13 @@ def v762_banner():
     st.markdown("""
     <div style="padding:28px;border-radius:22px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin:12px 0 22px 0;">
       <div style="font-size:34px;font-weight:900;">📈 智策股市 AI 決策平台</div>
-      <div style="font-size:20px;font-weight:800;margin-top:8px;">V92.1 AIVM Lab Route Final</div>
+      <div style="font-size:20px;font-weight:800;margin-top:8px;">V92.2 AIVM Lab Historical PE PB Calibration</div>
       <div style="font-size:15px;margin-top:8px;opacity:.92;">官方代碼中文表 × 產業DNA × ESG股價溢價 × 計算透明</div>
     </div>
     """, unsafe_allow_html=True)
 
 def v76_ai_page(symbol, q, df, scores):
-    st.markdown("## 🏛 V92.1 AIVM Lab Route Final.3")
+    st.markdown("## 🏛 V92.2 AIVM Lab Historical PE PB Calibration.3")
     tabs = st.tabs(["🧬公司DNA","🌱ESG排名","🌍競爭/同業","🔍計算透明"])
     with tabs[0]:
         st.dataframe(v76_company_dna_df(symbol), use_container_width=True, hide_index=True)
@@ -5642,7 +5642,7 @@ def v762_master_panel():
 
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER =================
 # 基底：。首頁、監控、K線、設定不重寫；只把原四大中心原封不動嵌入研究院。
-APP_VERSION="V92.1 AIVM Lab Route Final"
+APP_VERSION="V92.2 AIVM Lab Historical PE PB Calibration"
 
 def v85_num(x, default=np.nan):
     try:
@@ -5887,7 +5887,7 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V92.1 AIVM Lab Route Final</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V92.2 AIVM Lab Historical PE PB Calibration</div>
       <div style="font-size:16px;margin-top:10px;">V85 = 完整搬遷版：財報、評價、ESG、法人原封不動搬入研究院</div>
     </div>
     """, unsafe_allow_html=True)
@@ -5939,7 +5939,7 @@ def v80_enterprise_value_page(symbol, q=None, df=None, scores=None): return v85_
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER END =================
 
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER =================
-APP_VERSION="V92.1 AIVM Lab Route Final"
+APP_VERSION="V92.2 AIVM Lab Historical PE PB Calibration"
 
 def v861_profile_data(active):
     code0 = str(active).split(".")[0]
@@ -6167,7 +6167,7 @@ def v87_research_institute(active, q, df_daily, scores):
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER END =================
 
 # ================= V87 STABLE RESEARCH LAYER =================
-APP_VERSION="V92.1 AIVM Lab Route Final"
+APP_VERSION="V92.2 AIVM Lab Historical PE PB Calibration"
 
 def v87_num(x, default=np.nan):
     try:
@@ -6348,7 +6348,7 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V92.1 AIVM Lab Route Final</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V92.2 AIVM Lab Historical PE PB Calibration</div>
       <div style="font-size:16px;margin-top:10px;">AI價值挖掘 × 資料倉儲 × 同業競爭 × 財報單位優化</div>
     </div>
     """, unsafe_allow_html=True)
@@ -9247,7 +9247,7 @@ except Exception:
 
 
 # ================= V89.4.4 UI CLEANUP & PEER LIBRARY PATCH =================
-APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
+APP_VERSION_CLEAN = "V92.2 AIVM Lab Historical PE PB Calibration"
 
 V8944_ALLOWED_PAGES = [
     "🏠首頁",
@@ -9392,7 +9392,7 @@ main_tabs = V8944_ALLOWED_PAGES
 # 4. 首頁/主選單再次強制精簡
 # 5. 清理  / 測試 / 舊版字樣
 
-APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
+APP_VERSION_CLEAN = "V92.2 AIVM Lab Historical PE PB Calibration"
 
 V90_ALLOWED_PAGES = [
     "🏠首頁",
@@ -9720,7 +9720,7 @@ main_tabs = V90_ALLOWED_PAGES
 
 
 # ================= V90.1 SEMICONDUCTOR BATCH VALUATION FIX PATCH =================
-APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
+APP_VERSION_CLEAN = "V92.2 AIVM Lab Historical PE PB Calibration"
 
 # 最終主選單：法人也刪除
 V901_ALLOWED_PAGES = ["🏠首頁", "📡監控", "📈K線", "🏛企業價值研究院", "🧪AIVM研究中心", "⚙設定"]
@@ -10102,7 +10102,7 @@ def home_page():
 
 
 # ================= V90.2 MENU + FINANCIAL UNIT FINAL FIX =================
-APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
+APP_VERSION_CLEAN = "V92.2 AIVM Lab Historical PE PB Calibration"
 
 # 1) 財報單位最終修正：不要再吃舊 zh_financial_df，直接產生顯示表
 def v902_num(x):
@@ -10319,7 +10319,7 @@ def v902_normalize_main_choice(x):
 
 
 # ================= V90.3 UI TEXT CLEANUP + MULTI SECTOR PATCH =================
-APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
+APP_VERSION_CLEAN = "V92.2 AIVM Lab Historical PE PB Calibration"
 
 # 強制把舊選單導回可用頁面
 V903_ALLOWED_PAGES = ["🏠首頁","📊監控","📈K線","🏛企業價值研究院","🧪AIVM研究中心","🧪AIVM Lab","⚙設定"]
@@ -10548,7 +10548,7 @@ def home_page():
 
 
 # ================= V90.4 SECTOR HOME + DNA EXPANSION PATCH =================
-APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
+APP_VERSION_CLEAN = "V92.2 AIVM Lab Historical PE PB Calibration"
 
 # 估值位階規則：
 # 安全邊際 = (基準價值 - 現價) / 基準價值
@@ -10721,7 +10721,7 @@ def home_page():
 
 
 # ================= V90.5 HOME SECTOR DASHBOARD PATCH =================
-APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
+APP_VERSION_CLEAN = "V92.2 AIVM Lab Historical PE PB Calibration"
 
 # 擴充其他產業類股
 V905_EXTRA_SECTORS = {
@@ -10916,7 +10916,7 @@ except Exception:
 
 
 # ================= V90.6 HARD OVERRIDE HOME DASHBOARD PATCH =================
-APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
+APP_VERSION_CLEAN = "V92.2 AIVM Lab Historical PE PB Calibration"
 
 # 這版直接覆蓋 page dispatch，避免舊首頁仍呼叫舊 AIVM 表格。
 V906_ALLOWED_PAGES = ["🏠首頁","📊監控","📈K線","🏛企業價值研究院","🧪AIVM研究中心","🧪AIVM Lab","⚙設定"]
@@ -11151,14 +11151,71 @@ def v906_force_home():
 # ================= V90.6 HARD OVERRIDE HOME DASHBOARD PATCH END =================
 
 
-# ================= V92.0 AIVM LAB MVP START =================
-APP_VERSION_CLEAN = "V92.1 AIVM Lab Route Final"
+
+
+
+# ================= V92.2 AIVM LAB HISTORICAL PE PB CALIBRATION START =================
+APP_VERSION_CLEAN = "V92.2 AIVM Lab Historical PE/PB Calibration"
+
+# V92.2 目的：
+# 1. 不再使用單一固定 PE/PB。
+# 2. 改成歷史區間：保守 / 合理 / 樂觀。
+# 3. 若 Yahoo 基本面抓不到 EPS / PB / BVPS，使用 Lab 校準資料，避免 N/A。
+# 4. 本版仍然只影響 AIVM Lab，不動主系統。
 
 AIVM_LAB_STOCKS = {
-    "2330.TW": {"公司":"台積電","產業":"晶圓代工 / AI先進製程","財報PE":24,"財報PB":5.0,"市場PE":28,"市場PB":6.0,"產業係數":1.08,"產業重點":"AI、CoWoS、N3/N2、先進封裝"},
-    "2303.TW": {"公司":"聯電","產業":"成熟製程晶圓代工","財報PE":14,"財報PB":1.8,"市場PE":16,"市場PB":2.1,"產業係數":1.00,"產業重點":"成熟製程、車用、工控、產能利用率"},
-    "5347.TWO": {"公司":"世界先進","產業":"成熟製程 / 特殊製程","財報PE":18,"財報PB":2.2,"市場PE":32,"市場PB":4.2,"產業係數":0.95,"產業重點":"PMIC、DDIC、成熟製程、股利能力"},
-    "2308.TW": {"公司":"台達電","產業":"AI電源 / 自動化","財報PE":22,"財報PB":4.2,"市場PE":28,"市場PB":5.2,"產業係數":1.12,"產業重點":"AI電源、資料中心、散熱、工業自動化、機器人"},
+    "2330.TW": {
+        "公司": "台積電",
+        "產業": "晶圓代工 / AI先進製程",
+        "fallback_price": 2390.0,
+        "fallback_eps": 73.54,
+        "fallback_bvps": 216.35,
+        "hist_pe": (24, 32, 40),
+        "hist_pb": (7.0, 10.0, 13.0),
+        "market_pe": (30, 36, 42),
+        "market_pb": (9.0, 11.5, 14.0),
+        "industry_factor": (1.02, 1.08, 1.15),
+        "產業重點": "AI、CoWoS、N3/N2、先進封裝",
+    },
+    "2303.TW": {
+        "公司": "聯電",
+        "產業": "成熟製程晶圓代工",
+        "fallback_price": 178.0,
+        "fallback_eps": 5.20,
+        "fallback_bvps": 32.5,
+        "hist_pe": (16, 24, 32),
+        "hist_pb": (2.6, 3.6, 4.6),
+        "market_pe": (24, 30, 36),
+        "market_pb": (3.8, 4.8, 5.8),
+        "industry_factor": (0.95, 1.00, 1.08),
+        "產業重點": "成熟製程、車用、工控、產能利用率",
+    },
+    "5347.TWO": {
+        "公司": "世界先進",
+        "產業": "成熟製程 / 特殊製程",
+        "fallback_price": 200.0,
+        "fallback_eps": 4.30,
+        "fallback_bvps": 36.64,
+        "hist_pe": (18, 28, 38),
+        "hist_pb": (2.8, 4.2, 5.6),
+        "market_pe": (32, 42, 52),
+        "market_pb": (4.2, 5.2, 6.2),
+        "industry_factor": (0.92, 0.98, 1.05),
+        "產業重點": "PMIC、DDIC、成熟製程、股利能力",
+    },
+    "2308.TW": {
+        "公司": "台達電",
+        "產業": "AI電源 / 自動化",
+        "fallback_price": 2000.0,
+        "fallback_eps": 23.09,
+        "fallback_bvps": 115.32,
+        "hist_pe": (45, 60, 78),
+        "hist_pb": (9.0, 13.0, 18.0),
+        "market_pe": (60, 75, 90),
+        "market_pb": (12.0, 16.0, 20.0),
+        "industry_factor": (1.08, 1.16, 1.25),
+        "產業重點": "AI電源、資料中心、散熱、工業自動化、機器人",
+    },
 }
 
 def aivm_lab_num(x):
@@ -11182,9 +11239,26 @@ def aivm_lab_fmt(x):
     except Exception:
         return "N/A"
 
+def aivm_lab_pct(x):
+    try:
+        if x is None or pd.isna(x):
+            return "N/A"
+        return f"{float(x):.1f}%"
+    except Exception:
+        return "N/A"
+
 @st.cache_data(ttl=1800, show_spinner=False)
 def aivm_lab_quote(symbol):
-    out = {"現價": np.nan, "EPS": np.nan, "PE": np.nan, "PB": np.nan, "BVPS": np.nan}
+    cfg = AIVM_LAB_STOCKS.get(symbol, {})
+    out = {
+        "現價": np.nan,
+        "EPS": np.nan,
+        "PE": np.nan,
+        "PB": np.nan,
+        "BVPS": np.nan,
+        "資料來源": "Yahoo Finance",
+    }
+
     try:
         q = yf_quote(symbol)
         if isinstance(q, dict):
@@ -11195,6 +11269,7 @@ def aivm_lab_quote(symbol):
             out["BVPS"] = aivm_lab_num(q.get("book_value", q.get("bookValue", q.get("bvps", np.nan))))
     except Exception:
         pass
+
     try:
         t = yf.Ticker(symbol)
         try:
@@ -11205,31 +11280,73 @@ def aivm_lab_quote(symbol):
             fi = getattr(t, "fast_info", {}) or {}
         except Exception:
             fi = {}
+
         if isinstance(info, dict):
-            if pd.isna(out["現價"]): out["現價"] = aivm_lab_num(info.get("regularMarketPrice", info.get("currentPrice", info.get("previousClose", np.nan))))
-            if pd.isna(out["EPS"]): out["EPS"] = aivm_lab_num(info.get("trailingEps", info.get("forwardEps", info.get("epsTrailingTwelveMonths", np.nan))))
-            if pd.isna(out["PE"]): out["PE"] = aivm_lab_num(info.get("trailingPE", info.get("forwardPE", np.nan)))
-            if pd.isna(out["PB"]): out["PB"] = aivm_lab_num(info.get("priceToBook", np.nan))
-            if pd.isna(out["BVPS"]): out["BVPS"] = aivm_lab_num(info.get("bookValue", np.nan))
+            if pd.isna(out["現價"]):
+                out["現價"] = aivm_lab_num(info.get("regularMarketPrice", info.get("currentPrice", info.get("previousClose", np.nan))))
+            if pd.isna(out["EPS"]):
+                out["EPS"] = aivm_lab_num(info.get("trailingEps", info.get("forwardEps", info.get("epsTrailingTwelveMonths", np.nan))))
+            if pd.isna(out["PE"]):
+                out["PE"] = aivm_lab_num(info.get("trailingPE", info.get("forwardPE", np.nan)))
+            if pd.isna(out["PB"]):
+                out["PB"] = aivm_lab_num(info.get("priceToBook", np.nan))
+            if pd.isna(out["BVPS"]):
+                out["BVPS"] = aivm_lab_num(info.get("bookValue", np.nan))
+
         if pd.isna(out["現價"]):
             out["現價"] = aivm_lab_num(fi.get("last_price", fi.get("lastPrice", np.nan)))
     except Exception:
         pass
+
+    # fallback：避免 Lab 結果全是 N/A；正式版再串公開資訊觀測站或財報庫
+    used_fb = []
+    if pd.isna(out["現價"]):
+        out["現價"] = cfg.get("fallback_price", np.nan)
+        used_fb.append("現價")
+    if pd.isna(out["EPS"]) or out["EPS"] <= 0:
+        out["EPS"] = cfg.get("fallback_eps", np.nan)
+        used_fb.append("EPS")
+    if pd.isna(out["BVPS"]) or out["BVPS"] <= 0:
+        out["BVPS"] = cfg.get("fallback_bvps", np.nan)
+        used_fb.append("BVPS")
+
     if pd.isna(out["PE"]) and pd.notna(out["現價"]) and pd.notna(out["EPS"]) and out["EPS"] > 0:
         out["PE"] = out["現價"] / out["EPS"]
-    if pd.isna(out["BVPS"]) and pd.notna(out["現價"]) and pd.notna(out["PB"]) and out["PB"] > 0:
-        out["BVPS"] = out["現價"] / out["PB"]
+    if pd.isna(out["PB"]) and pd.notna(out["現價"]) and pd.notna(out["BVPS"]) and out["BVPS"] > 0:
+        out["PB"] = out["現價"] / out["BVPS"]
+
+    if used_fb:
+        out["資料來源"] = "Yahoo Finance + Lab校準資料：" + "、".join(used_fb)
     return out
 
-def aivm_lab_value(eps, bvps, pe, pb):
-    vals, src = [], []
-    if pd.notna(eps) and eps > 0:
-        vals.append(eps * pe); src.append("EPS×PE")
-    if pd.notna(bvps) and bvps > 0:
-        vals.append(bvps * pb); src.append("BVPS×PB")
+def aivm_lab_median_value(eps, bvps, pe_tuple, pb_tuple):
+    vals = []
+    for pe in pe_tuple:
+        if pd.notna(eps) and eps > 0:
+            vals.append(eps * pe)
+    for pb in pb_tuple:
+        if pd.notna(bvps) and bvps > 0:
+            vals.append(bvps * pb)
     if not vals:
-        return np.nan, "EPS/BVPS不足"
-    return float(np.median(vals)), " / ".join(src)
+        return np.nan
+    return float(np.median(vals))
+
+def aivm_lab_range_value(eps, bvps, pe_tuple, pb_tuple):
+    low_vals, mid_vals, high_vals = [], [], []
+
+    if pd.notna(eps) and eps > 0:
+        low_vals.append(eps * pe_tuple[0])
+        mid_vals.append(eps * pe_tuple[1])
+        high_vals.append(eps * pe_tuple[2])
+    if pd.notna(bvps) and bvps > 0:
+        low_vals.append(bvps * pb_tuple[0])
+        mid_vals.append(bvps * pb_tuple[1])
+        high_vals.append(bvps * pb_tuple[2])
+
+    if not low_vals:
+        return np.nan, np.nan, np.nan
+
+    return float(np.median(low_vals)), float(np.median(mid_vals)), float(np.median(high_vals))
 
 def aivm_lab_error(value, price):
     if pd.isna(value) or pd.isna(price) or price == 0:
@@ -11239,16 +11356,48 @@ def aivm_lab_error(value, price):
 def aivm_lab_row(symbol, cfg):
     q = aivm_lab_quote(symbol)
     price, eps, bvps = q["現價"], q["EPS"], q["BVPS"]
-    fv, fsrc = aivm_lab_value(eps, bvps, cfg["財報PE"], cfg["財報PB"])
-    mv, msrc = aivm_lab_value(eps, bvps, cfg["市場PE"], cfg["市場PB"])
-    iv = mv * cfg["產業係數"] if pd.notna(mv) else np.nan
-    fe, me, ie = aivm_lab_error(fv, price), aivm_lab_error(mv, price), aivm_lab_error(iv, price)
+
+    f_low, f_mid, f_high = aivm_lab_range_value(eps, bvps, cfg["hist_pe"], cfg["hist_pb"])
+    m_low, m_mid, m_high = aivm_lab_range_value(eps, bvps, cfg["market_pe"], cfg["market_pb"])
+
+    i_factor = cfg["industry_factor"]
+    i_low = m_mid * i_factor[0] if pd.notna(m_mid) else np.nan
+    i_mid = m_mid * i_factor[1] if pd.notna(m_mid) else np.nan
+    i_high = m_mid * i_factor[2] if pd.notna(m_mid) else np.nan
+
+    fe = aivm_lab_error(f_mid, price)
+    me = aivm_lab_error(m_mid, price)
+    ie = aivm_lab_error(i_mid, price)
+
     errs = {"財報價值": fe, "市場價值": me, "產業價值": ie}
-    valid = {k:v for k,v in errs.items() if pd.notna(v)}
+    valid = {k: v for k, v in errs.items() if pd.notna(v)}
     best = min(valid, key=valid.get) if valid else "資料不足"
-    return {"公司":cfg["公司"],"代碼":symbol,"產業":cfg["產業"],"現價":price,"EPS":eps,"PE":q["PE"],"PB":q["PB"],"BVPS":bvps,
-            "財報價值":fv,"市場價值":mv,"產業價值":iv,"財報誤差":fe,"市場誤差":me,"產業誤差":ie,
-            "最接近現價":best,"財報來源":fsrc,"市場來源":msrc,"產業重點":cfg["產業重點"]}
+
+    return {
+        "公司": cfg["公司"],
+        "代碼": symbol,
+        "產業": cfg["產業"],
+        "現價": price,
+        "EPS": eps,
+        "PE": q["PE"],
+        "PB": q["PB"],
+        "BVPS": bvps,
+        "財報保守": f_low,
+        "財報價值": f_mid,
+        "財報樂觀": f_high,
+        "市場保守": m_low,
+        "市場價值": m_mid,
+        "市場樂觀": m_high,
+        "產業保守": i_low,
+        "產業價值": i_mid,
+        "產業樂觀": i_high,
+        "財報誤差": fe,
+        "市場誤差": me,
+        "產業誤差": ie,
+        "最接近現價": best,
+        "產業重點": cfg["產業重點"],
+        "資料來源": q["資料來源"],
+    }
 
 @st.cache_data(ttl=1800, show_spinner=False)
 def aivm_lab_df():
@@ -11256,65 +11405,106 @@ def aivm_lab_df():
 
 def aivm_lab_display_df(df):
     show = df.copy()
-    for c in ["現價","EPS","PE","PB","BVPS","財報價值","市場價值","產業價值"]:
+    money_cols = [
+        "現價","EPS","PE","PB","BVPS",
+        "財報保守","財報價值","財報樂觀",
+        "市場保守","市場價值","市場樂觀",
+        "產業保守","產業價值","產業樂觀",
+    ]
+    for c in money_cols:
         if c in show.columns:
             show[c] = show[c].apply(aivm_lab_fmt)
     for c in ["財報誤差","市場誤差","產業誤差"]:
         if c in show.columns:
-            show[c] = show[c].apply(lambda x: "N/A" if pd.isna(x) else f"{float(x):.1f}%")
+            show[c] = show[c].apply(aivm_lab_pct)
     return show
 
 def aivm_lab_page():
     st.markdown(f"""
     <div class="hero">
       <div class="hero-title">🧪 AIVM Lab V1.0</div>
-      <div class="hero-sub">四家公司驗證版｜財報價值 × 市場價值 × 產業價值｜{APP_VERSION_CLEAN}</div>
+      <div class="hero-sub">四家公司驗證版｜歷史PE/PB校準｜{APP_VERSION_CLEAN}</div>
       <div style="margin-top:12px;color:white;font-weight:700;">目的：先驗證哪種價值最接近市場，不直接改動原AIVM主系統。</div>
     </div>
     """, unsafe_allow_html=True)
+
     df = aivm_lab_df()
-    tabs = st.tabs(["① 三價值比較", "② 誤差分析", "③ 驗證結論", "④ 方法說明"])
+    show = aivm_lab_display_df(df)
+
+    tabs = st.tabs(["① 三價值比較", "② 區間校準", "③ 誤差分析", "④ 驗證結論", "⑤ 方法說明"])
+
     with tabs[0]:
-        cols = ["公司","代碼","產業","現價","EPS","PE","PB","BVPS","財報價值","市場價值","產業價值"]
-        st.dataframe(aivm_lab_display_df(df)[cols], use_container_width=True, hide_index=True)
-        st.caption("本頁不使用固定權重，先觀察三種價值與現價的差異。")
+        cols = ["公司","代碼","產業","現價","EPS","PE","PB","BVPS","財報價值","市場價值","產業價值","最接近現價"]
+        st.dataframe(show[cols], use_container_width=True, hide_index=True)
+        st.caption("V92.2：不再用單一固定PE/PB；改用歷史區間與Lab校準資料，避免四家公司大量 N/A。")
+
     with tabs[1]:
-        cols = ["公司","現價","財報價值","市場價值","產業價值","財報誤差","市場誤差","產業誤差"]
-        st.dataframe(aivm_lab_display_df(df)[cols], use_container_width=True, hide_index=True)
-        st.caption("誤差率 = abs(價值 - 現價) / 現價。誤差越低，代表越接近目前市場定價。")
+        cols = [
+            "公司","現價",
+            "財報保守","財報價值","財報樂觀",
+            "市場保守","市場價值","市場樂觀",
+            "產業保守","產業價值","產業樂觀",
+        ]
+        st.dataframe(show[cols], use_container_width=True, hide_index=True)
+        st.caption("保守 / 合理 / 樂觀：由 PE 與 PB 區間估算，中位數作為該價值層的代表值。")
+
     with tabs[2]:
-        result = df[["公司","代碼","產業","最接近現價","財報誤差","市場誤差","產業誤差","產業重點"]].copy()
+        cols = ["公司","現價","財報價值","市場價值","產業價值","財報誤差","市場誤差","產業誤差"]
+        st.dataframe(show[cols], use_container_width=True, hide_index=True)
+        st.caption("誤差率 = abs(價值 - 現價) / 現價。誤差越低，代表越接近目前市場定價。")
+
+    with tabs[3]:
+        result = df[["公司","代碼","產業","最接近現價","財報誤差","市場誤差","產業誤差","產業重點","資料來源"]].copy()
         for c in ["財報誤差","市場誤差","產業誤差"]:
-            result[c] = result[c].apply(lambda x: "N/A" if pd.isna(x) else f"{float(x):.1f}%")
+            result[c] = result[c].apply(aivm_lab_pct)
         st.dataframe(result, use_container_width=True, hide_index=True)
+
         counts = df["最接近現價"].value_counts().reset_index()
         counts.columns = ["價值來源","公司數"]
         st.markdown("### 初步觀察")
         st.dataframe(counts, use_container_width=True, hide_index=True)
-        st.info("這一頁是用來決定未來是否導入產業動態權重，不會影響現有估值中心。")
-    with tabs[3]:
-        st.markdown("""
-        ### 方法說明
-        - **財報價值**：EPS×財報合理PE、BVPS×財報合理PB 的中位數。
-        - **市場價值**：EPS×市場合理PE、BVPS×市場合理PB 的中位數。
-        - **產業價值**：市場價值 × 產業係數。
-        - **誤差率**：abs(價值 - 現價) / 現價。
+        st.info("這一頁只用來判斷未來是否導入動態權重；本版不會改動主系統基準價值。")
 
-        V1.0 只做驗證，不直接改動原本基準價值、安全邊際、估值位階。
+    with tabs[4]:
+        st.markdown("""
+        ### V92.2 方法說明
+
+        **財報價值**  
+        使用 EPS × 歷史合理 PE、BVPS × 歷史合理 PB 的中位數。
+
+        **市場價值**  
+        使用 EPS × 市場合理 PE、BVPS × 市場合理 PB 的中位數。
+
+        **產業價值**  
+        使用市場價值 × 產業係數，反映 AI、成熟製程、資料中心、電源等產業溢價或折價。
+
+        **為什麼先做 Lab？**  
+        因為世界先進這類公司若只用純財報價值，結果可能與市場落差過大。  
+        Lab 的目的，是先確認「財報、市場、產業」哪一層最能解釋市場定價，再決定是否正式導入 AIVM 主系統。
         """)
         method_rows = []
         for sym, cfg in AIVM_LAB_STOCKS.items():
-            method_rows.append({"公司":cfg["公司"],"財報PE":cfg["財報PE"],"財報PB":cfg["財報PB"],"市場PE":cfg["市場PE"],"市場PB":cfg["市場PB"],"產業係數":cfg["產業係數"],"產業重點":cfg["產業重點"]})
+            method_rows.append({
+                "公司": cfg["公司"],
+                "財報PE區間": f"{cfg['hist_pe'][0]} / {cfg['hist_pe'][1]} / {cfg['hist_pe'][2]}",
+                "財報PB區間": f"{cfg['hist_pb'][0]} / {cfg['hist_pb'][1]} / {cfg['hist_pb'][2]}",
+                "市場PE區間": f"{cfg['market_pe'][0]} / {cfg['market_pe'][1]} / {cfg['market_pe'][2]}",
+                "市場PB區間": f"{cfg['market_pb'][0]} / {cfg['market_pb'][1]} / {cfg['market_pb'][2]}",
+                "產業係數": f"{cfg['industry_factor'][0]} / {cfg['industry_factor'][1]} / {cfg['industry_factor'][2]}",
+                "產業重點": cfg["產業重點"],
+            })
         st.dataframe(pd.DataFrame(method_rows), use_container_width=True, hide_index=True)
-# ================= V92.0 AIVM LAB MVP END =================
+# ================= V92.2 AIVM LAB HISTORICAL PE PB CALIBRATION END =================
 
 active = unified_symbol_manager(symbols)
 
-# ===== V92.1 AIVM Lab route guard =====
+
+# ===== V92.2 AIVM Lab route guard =====
 if page in ["🧪AIVM Lab", "🧪 AIVM Lab"]:
     aivm_lab_page()
     st.stop()
-# ===== V92.1 AIVM Lab route guard end =====
+# ===== V92.2 AIVM Lab route guard end =====
+
 
 
 # V39：手機/電腦響應式欄位
