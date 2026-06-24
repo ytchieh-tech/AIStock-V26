@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V92.4 AIVM Industry Weight Explanation Lab"
+APP_VERSION="V92.5 AIVM Weight Backtest Lab"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -11158,7 +11158,103 @@ def v906_force_home():
 
 
 # ================= V92.3 AIVM QUARTERLY FIXED VALUE LAB START =================
-APP_VERSION_CLEAN = "V92.4 AIVM Industry Weight Explanation Lab"
+APP_VERSION_CLEAN = "V92.5 AIVM Weight Backtest Lab"
+
+# ===== V92.5 AIVM 權重回測中心 START =====
+# 本版為 Lab 回測展示版：
+# 用「模型估值與現價的誤差」模擬回測邏輯，先讓版面與決策流程定型。
+# 正式版可改接歷史股價、歷史EPS、財報與現金流資料。
+
+AIVM_BACKTEST_MODEL_ERRORS = {
+    "晶圓代工 / AI先進製程": {"PE":18, "PB":34, "FCFF":10, "FCFE":16, "EVA":12, "CAP":14, "EBO":18},
+    "成熟製程晶圓代工": {"PE":16, "PB":22, "FCFF":11, "FCFE":12, "EVA":18, "CAP":20, "EBO":24},
+    "成熟製程 / 特殊製程": {"PE":15, "PB":20, "FCFF":10, "FCFE":11, "EVA":17, "CAP":19, "EBO":23},
+    "AI電源 / 自動化": {"PE":13, "PB":30, "FCFF":12, "FCFE":15, "EVA":14, "CAP":17, "EBO":13},
+}
+
+AIVM_BACKTEST_DEFAULT_YEARS = "2018–2026"
+
+def aivm_current_weight_dict(industry):
+    try:
+        return AIVM_INDUSTRY_WEIGHTS.get(industry, AIVM_INDUSTRY_WEIGHTS.get("成熟製程晶圓代工"))["權重"]
+    except Exception:
+        return {"PE":15, "PB":5, "FCFF":25, "FCFE":10, "EVA":20, "CAP":15, "EBO":10}
+
+def aivm_backtest_errors(industry):
+    return AIVM_BACKTEST_MODEL_ERRORS.get(industry, AIVM_BACKTEST_MODEL_ERRORS.get("成熟製程晶圓代工"))
+
+def aivm_normalize_weights_from_errors(errors):
+    """
+    誤差越小，權重越高。
+    用 inverse error 初步產生最佳權重，並四捨五入到整數百分比。
+    """
+    inv = {}
+    for k, v in errors.items():
+        try:
+            inv[k] = 1 / max(float(v), 1e-6)
+        except Exception:
+            inv[k] = 0
+    total = sum(inv.values())
+    if total <= 0:
+        return {k: 0 for k in errors}
+    raw = {k: inv[k] / total * 100 for k in inv}
+    rounded = {k: int(round(v)) for k, v in raw.items()}
+    diff = 100 - sum(rounded.values())
+    # 把誤差最低的模型補差額，確保合計100%
+    if rounded:
+        best = min(errors, key=errors.get)
+        rounded[best] = rounded.get(best, 0) + diff
+    return rounded
+
+def aivm_weighted_error(errors, weights):
+    total_w = sum(float(v) for v in weights.values())
+    if total_w <= 0:
+        return np.nan
+    return sum(float(errors.get(k, np.nan)) * float(w) for k, w in weights.items() if pd.notna(errors.get(k, np.nan))) / total_w
+
+def aivm_backtest_table(industry):
+    errors = aivm_backtest_errors(industry)
+    current_w = aivm_current_weight_dict(industry)
+    optimal_w = aivm_normalize_weights_from_errors(errors)
+
+    rows = []
+    for m in ["PE", "PB", "FCFF", "FCFE", "EVA", "CAP", "EBO"]:
+        rows.append({
+            "模型": m,
+            "單模型回測誤差": f"{errors.get(m, np.nan):.1f}%",
+            "目前權重": f"{current_w.get(m, 0)}%",
+            "回測建議權重": f"{optimal_w.get(m, 0)}%",
+            "權重調整方向": "提高" if optimal_w.get(m, 0) > current_w.get(m, 0) else ("降低" if optimal_w.get(m, 0) < current_w.get(m, 0) else "維持"),
+        })
+    return pd.DataFrame(rows)
+
+def aivm_backtest_summary_df():
+    rows = []
+    industries = list(AIVM_BACKTEST_MODEL_ERRORS.keys())
+    for ind in industries:
+        errors = aivm_backtest_errors(ind)
+        current_w = aivm_current_weight_dict(ind)
+        optimal_w = aivm_normalize_weights_from_errors(errors)
+        current_err = aivm_weighted_error(errors, current_w)
+        optimal_err = aivm_weighted_error(errors, optimal_w)
+        improve = current_err - optimal_err if pd.notna(current_err) and pd.notna(optimal_err) else np.nan
+        rows.append({
+            "類股": ind,
+            "回測期間": AIVM_BACKTEST_DEFAULT_YEARS,
+            "目前組合誤差": f"{current_err:.1f}%",
+            "最佳組合誤差": f"{optimal_err:.1f}%",
+            "改善幅度": f"{improve:.1f}%",
+            "建議": "可導入" if pd.notna(optimal_err) and optimal_err <= 15 else "需再校準",
+        })
+    return pd.DataFrame(rows)
+
+def aivm_backtest_explain_text(industry):
+    errors = aivm_backtest_errors(industry)
+    best_models = sorted(errors.items(), key=lambda x: x[1])[:3]
+    txt = "、".join([f"{m}({e:.1f}%)" for m, e in best_models])
+    return f"{industry} 回測中誤差最低的前三個模型為：{txt}。因此權重會傾向提高這些模型，而不是主觀指定。"
+# ===== V92.5 AIVM 權重回測中心 END =====
+
 
 AIVM_INDUSTRY_WEIGHTS = {
     "晶圓代工 / AI先進製程": {
@@ -11561,7 +11657,7 @@ def aivm_lab_page():
 
     st.info("固定AIVM價值以最近一期財報、產業景氣與市場評價建立，每季財報公布後更新一次；日常股價波動不影響固定價值。")
 
-    tabs = st.tabs(["① 固定價值總覽", "② 固定 vs 動態", "③ 財報公布日", "④ 產業權重說明", "⑤ 權重總覽", "⑥ 區間校準", "⑦ 誤差分析", "⑧ 方法說明"])
+    tabs = st.tabs(["① 固定價值總覽", "② 固定 vs 動態", "③ 財報公布日", "④ 產業權重說明", "⑤ 權重總覽", "⑥ 權重回測", "⑦ 最佳權重建議", "⑧ 區間校準", "⑨ 誤差分析", "⑩ 方法說明"])
 
     with tabs[0]:
         cols = ["公司","代碼","產業","現價","固定AIVM價值","固定安全邊際","固定估值位階","財報季度","財報公布日","固定價值有效至"]
@@ -11592,6 +11688,21 @@ def aivm_lab_page():
         st.caption("不同類股權重不同，是因為不同產業的股價驅動因子不同：金融看PB/ROE，晶圓代工看FCFF/EVA/CAP，AI成長股看EBO/CAP/PE。")
 
     with tabs[5]:
+        st.markdown("### 權重回測中心")
+        selected_company_bt = st.selectbox("選擇公司 / 類股", df["公司"].tolist(), key="v925_backtest_company")
+        selected_row_bt = df[df["公司"] == selected_company_bt].iloc[0]
+        bt_industry = selected_row_bt["產業"]
+        st.info(aivm_backtest_explain_text(bt_industry))
+        st.dataframe(aivm_backtest_table(bt_industry), use_container_width=True, hide_index=True)
+        st.caption("本頁先用 Lab 回測資料展示邏輯；正式版可改接歷史財報、股價與模型估值資料。")
+
+    with tabs[6]:
+        st.markdown("### 最佳權重建議總覽")
+        st.dataframe(aivm_backtest_summary_df(), use_container_width=True, hide_index=True)
+        st.caption("改善幅度 = 目前權重組合誤差 - 回測最佳權重組合誤差。")
+        st.warning("V92.5 僅作權重回測流程驗證，不直接取代主系統權重。")
+
+    with tabs[7]:
         cols = [
             "公司","現價",
             "財報保守","財報價值","財報樂觀",
@@ -11600,13 +11711,13 @@ def aivm_lab_page():
         ]
         st.dataframe(show[cols], use_container_width=True, hide_index=True)
 
-    with tabs[6]:
+    with tabs[8]:
         cols = ["公司","現價","財報價值","市場價值","產業價值","財報誤差","市場誤差","產業誤差"]
         st.dataframe(show[cols], use_container_width=True, hide_index=True)
 
-    with tabs[7]:
+    with tabs[9]:
         st.markdown("""
-        ### V92.4 方法說明
+        ### V92.5 方法說明
 
         **固定AIVM價值**
         ```
@@ -11628,6 +11739,13 @@ def aivm_lab_page():
         ```
         不同類股權重不同，是因為市場對不同產業的定價邏輯不同。
 
+        **V92.5 權重回測原則**
+        ```
+        單模型歷史誤差越低，建議權重越高。
+        權重不是固定主觀設定，而是由歷史回測誤差校準。
+        正式版將使用歷史財報、股價與模型估值資料回測。
+        ```
+
         **更新原則**
         - 每季財報公布後更新一次。
         - 日常股價波動不直接改變固定AIVM價值。
@@ -11644,11 +11762,11 @@ def aivm_lab_page():
 
 active = unified_symbol_manager(symbols)
 
-# ===== V92.3 AIVM Lab route guard =====
+# ===== V92.5 AIVM Lab route guard =====
 if page in ["🧪AIVM Lab", "🧪 AIVM Lab"]:
     aivm_lab_page()
     st.stop()
-# ===== V92.3 AIVM Lab route guard end =====
+# ===== V92.5 AIVM Lab route guard end =====
 
 
 
