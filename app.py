@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V91.4 Force AIVM EPS PE PB Override"
+APP_VERSION="V91.5 Real Dispatch Override"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -443,7 +443,7 @@ st.markdown("""
 @media(max-width:360px){.stock-grid.cols-2,.stock-grid.cols-3,.stock-grid.cols-4{grid-template-columns:1fr!important}}
 
 
-/* V91.4 Force AIVM EPS PE PB Override responsive audit */
+/* V91.5 Real Dispatch Override responsive audit */
 @media(max-width:768px){
   .block-container{padding-left:.35rem!important;padding-right:.35rem!important}
   .kpi-grid{grid-template-columns:1fr 1fr!important}
@@ -502,7 +502,7 @@ TW_STOCKS.update({
 CODE_NAME_MAP = {v:k for k,v in TW_STOCKS.items()}
 
 
-# V91.4 Force AIVM EPS PE PB Override：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
+# V91.5 Real Dispatch Override：擴充台股中文名稱對照；每位使用者使用自己的 session_state，不寫共用 watchlist.json
 TW_STOCKS.update({
     "光寶科":"2301.TW","麗正":"2302.TW","聯電":"2303.TW","全友":"2305.TW","台達電":"2308.TW",
     "華通":"2313.TW","台揚":"2314.TW","鴻海":"2317.TW","東訊":"2321.TW","中環":"2323.TW",
@@ -707,7 +707,7 @@ def now_tw():
     return (datetime.utcnow()+timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
 
 def maybe_reload(sec):
-    # V91.4 Force AIVM EPS PE PB Override.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
+    # V91.5 Real Dispatch Override.2: 使用 Streamlit autorefresh，避免 browser reload 導致回首頁或股票重設
     if sec and sec > 0:
         if st_autorefresh is not None:
             st_autorefresh(interval=int(sec)*1000, key="v372_monitor_autorefresh")
@@ -882,7 +882,7 @@ def ai_total(s): return round(s["fund"]*.35+s["inst"]*.25+s["tech"]*.20+s["esg"]
 
 
 def effective_price(q, df):
-    """V91.4 Force AIVM EPS PE PB Override: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
+    """V91.5 Real Dispatch Override: if Yahoo quote is N/A, use latest K-line close as backup so valuation models do not disappear."""
     p = q.get("price", np.nan) if isinstance(q, dict) else np.nan
     if pd.notna(p) and p > 0:
         return float(p)
@@ -1779,7 +1779,7 @@ st.markdown("""
     <div>
       <div style="font-weight:950;font-size:1.15rem;">智策股市 AI 決策平台</div>
       <div style="font-size:.78rem;color:#dbeafe;margin-top:2px;">
-        V91.4 Force AIVM EPS PE PB Override｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
+        V91.5 Real Dispatch Override｜企業評價 × 法人籌碼 × 融資融券燈號 × ESG永續 × 中文財報 × AI研究
       </div>
     </div>
   </div>
@@ -1795,7 +1795,7 @@ st.markdown("""
       <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200"/>
       <path d="M80 0 V180 M160 0 V180 M240 0 V180 M320 0 V180 M400 0 V180 M480 0 V180 M560 0 V180 M640 0 V180 M720 0 V180 M800 0 V180 M880 0 V180 M960 0 V180 M1040 0 V180 M1120 0 V180"/>
     </g>
-    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V91.4 Force AIVM EPS PE PB Override</text>
+    <text x="40" y="42" fill="#ffffff" font-size="28" font-weight="900">V91.5 Real Dispatch Override</text>
     <text x="40" y="72" fill="#bfdbfe" font-size="15" font-weight="700">Trading Signals · K-Line Indicators · Financials · ESG · AI Research</text>
     <polyline points="0,138 90,128 160,142 250,112 330,118 430,85 520,98 610,65 720,78 820,54 930,66 1030,45 1130,56 1200,38"
       fill="none" stroke="url(#v48line)" stroke-width="4"/>
@@ -1818,7 +1818,7 @@ if "page" not in st.session_state: st.session_state.page="🏠首頁"
 # V60_PAGE_TARGET_HELPER: APP快捷入口目標保存在 session_state；若原始選單未吃到，仍可由各頁判斷使用。
 
 # ================= V76.1 TRANSPARENCY + NAME FIX LAYER =================
-APP_VERSION="V91.4 Force AIVM EPS PE PB Override"
+APP_VERSION="V91.5 Real Dispatch Override"
 
 # 補充 V76 未覆蓋股票中文名稱與產業DNA，避免回退 Yahoo 英文名稱或待分類。
 V761_EXTRA_ROWS = [
@@ -1996,7 +1996,7 @@ with st.sidebar:
     cols=2 if layout_mode!="電腦" else 4
     period=st.radio("歷史期間",["6mo","1y","2y","5y","10y"],index=2,horizontal=True,key="period")
     sector=st.selectbox("類股清單",["自選"]+list(SECTORS.keys()),index=1,key="sector")
-    # V91.4 Force AIVM EPS PE PB Override_SIDEBAR_SECTOR_FIX
+    # V91.5 Real Dispatch Override_SIDEBAR_SECTOR_FIX
     if "watch_text_value" not in st.session_state:
         st.session_state.watch_text_value = ",".join(DEFAULT_MONITOR)
     if "last_sector_loaded" not in st.session_state:
@@ -5139,7 +5139,7 @@ def v70_research_institute(symbol, q, df, scores):
 
 # ================= V76 NAME RESOLVER + SECTOR COMPLETE LAYER =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V91.4 Force AIVM EPS PE PB Override"
+APP_VERSION="V91.5 Real Dispatch Override"
 
 V76_ROWS = [
 ("2330","台積電","上市","電子","半導體","晶圓代工","先進製程","AI/HPC","中游"),("2303","聯電","上市","電子","半導體","晶圓代工","成熟製程","車用/工控","中游"),("5347","世界先進","上櫃","電子","半導體","特殊製程晶圓代工","成熟製程","車用/工控","中游"),("6770","力積電","上市","電子","半導體","晶圓代工/記憶體","成熟製程","記憶體/代工","中游"),("2408","南亞科","上市","電子","半導體","DRAM","記憶體","AI/伺服器記憶體","上中游"),("2344","華邦電","上市","電子","半導體","記憶體","NOR/DRAM","車用/工控","上中游"),("2337","旺宏","上市","電子","半導體","記憶體","NOR Flash","車用/工控","上中游"),
@@ -5271,7 +5271,7 @@ def v76_calc_transparency(symbol,q=None,df=None,scores=None):
     return pd.DataFrame(rows,columns=['模型','使用價格','狀態','公式/方法','使用數值與說明'])
 
 def v76_ai_page(symbol,q,df,scores):
-    st.markdown('## 🏛 V91.4 Force AIVM EPS PE PB Override.3')
+    st.markdown('## 🏛 V91.5 Real Dispatch Override.3')
     tabs=st.tabs(['🧬公司DNA','🌱ESG排名','🌍競爭/同業','🔍計算透明'])
     with tabs[0]: st.dataframe(v76_company_dna_df(symbol),use_container_width=True,hide_index=True)
     with tabs[1]: st.dataframe(v76_esg_rank(symbol),use_container_width=True,hide_index=True)
@@ -5281,7 +5281,7 @@ def v76_ai_page(symbol,q,df,scores):
 
 # =================  OFFICIAL MASTER + TRANSPARENCY FIX =================
 APP_BRAND = "AI研究院 Pro"
-APP_VERSION="V91.4 Force AIVM EPS PE PB Override"
+APP_VERSION="V91.5 Real Dispatch Override"
 
 V763_FALLBACK_MASTER = [
     # code,name,market,level1,level2,level3,level4,level5,chain
@@ -5613,13 +5613,13 @@ def v762_banner():
     st.markdown("""
     <div style="padding:28px;border-radius:22px;background:linear-gradient(135deg,#0f172a,#1d4ed8,#047857);color:white;margin:12px 0 22px 0;">
       <div style="font-size:34px;font-weight:900;">📈 智策股市 AI 決策平台</div>
-      <div style="font-size:20px;font-weight:800;margin-top:8px;">V91.4 Force AIVM EPS PE PB Override</div>
+      <div style="font-size:20px;font-weight:800;margin-top:8px;">V91.5 Real Dispatch Override</div>
       <div style="font-size:15px;margin-top:8px;opacity:.92;">官方代碼中文表 × 產業DNA × ESG股價溢價 × 計算透明</div>
     </div>
     """, unsafe_allow_html=True)
 
 def v76_ai_page(symbol, q, df, scores):
-    st.markdown("## 🏛 V91.4 Force AIVM EPS PE PB Override.3")
+    st.markdown("## 🏛 V91.5 Real Dispatch Override.3")
     tabs = st.tabs(["🧬公司DNA","🌱ESG排名","🌍競爭/同業","🔍計算透明"])
     with tabs[0]:
         st.dataframe(v76_company_dna_df(symbol), use_container_width=True, hide_index=True)
@@ -5640,7 +5640,7 @@ def v762_master_panel():
 
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER =================
 # 基底：。首頁、監控、K線、設定不重寫；只把原四大中心原封不動嵌入研究院。
-APP_VERSION="V91.4 Force AIVM EPS PE PB Override"
+APP_VERSION="V91.5 Real Dispatch Override"
 
 def v85_num(x, default=np.nan):
     try:
@@ -5885,7 +5885,7 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V91.4 Force AIVM EPS PE PB Override</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V91.5 Real Dispatch Override</div>
       <div style="font-size:16px;margin-top:10px;">V85 = 完整搬遷版：財報、評價、ESG、法人原封不動搬入研究院</div>
     </div>
     """, unsafe_allow_html=True)
@@ -5937,7 +5937,7 @@ def v80_enterprise_value_page(symbol, q=None, df=None, scores=None): return v85_
 # ================= V85 FINAL ARCHITECTURE EDITION LAYER END =================
 
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER =================
-APP_VERSION="V91.4 Force AIVM EPS PE PB Override"
+APP_VERSION="V91.5 Real Dispatch Override"
 
 def v861_profile_data(active):
     code0 = str(active).split(".")[0]
@@ -6165,7 +6165,7 @@ def v87_research_institute(active, q, df_daily, scores):
 # ================= V86.1 INDUSTRY INTELLIGENCE STARTUP FIXED LAYER END =================
 
 # ================= V87 STABLE RESEARCH LAYER =================
-APP_VERSION="V91.4 Force AIVM EPS PE PB Override"
+APP_VERSION="V91.5 Real Dispatch Override"
 
 def v87_num(x, default=np.nan):
     try:
@@ -6346,7 +6346,7 @@ def v87_research_institute(active, q, df_daily, scores):
     st.markdown("""
     <div style="padding:34px;border-radius:28px;background:linear-gradient(135deg,#020617,#1e3a8a,#0f766e);color:white;margin:12px 0 24px 0;border:1px solid rgba(212,175,55,.35);box-shadow:0 16px 36px rgba(2,6,23,.25);">
       <div style="font-size:40px;font-weight:900;">🏛 AI企業價值研究院</div>
-      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V91.4 Force AIVM EPS PE PB Override</div>
+      <div style="font-size:22px;font-weight:800;color:#f8e6a0;margin-top:6px;">Enterprise Valuation Institute｜V91.5 Real Dispatch Override</div>
       <div style="font-size:16px;margin-top:10px;">AI價值挖掘 × 資料倉儲 × 同業競爭 × 財報單位優化</div>
     </div>
     """, unsafe_allow_html=True)
@@ -8714,7 +8714,7 @@ except Exception:
     pass
 
 def v88_value_discovery_home_block():
-    st.info("V90.1 先以 AIVM 機構級估值、雙共識度、安全邊際與估值位階進行驗證。")
+    st.info("")
 # ================= V89.4 INSTITUTIONAL VALUATION PATCH END =================
 
 
@@ -9245,7 +9245,7 @@ except Exception:
 
 
 # ================= V89.4.4 UI CLEANUP & PEER LIBRARY PATCH =================
-APP_VERSION_CLEAN = "V91.4 Force AIVM EPS PE PB Override"
+APP_VERSION_CLEAN = "V91.5 Real Dispatch Override"
 
 V8944_ALLOWED_PAGES = [
     "🏠首頁",
@@ -9390,7 +9390,7 @@ main_tabs = V8944_ALLOWED_PAGES
 # 4. 首頁/主選單再次強制精簡
 # 5. 清理  / 測試 / 舊版字樣
 
-APP_VERSION_CLEAN = "V91.4 Force AIVM EPS PE PB Override"
+APP_VERSION_CLEAN = "V91.5 Real Dispatch Override"
 
 V90_ALLOWED_PAGES = [
     "🏠首頁",
@@ -9718,7 +9718,7 @@ main_tabs = V90_ALLOWED_PAGES
 
 
 # ================= V90.1 SEMICONDUCTOR BATCH VALUATION FIX PATCH =================
-APP_VERSION_CLEAN = "V91.4 Force AIVM EPS PE PB Override"
+APP_VERSION_CLEAN = "V91.5 Real Dispatch Override"
 
 # 最終主選單：法人也刪除
 V901_ALLOWED_PAGES = ["🏠首頁",  "📈K線", "🏛企業價值研究院", "🧪AIVM研究中心", "⚙設定"]
@@ -10100,7 +10100,7 @@ def home_page():
 
 
 # ================= V90.2 MENU + FINANCIAL UNIT FINAL FIX =================
-APP_VERSION_CLEAN = "V91.4 Force AIVM EPS PE PB Override"
+APP_VERSION_CLEAN = "V91.5 Real Dispatch Override"
 
 # 1) 財報單位最終修正：不要再吃舊 zh_financial_df，直接產生顯示表
 def v902_num(x):
@@ -10317,7 +10317,7 @@ def v902_normalize_main_choice(x):
 
 
 # ================= V91.2 RESTORE FULL MODULES + SECTOR NAMES PATCH =================
-APP_VERSION_CLEAN = "V91.4 Force AIVM EPS PE PB Override"
+APP_VERSION_CLEAN = "V91.5 Real Dispatch Override"
 
 # 主選單：保留原本研究模組，僅移除監控；K線回復獨立入口
 V912_MAIN = ["🏠首頁","📈K線","💎評價","🌱ESG永續","🏢法人","📑中文財報","🏛企業價值研究院","🧪AIVM研究中心","⚙設定"]
@@ -10615,7 +10615,7 @@ def v912_home_page():
 
 
 # ================= V91.3 EPS/PE/PB + TRUE INTRINSIC VALUE FIX =================
-APP_VERSION_CLEAN = "V91.4 Force AIVM EPS PE PB Override"
+APP_VERSION_CLEAN = "V91.5 Real Dispatch Override"
 
 # 補強 Yahoo Finance 欄位讀取，避免 EPS / PE / PB 變成 N/A
 def v913_num(x):
@@ -10906,7 +10906,7 @@ if pd.isna(effective_price(q, df_daily)) and df_daily.empty:
 
 
 # ================= V91.4 FORCE AIVM EPS/PE/PB OVERRIDE =================
-APP_VERSION_CLEAN = "V91.4 Force AIVM EPS PE PB Override"
+APP_VERSION_CLEAN = "V91.5 Real Dispatch Override"
 
 # 修正重點：
 # 1. 舊版 AIVM 估值表不再優先顯示
@@ -11060,7 +11060,7 @@ def v914_df():
 
 def v914_dashboard():
     st.subheader("🧪 AIVM 估值研究中心")
-    st.caption("V91.4：強制覆蓋舊AIVM表格；顯示 EPS / PE / PB / BVPS；基準價值不再以現價比例校準。")
+    st.caption("V91.5：已直接覆蓋首頁與AIVM路由；顯示 EPS / PE / PB / BVPS；基準價值不再以現價比例校準。")
     df = v914_df()
     mode = st.radio("顯示方式", ["類股總覽","依類股查看","完整明細","基準價值說明"], horizontal=True, key="v914_mode")
     if mode == "類股總覽":
@@ -11110,48 +11110,19 @@ def v914_home_page():
 
 
 if page=="🏠首頁":
+    st.markdown(f"""
+    <div class="hero">
+      <div class="hero-title">🏛 AI企業價值研究院</div>
+      <div class="hero-sub">Enterprise Valuation Institute｜{APP_VERSION_CLEAN}</div>
+      <div style="margin-top:18px;color:white;font-weight:700;">V91.5 Real Dispatch Override｜首頁已直接改用新版 AIVM EPS/PE/PB/BVPS 表格</div>
+    </div>
+    """, unsafe_allow_html=True)
+    v914_dashboard()
 
-    try:
-        st.markdown("## 🧪 AIVM 估值研究中心")
-        st.caption("先以台積電、聯電、世界先進、力積電四家公司分析31種企業評價方法。")
-        st.dataframe(v893_aivm_ranking_matrix(), use_container_width=True, hide_index=True)
-    except Exception:
-        pass
-
-    try:
-        v88_home_inject()
-    except Exception:
-        pass
-    st.subheader("🏠 市場總覽")
-    mt=monitor_table(symbols); temp=int(np.clip(pd.to_numeric(mt.get("機構分數",pd.Series(dtype=float)),errors="coerce").mean() if not mt.empty else 50,0,100))
-    kpi([("AI市場溫度",f"{temp}/100"),("目前分析",display_name(active)),("更新頻率",refresh_label),("資料來源","Yahoo Finance")])
-    cards(mt.sort_values("機構分數",ascending=False,na_position="last"),min(6,mcount),display_cols)
 elif page=="📊監控":
-    st.subheader("📊 即時監控中心")
-    st.markdown("#### 監控設定")
-    st.caption(f"V76類股庫：{len(SECTORS)} 個分類，可自行新增自選清單。")
-    with st.expander("🧭 V76 類股快速入口", expanded=False):
-        v76_sector_panel()
-    # V91.4 Force AIVM EPS PE PB Override_PAGE_SECTOR_FIX
-    page_sector=st.selectbox("本頁股群快速入口",["自選"]+list(SECTORS.keys()),index=0,key="page_monitor_sector")  # V46_MONITOR_SECTOR_SYNC
-    if page_sector!="自選":
-        page_list=",".join(SECTORS.get(page_sector, DEFAULT_MONITOR))
-        st.session_state.watch_text_value=page_list
-        st.session_state.page_watch_text=page_list
-    page_refresh_label=st.radio("本頁更新頻率",["手動","1秒","3秒","5秒","10秒","30秒","60秒"],index=["手動","1秒","3秒","5秒","10秒","30秒","60秒"].index(refresh_label),horizontal=True,key="page_refresh_label")
-    page_refresh_sec=0 if page_refresh_label=="手動" else int(page_refresh_label.replace("秒",""))
-    page_watch=st.text_area("本頁自選監控清單",value=st.session_state.get("page_watch_text", st.session_state.watch_text_value),height=100,key="page_watch_text",help="這裡修改後會同步回左側自選清單")
-    st.session_state.watch_text_value = page_watch
-    symbols=[clean_symbol(x.strip()) for x in page_watch.split(",") if x.strip()][:mcount] or DEFAULT_MONITOR[:mcount]
-    if st.button("將監控清單第一檔設為全站分析股票", key="apply_first_watch_symbol"):
-        set_active_symbol(symbols[0])
-        st.rerun()
-    maybe_reload(page_refresh_sec)
-    st.caption(f"最後更新：{now_tw()}｜更新頻率：{page_refresh_label}｜Yahoo Finance 不保證每秒都有新tick")
-    mt=monitor_table(symbols); view=st.radio("顯示",["手機卡片","專業表格","排行榜"],horizontal=True,key="view")
-    if view=="手機卡片": cards(mt,mcount,display_cols)
-    elif view=="專業表格": st.dataframe(mt,use_container_width=True,hide_index=True)
-    else: st.dataframe(mt.sort_values(st.selectbox("排行欄位",["機構分數","漲跌幅","法人分數","主力分數","共識價"]),ascending=False,na_position="last").head(20),use_container_width=True,hide_index=True)
+    st.session_state.page = "🏠首頁"
+    st.info("監控選單已移除；請使用首頁、K線或AIVM研究中心。")
+    v914_dashboard()
 elif page=="📈K線":
     st.subheader(f"📈 專業K線：{display_name(active)}")
     with st.expander("K線副圖指標說明"):
@@ -11309,7 +11280,7 @@ elif page=="🏛企業價值研究院":
     v50_ai_research_center(active, df_daily, q, scores)
 
 elif page=="🧪AIVM研究中心":
-    v893_aivm_page()
+    v914_dashboard()
 elif page=="⚙設定":
     v763_master_panel()
     v64_mobile_webapp_note()
@@ -11330,7 +11301,7 @@ st.markdown("---")
 with st.expander("🧾 計算透明化中心", expanded=False):
     transparency_audit_center(active, q, df_daily, scores)
 
-st.caption("AI研究院 Pro V91.4 Force AIVM EPS PE PB Override｜研究與教學用途，非投資建議。")
+st.caption("AI研究院 Pro V91.5 Real Dispatch Override｜研究與教學用途，非投資建議。")
 
 # V44 check marker: AI事件分析
 
