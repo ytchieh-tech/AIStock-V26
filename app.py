@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V92.3 AIVM Quarterly Fixed Value Lab"
+APP_VERSION="V92.4 AIVM Industry Weight Explanation Lab"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -11158,7 +11158,90 @@ def v906_force_home():
 
 
 # ================= V92.3 AIVM QUARTERLY FIXED VALUE LAB START =================
-APP_VERSION_CLEAN = "V92.3 AIVM Quarterly Fixed Value Lab"
+APP_VERSION_CLEAN = "V92.4 AIVM Industry Weight Explanation Lab"
+
+AIVM_INDUSTRY_WEIGHTS = {
+    "晶圓代工 / AI先進製程": {
+        "權重": {"PE":15, "PB":5, "FCFF":25, "FCFE":10, "EVA":20, "CAP":15, "EBO":10},
+        "說明": {
+            "PE":"市場仍會用本益比評價獲利能力，但不是唯一核心。",
+            "PB":"晶圓代工屬重資產產業，但高階製程價值不只反映在帳面淨值，因此PB權重較低。",
+            "FCFF":"先進製程與資本支出龐大，自由現金流最能反映企業價值。",
+            "FCFE":"股東可分配現金流仍重要，但台積電仍處高投資循環，因此權重中等。",
+            "EVA":"ROIC高於資金成本的能力是台積電核心價值。",
+            "CAP":"先進製程護城河與競爭優勢期間長，需給予較高權重。",
+            "EBO":"剩餘盈餘可反映未來超額報酬，但對晶圓代工不是最高權重。"
+        },
+        "權重來源":"法人估值邏輯 + 現金流驅動 + 競爭優勢期間",
+        "可信度":"高"
+    },
+    "成熟製程晶圓代工": {
+        "權重": {"PE":20, "PB":10, "FCFF":25, "FCFE":20, "EVA":10, "CAP":10, "EBO":5},
+        "說明": {
+            "PE":"成熟製程景氣循環明顯，市場常以本益比反映景氣復甦或衰退。",
+            "PB":"成熟製程資產與折舊週期重要，PB需保留一定權重。",
+            "FCFF":"成熟製程企業現金流穩定，FCFF是主要價值來源。",
+            "FCFE":"聯電、世界先進具股利屬性，股東自由現金流重要。",
+            "EVA":"成熟製程超額報酬較先進製程低，因此EVA權重中等偏低。",
+            "CAP":"護城河存在但期間較短，CAP權重低於台積電。",
+            "EBO":"剩餘盈餘對成熟製程解釋力較低，作為輔助。"
+        },
+        "權重來源":"景氣循環 + 股利能力 + 現金流穩定度",
+        "可信度":"中高"
+    },
+    "成熟製程 / 特殊製程": {
+        "權重": {"PE":20, "PB":10, "FCFF":25, "FCFE":20, "EVA":10, "CAP":10, "EBO":5},
+        "說明": {
+            "PE":"世界先進股價常受成熟製程景氣與市場本益比影響。",
+            "PB":"成熟製程與特殊製程設備資產仍具參考價值。",
+            "FCFF":"現金流穩定度是成熟製程最重要價值來源之一。",
+            "FCFE":"高股息與股東回報對世界先進評價很重要。",
+            "EVA":"超額報酬能力需納入，但不宜高估。",
+            "CAP":"競爭優勢期間存在，但不如先進製程長。",
+            "EBO":"剩餘盈餘作為輔助，避免單純PE/PB低估。"
+        },
+        "權重來源":"成熟製程景氣 + 股利能力 + FCFF/FCFE",
+        "可信度":"中高"
+    },
+    "AI電源 / 自動化": {
+        "權重": {"PE":20, "PB":5, "FCFF":20, "FCFE":15, "EVA":15, "CAP":10, "EBO":15},
+        "說明": {
+            "PE":"台達電具成長股屬性，市場會給予本益比溢價。",
+            "PB":"資產淨值不是台達電主要定價邏輯，因此PB權重低。",
+            "FCFF":"AI電源與資料中心成長需反映在企業自由現金流。",
+            "FCFE":"台達電現金流穩定，股東自由現金流具參考價值。",
+            "EVA":"長期ROE與資本效率優秀，EVA需納入。",
+            "CAP":"電源管理、自動化與資料中心有競爭優勢，但需持續驗證。",
+            "EBO":"市場買的是未來超額獲利，EBO對台達電有一定解釋力。"
+        },
+        "權重來源":"AI電源成長 + 現金流 + 超額報酬能力",
+        "可信度":"高"
+    }
+}
+
+def aivm_weight_df(industry):
+    data = AIVM_INDUSTRY_WEIGHTS.get(industry)
+    if data is None:
+        data = AIVM_INDUSTRY_WEIGHTS.get("成熟製程晶圓代工")
+    rows = []
+    for model, weight in data["權重"].items():
+        rows.append({
+            "模型": model,
+            "權重": f"{weight}%",
+            "為什麼給這個權重": data["說明"].get(model, ""),
+            "權重來源": data["權重來源"],
+            "可信度": data["可信度"],
+        })
+    return pd.DataFrame(rows)
+
+def aivm_weight_summary_df():
+    rows = []
+    for industry, data in AIVM_INDUSTRY_WEIGHTS.items():
+        row = {"類股": industry, "權重來源": data["權重來源"], "可信度": data["可信度"]}
+        row.update({k: f"{v}%" for k, v in data["權重"].items()})
+        rows.append(row)
+    return pd.DataFrame(rows)
+
 
 # V92.3 核心：
 # 固定AIVM價值 = 每季財報公布後更新一次，不每日跟現價變動。
@@ -11478,7 +11561,7 @@ def aivm_lab_page():
 
     st.info("固定AIVM價值以最近一期財報、產業景氣與市場評價建立，每季財報公布後更新一次；日常股價波動不影響固定價值。")
 
-    tabs = st.tabs(["① 固定價值總覽", "② 固定 vs 動態", "③ 財報公布日", "④ 區間校準", "⑤ 誤差分析", "⑥ 方法說明"])
+    tabs = st.tabs(["① 固定價值總覽", "② 固定 vs 動態", "③ 財報公布日", "④ 產業權重說明", "⑤ 權重總覽", "⑥ 區間校準", "⑦ 誤差分析", "⑧ 方法說明"])
 
     with tabs[0]:
         cols = ["公司","代碼","產業","現價","固定AIVM價值","固定安全邊際","固定估值位階","財報季度","財報公布日","固定價值有效至"]
@@ -11496,6 +11579,19 @@ def aivm_lab_page():
         st.caption("正式版可改為讀取公開資訊觀測站或公司法說會公告日期；目前先用Lab設定值測試版面。")
 
     with tabs[3]:
+        st.markdown("### 產業權重說明")
+        selected_company = st.selectbox("選擇公司", df["公司"].tolist(), key="v924_weight_company")
+        selected_row = df[df["公司"] == selected_company].iloc[0]
+        st.info(f"{selected_company} 類股：{selected_row['產業']}｜權重不是主觀設定，而是依產業定價邏輯、現金流特性、護城河與市場習慣配置。")
+        st.dataframe(aivm_weight_df(selected_row["產業"]), use_container_width=True, hide_index=True)
+        st.caption("正式版可再加入歷史回測誤差，讓權重由回測資料自動校準。")
+
+    with tabs[4]:
+        st.markdown("### AIVM 類股權重總覽")
+        st.dataframe(aivm_weight_summary_df(), use_container_width=True, hide_index=True)
+        st.caption("不同類股權重不同，是因為不同產業的股價驅動因子不同：金融看PB/ROE，晶圓代工看FCFF/EVA/CAP，AI成長股看EBO/CAP/PE。")
+
+    with tabs[5]:
         cols = [
             "公司","現價",
             "財報保守","財報價值","財報樂觀",
@@ -11504,13 +11600,13 @@ def aivm_lab_page():
         ]
         st.dataframe(show[cols], use_container_width=True, hide_index=True)
 
-    with tabs[4]:
+    with tabs[6]:
         cols = ["公司","現價","財報價值","市場價值","產業價值","財報誤差","市場誤差","產業誤差"]
         st.dataframe(show[cols], use_container_width=True, hide_index=True)
 
-    with tabs[5]:
+    with tabs[7]:
         st.markdown("""
-        ### V92.3 方法說明
+        ### V92.4 方法說明
 
         **固定AIVM價值**
         ```
@@ -11522,6 +11618,15 @@ def aivm_lab_page():
         +
         產業價值 × 30%
         ```
+
+        **產業權重說明**
+        ```
+        7模型權重不是全部產業相同。
+        晶圓代工重視 FCFF、EVA、CAP。
+        成熟製程重視 FCFF、FCFE、PE。
+        AI電源/自動化重視 PE、FCFF、EBO、EVA。
+        ```
+        不同類股權重不同，是因為市場對不同產業的定價邏輯不同。
 
         **更新原則**
         - 每季財報公布後更新一次。
