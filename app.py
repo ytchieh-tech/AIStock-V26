@@ -18,7 +18,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V96.6 Disable Streamlit Magic"
+APP_VERSION="V96.7 Final Financial Display Fix"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -12820,25 +12820,21 @@ elif page == "📈K線":
             st.warning("K線頁載入中。")
 
 elif page == "🏛企業價值研究院":
-    def _v966_render_enterprise_value_page():
-        try:
+    # V96.7：不要使用 _v966_enterprise_result = ...，避免 Streamlit 顯示 DeltaGenerator。
+    try:
+        with st.container():
             enterprise_value_institute_page(active, q, df_daily)
-            return None
+    except Exception:
+        try:
+            with st.container():
+                value_institute(active, df_daily, q, {})
         except Exception:
             try:
-                value_institute(active, df_daily, q, {})
-                return None
-            except Exception:
-                try:
-                    v901_semiconductor_library_page()
-                    st.divider()
-                    v906_home_dashboard()
-                    return None
-                except Exception as e:
-                    st.error(f"企業價值研究院載入失敗：{e}")
-                    return None
-    _v966_enterprise_result = _v966_render_enterprise_value_page()
-    del _v966_enterprise_result
+                v901_semiconductor_library_page()
+                st.divider()
+                v906_home_dashboard()
+            except Exception as e:
+                st.error(f"企業價值研究院載入失敗：{e}")
 
 elif page == "🧪AIVM研究中心":
     try:
