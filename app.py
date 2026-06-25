@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V95.0 Semiconductor Industry Chain DNA Lab"
+APP_VERSION="V96.0 Simple Home Dropdown Valuation"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -11113,7 +11113,7 @@ def v906_summary_df(df=None):
         })
     return pd.DataFrame(rows)
 
-def v906_home_dashboard():
+def v96_simple_home_page():
     st.markdown(f"""
     <div class="hero">
       <div class="hero-title">🏛 AI企業價值研究院</div>
@@ -11142,11 +11142,11 @@ def v906_home_dashboard():
 
 # 強制首頁函式
 def home_page():
-    v906_home_dashboard()
+    v96_simple_home_page()
 
 # 若舊 dispatch 還是使用 AIVM 頁，這裡也提供一個乾淨首頁入口函式給下方強制替換
-def v906_force_home():
-    v906_home_dashboard()
+def v96_simple_home_page():
+    v96_simple_home_page()
 
 # ================= V90.6 HARD OVERRIDE HOME DASHBOARD PATCH END =================
 
@@ -11158,7 +11158,7 @@ def v906_force_home():
 
 
 # ================= V92.3 AIVM QUARTERLY FIXED VALUE LAB START =================
-APP_VERSION_CLEAN = "V95.0 Semiconductor Industry Chain DNA Lab"
+APP_VERSION_CLEAN = "V96.0 Simple Home Dropdown Valuation"
 
 # ===== V95.0 半導體產業鏈 / 同業 / 全球競爭資料庫 START =====
 # 目的：建立半導體大類股 → 次產業 → 個股 → 同業比較 → 全球競爭的資料骨架。
@@ -12387,6 +12387,115 @@ if pd.isna(effective_price(q, df_daily)) and df_daily.empty:
     st.warning(f"目前 {display_name(active)} 查無 Yahoo Finance 資料。若是上櫃股請確認代碼為 .TWO，例如和椿 = 6215.TWO。")
 
 
+
+
+# ================= V96.0 SIMPLE HOME DROPDOWN VALUATION START =================
+# 首頁只顯示個股基準價值與合理區間；詳細研究請進 AIVM / AIUM 研究中心。
+AIVM_HOME_TREE = {
+    "半導體": {
+        "晶圓代工": [
+            ("2330.TW","台積電",2390.00,2536.56,2282.90,2790.22,"2026-08-10","2026-11-10"),
+            ("2303.TW","聯電",178.00,145.47,130.92,160.02,"2026-08-05","2026-11-05"),
+            ("5347.TWO","世界先進",200.00,169.92,152.93,186.91,"2026-08-08","2026-11-08"),
+            ("6770.TW","力積電",85.70,81.40,73.26,89.54,"2026-08-12","2026-11-12"),
+        ],
+        "IC設計": [
+            ("2454.TW","聯發科",4535.00,4444.30,3778.00,5110.60,"2026-08-09","2026-11-09"),
+            ("2379.TW","瑞昱",803.00,770.88,655.25,886.51,"2026-08-09","2026-11-09"),
+            ("3034.TW","聯詠",543.00,521.28,443.09,599.47,"2026-08-09","2026-11-09"),
+            ("4966.TW","譜瑞-KY",664.00,637.44,541.82,733.06,"2026-08-09","2026-11-09"),
+            ("6415.TW","矽力*-KY",605.00,580.80,493.68,667.92,"2026-08-09","2026-11-09"),
+            ("8299.TWO","群聯",520.00,494.00,419.90,568.10,"2026-08-09","2026-11-09"),
+            ("3035.TW","智原",233.00,214.36,182.21,246.51,"2026-08-09","2026-11-09"),
+        ],
+        "AI ASIC / IP": [
+            ("3661.TW","世芯-KY",4375.00,4112.50,3495.63,4729.38,"2026-08-09","2026-11-09"),
+            ("3443.TW","創意",4725.00,4441.50,3775.28,5107.73,"2026-08-09","2026-11-09"),
+            ("6643.TWO","M31",490.50,451.26,383.57,518.95,"2026-08-09","2026-11-09"),
+            ("6533.TW","晶心科",206.50,189.98,161.48,218.48,"2026-08-09","2026-11-09"),
+        ],
+        "封測": [
+            ("3711.TW","日月光投控",165.00,158.40,134.64,182.16,"2026-08-09","2026-11-09"),
+            ("2449.TW","京元電子",112.00,106.40,90.44,122.36,"2026-08-09","2026-11-09"),
+            ("6239.TW","力成",150.00,139.50,118.58,160.43,"2026-08-09","2026-11-09"),
+            ("3264.TWO","欣銓",76.00,72.20,61.37,83.03,"2026-08-09","2026-11-09"),
+        ],
+        "載板 / PCB / CCL": [
+            ("2383.TW","台光電",5560.00,5393.20,4584.22,6202.18,"2026-08-09","2026-11-09"),
+            ("8046.TW","南電",955.00,907.25,771.16,1043.34,"2026-08-09","2026-11-09"),
+            ("3189.TWO","景碩",727.00,690.65,587.05,794.25,"2026-08-09","2026-11-09"),
+            ("6274.TWO","台燿",1765.00,1676.75,1425.24,1928.26,"2026-08-09","2026-11-09"),
+            ("6213.TW","聯茂",309.00,293.55,249.52,337.58,"2026-08-09","2026-11-09"),
+        ],
+        "半導體設備": [
+            ("3131.TWO","弘塑",3495.00,3285.30,2792.51,3778.10,"2026-08-09","2026-11-09"),
+            ("3583.TW","辛耘",882.00,829.08,704.72,953.44,"2026-08-09","2026-11-09"),
+            ("3680.TW","家登",537.00,504.78,429.06,580.50,"2026-08-09","2026-11-09"),
+            ("1560.TW","中砂",749.00,704.06,598.45,809.67,"2026-08-09","2026-11-09"),
+        ],
+    },
+    "AI伺服器": {
+        "ODM / 組裝": [
+            ("6669.TW","緯穎",4605.00,4512.90,3835.97,5189.84,"2026-08-09","2026-11-09"),
+            ("3231.TW","緯創",157.50,151.20,128.52,173.88,"2026-08-09","2026-11-09"),
+            ("2382.TW","廣達",372.00,357.12,303.55,410.69,"2026-08-09","2026-11-09"),
+        ],
+        "散熱": [
+            ("3017.TW","奇鋐",2530.00,2479.40,2107.49,2851.31,"2026-08-09","2026-11-09"),
+            ("3653.TW","健策",3640.00,3494.40,2970.24,4018.56,"2026-08-09","2026-11-09"),
+        ],
+    },
+    "電力重電": {"重電設備": [("1513.TW","中興電",180.00,171.00,145.35,196.65,"2026-08-09","2026-11-09"),("1504.TW","東元",92.00,87.40,74.29,100.51,"2026-08-09","2026-11-09")]},
+}
+
+def v96_home_df():
+    rows=[]
+    for sector, subs in AIVM_HOME_TREE.items():
+        for sub, items in subs.items():
+            for code_, name, price, base, lo, hi, pub, valid in items:
+                margin=(base-price)/base*100 if base else None
+                if price < lo:
+                    stage="合理偏低"
+                elif price > hi:
+                    stage="高估"
+                elif price > base:
+                    stage="合理偏高"
+                else:
+                    stage="合理"
+                rows.append({"類股":sector,"次產業":sub,"代碼":code_,"公司":name,"現價":price,"基準價值":base,"合理下緣":lo,"合理上緣":hi,"安全邊際":margin,"估值位階":stage,"財報公布日":pub,"有效至":valid})
+    return pd.DataFrame(rows)
+
+def v96_fmt(df):
+    out=df.copy()
+    for c in ["現價","基準價值","合理下緣","合理上緣"]:
+        out[c]=out[c].map(lambda x:f"{x:,.2f}")
+    out["合理區間"]=out["合理下緣"]+" ~ "+out["合理上緣"]
+    out["安全邊際"]=out["安全邊際"].map(lambda x:f"{x:.1f}%")
+    return out[["類股","次產業","代碼","公司","現價","基準價值","合理區間","安全邊際","估值位階","財報公布日","有效至"]]
+
+def v96_simple_home_page():
+    st.markdown("## 🏠 首頁：個股基準價值與合理區間")
+    st.caption("首頁只顯示投資人最需要的結果；詳細模型、權重、產業鏈、同業與全球競爭請參考 AIVM / AIUM 研究中心。")
+    df=v96_home_df()
+    c1,c2,c3=st.columns(3)
+    with c1:
+        sector=st.selectbox("選擇類股", ["全部"]+sorted(df["類股"].unique().tolist()), key="v96_home_sector")
+    d=df.copy()
+    if sector!="全部": d=d[d["類股"]==sector]
+    with c2:
+        sub=st.selectbox("選擇次產業", ["全部"]+sorted(d["次產業"].unique().tolist()), key="v96_home_sub")
+    if sub!="全部": d=d[d["次產業"]==sub]
+    with c3:
+        labels=["全部"]+[f"{r['公司']} / {r['代碼']}" for _,r in d.iterrows()]
+        company=st.selectbox("選擇個股", labels, key="v96_home_company")
+    if company!="全部":
+        code_=company.split("/")[-1].strip()
+        d=d[d["代碼"]==code_]
+    st.dataframe(v96_fmt(d), use_container_width=True, hide_index=True)
+    st.info("備註：首頁只提供基準價值與合理區間。若需查看估值模型、產業權重、同業比較、全球競爭與財報細節，請進入 AIVM / AIUM 研究中心。")
+
+# ================= V96.0 SIMPLE HOME DROPDOWN VALUATION END =================
+
 # ================= V90.7 TRUE HOME DISPATCH OVERRIDE =================
 # 重新路由頁面：首頁一定顯示全產業類股估值入口，不再顯示 AIVM 舊表格。
 try:
@@ -12398,10 +12507,10 @@ except Exception:
 
 if page == "🏠首頁":
     try:
-        v906_force_home()
+        v96_simple_home_page()
     except Exception:
         try:
-            v906_home_dashboard()
+            v96_simple_home_page()
         except Exception:
             try:
                 v905_sector_dashboard()
@@ -12433,7 +12542,7 @@ elif page == "🏛企業價值研究院":
             try:
                 v901_semiconductor_library_page()
                 st.divider()
-                v906_home_dashboard()
+                v96_simple_home_page()
             except Exception as e:
                 st.error(f"企業價值研究院載入失敗：{e}")
 
