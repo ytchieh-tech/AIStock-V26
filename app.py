@@ -4,6 +4,40 @@ os.environ["STREAMLIT_RUNNER_MAGIC_ENABLED"] = "false"
 import requests
 
 import streamlit as st
+
+# ===== V96.10 SUPPRESS DELTAGENERATOR DISPLAY START =====
+# 根治 Streamlit Magic / st.write 顯示 DeltaGenerator 物件：
+# 正常文字、表格、圖表照常顯示；只有 DeltaGenerator 物件會被忽略。
+try:
+    from streamlit.delta_generator import DeltaGenerator as _AIVM_DeltaGenerator
+    _aivm_original_st_write = st.write
+
+    def _aivm_safe_st_write(*args, **kwargs):
+        try:
+            filtered = []
+            for x in args:
+                if isinstance(x, _AIVM_DeltaGenerator):
+                    continue
+                # 有些 DeltaGenerator 可能被包成 tuple/list
+                if isinstance(x, (list, tuple)):
+                    cleaned = [i for i in x if not isinstance(i, _AIVM_DeltaGenerator)]
+                    if cleaned:
+                        filtered.append(type(x)(cleaned))
+                    continue
+                filtered.append(x)
+
+            if not filtered:
+                return None
+
+            return _aivm_original_st_write(*filtered, **kwargs)
+        except Exception:
+            return None
+
+    st.write = _aivm_safe_st_write
+except Exception:
+    pass
+# ===== V96.10 SUPPRESS DELTAGENERATOR DISPLAY END =====
+
 import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
@@ -18,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V96.9 No Magic Final Call"
+APP_VERSION="V96.10 Suppress DeltaGenerator Display"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
