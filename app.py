@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V96.3 Restore KLine Periods"
+APP_VERSION="V96.4 Fix Financial DeltaGenerator"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -12761,6 +12761,18 @@ except Exception:
 # ===== V96.3 RESTORE KLINE PERIODS END =====
 
 
+
+# ===== V96.4 FIX FINANCIAL DELTAGENERATOR START =====
+try:
+    _v964_enterprise_value_institute_page_base = enterprise_value_institute_page
+    def enterprise_value_institute_page(symbol, q=None, df=None):
+        _v964_enterprise_value_institute_page_base(symbol, q, df)
+        return None
+except Exception:
+    pass
+# ===== V96.4 FIX FINANCIAL DELTAGENERATOR END =====
+
+
 try:
     if page not in ["🏠首頁","📈K線","🏛企業價值研究院","🧪AIVM研究中心","🧪AIVM Lab","⚙設定"] or "監控" in str(page):
         page = "🏠首頁"
@@ -12792,7 +12804,7 @@ elif page == "📈K線":
 
 elif page == "🏛企業價值研究院":
     try:
-        enterprise_value_institute_page(active, q, df_daily)
+        _ = enterprise_value_institute_page(active, q, df_daily)
     except Exception:
         try:
             value_institute(active, df_daily, q, {})
