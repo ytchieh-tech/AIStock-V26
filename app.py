@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V100.0 DNA Validation Center"
+APP_VERSION="V100.1 DNA Confidence Engine"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -13717,11 +13717,225 @@ def v100_validation_center_page():
 # ===== V100.0 DNA VALIDATION CENTER END =====
 
 
+
+# ===== V100.1 DNA CONFIDENCE ENGINE START =====
+# V100.1：DNA可信度引擎。
+# 重點：現價誤差不等於DNA可信度，因此拆成 Accuracy、Stability、Theme 三層評分。
+# 不動首頁、K線、財報、ESG、法人與主估值核心。
+
+V1001_THEME_SCORE = {
+    "2330.TW": {"題材": "AI先進製程 / CoWoS / HPC", "Theme Score": 96},
+    "2303.TW": {"題材": "成熟製程 / 車用工控", "Theme Score": 78},
+    "5347.TWO": {"題材": "特殊製程 / PMIC / DDIC", "Theme Score": 76},
+    "6770.TW": {"題材": "記憶體循環 / 成熟製程", "Theme Score": 62},
+    "2383.TW": {"題材": "AI高速材料 / CCL", "Theme Score": 94},
+    "3037.TW": {"題材": "ABF / AI載板", "Theme Score": 86},
+    "8046.TW": {"題材": "ABF / BT載板", "Theme Score": 82},
+    "3711.TW": {"題材": "封測龍頭 / 先進封裝", "Theme Score": 84},
+    "2449.TW": {"題材": "AI/HPC測試", "Theme Score": 88},
+    "6215.TWO": {"題材": "AI Robot / 自動化 / 智慧工廠", "Theme Score": 90},
+}
+
+def v1001_accuracy_score(best_error):
+    try:
+        e = float(best_error)
+    except Exception:
+        return np.nan
+    # 0%誤差=100分；10%誤差約80分；20%誤差約60分；避免過度懲罰AI題材股。
+    return max(0, min(100, 100 - e * 2.0))
+
+def v1001_stability_score(row):
+    vals = []
+    for c in ["V97估值", "V99估值", "V99.1估值"]:
+        try:
+            v = float(row.get(c))
+            if pd.notna(v) and v > 0:
+                vals.append(v)
+        except Exception:
+            pass
+    if len(vals) < 2:
+        return np.nan
+    mean_v = float(np.mean(vals))
+    if mean_v == 0:
+        return np.nan
+    spread_pct = (max(vals) - min(vals)) / mean_v * 100
+    # 三模型估值越接近，穩定度越高。
+    return max(0, min(100, 100 - spread_pct * 3.0))
+
+def v1001_confidence_grade(score):
+    try:
+        s = float(score)
+    except Exception:
+        return "資料不足"
+    if s >= 90:
+        return "A+：高度可信"
+    if s >= 80:
+        return "A：可作主模型"
+    if s >= 70:
+        return "B：可參考"
+    if s >= 60:
+        return "C：需人工判讀"
+    return "D：不建議單獨使用"
+
+def v1001_confidence_df():
+    base = v100_model_error_df()
+    if base is None or base.empty:
+        return pd.DataFrame()
+
+    rows = []
+    for _, r in base.iterrows():
+        errors = {
+            "V97統一DNA": r.get("V97誤差"),
+            "V99個股DNA": r.get("V99誤差"),
+            "V99.1族群DNA": r.get("V99.1誤差"),
+        }
+        valid_errors = {k: float(v) for k, v in errors.items() if pd.notna(v)}
+        best_model = min(valid_errors, key=valid_errors.get) if valid_errors else "資料不足"
+        best_error = valid_errors.get(best_model, np.nan)
+
+        acc = v1001_accuracy_score(best_error)
+        stab = v1001_stability_score(r)
+        theme_info = V1001_THEME_SCORE.get(r.get("代碼"), {"題材": "待分類", "Theme Score": 70})
+        theme = theme_info.get("Theme Score", 70)
+
+        # DNA可信度：不只看現價誤差，也看三模型一致性與題材合理性。
+        confidence = (
+            (acc * 0.40 if pd.notna(acc) else 0) +
+            (stab * 0.40 if pd.notna(stab) else 0) +
+            (theme * 0.20 if pd.notna(theme) else 0)
+        )
+
+        rows.append({
+            "代碼": r.get("代碼"),
+            "公司": r.get("公司"),
+            "DNA族群": r.get("DNA族群"),
+            "題材": theme_info.get("題材"),
+            "最佳模型": best_model,
+            "最佳誤差": best_error,
+            "Accuracy準確度": acc,
+            "Stability穩定度": stab,
+            "Theme題材分": theme,
+            "DNA可信度": confidence,
+            "信賴等級": v1001_confidence_grade(confidence),
+            "V97估值": r.get("V97估值"),
+            "V99估值": r.get("V99估值"),
+            "V99.1估值": r.get("V99.1估值"),
+            "V97誤差": r.get("V97誤差"),
+            "V99誤差": r.get("V99誤差"),
+            "V99.1誤差": r.get("V99.1誤差"),
+        })
+
+    return pd.DataFrame(rows).sort_values("DNA可信度", ascending=False)
+
+def v1001_summary_by_grade(df):
+    if df.empty:
+        return pd.DataFrame()
+    rows = []
+    for grade, g in df.groupby("信賴等級"):
+        rows.append({
+            "信賴等級": grade,
+            "家數": len(g),
+            "平均DNA可信度": g["DNA可信度"].mean(),
+            "代表公司": "、".join(g["公司"].astype(str).tolist()[:5]),
+        })
+    return pd.DataFrame(rows).sort_values("平均DNA可信度", ascending=False)
+
+def v1001_model_trust_summary(df):
+    rows = []
+    if df.empty:
+        return pd.DataFrame()
+    for model, g in df.groupby("最佳模型"):
+        rows.append({
+            "模型": model,
+            "勝出家數": len(g),
+            "平均可信度": g["DNA可信度"].mean(),
+            "平均準確度": g["Accuracy準確度"].mean(),
+            "平均穩定度": g["Stability穩定度"].mean(),
+            "平均題材分": g["Theme題材分"].mean(),
+        })
+    return pd.DataFrame(rows).sort_values("平均可信度", ascending=False)
+
+def v1001_show(df):
+    out = df.copy()
+    for c in out.columns:
+        if c in ["最佳誤差", "V97誤差", "V99誤差", "V99.1誤差"]:
+            out[c] = out[c].apply(v971_pct)
+        elif c in ["V97估值", "V99估值", "V99.1估值"]:
+            out[c] = out[c].apply(v971_fmt)
+        elif c in ["Accuracy準確度", "Stability穩定度", "Theme題材分", "DNA可信度", "平均DNA可信度", "平均可信度", "平均準確度", "平均穩定度", "平均題材分"]:
+            out[c] = out[c].apply(lambda x: f"{float(x):.1f}" if pd.notna(x) else "N/A")
+    return out
+
+def v1001_confidence_engine_page():
+    st.markdown("### V100.1 DNA可信度引擎")
+    st.info("本頁將DNA有效度升級為 DNA可信度：40%準確度 + 40%穩定度 + 20%題材分，避免只用現價誤差誤判台積電、台光電、和椿等題材股。")
+
+    df = v1001_confidence_df()
+    if df.empty:
+        st.warning("目前無法產生DNA可信度資料。")
+        return
+
+    avg_conf = df["DNA可信度"].mean()
+    top = df.iloc[0]
+    a_count = df[df["DNA可信度"] >= 80].shape[0]
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("平均DNA可信度", f"{avg_conf:.1f}")
+    c2.metric("最高可信公司", f"{top['公司']} / {top['DNA可信度']:.1f}")
+    c3.metric("A級以上家數", f"{a_count}")
+
+    tabs = st.tabs(["可信度排名", "分數拆解", "模型信任度", "信賴等級統計", "方法說明"])
+
+    with tabs[0]:
+        cols = ["代碼", "公司", "DNA族群", "題材", "最佳模型", "最佳誤差", "DNA可信度", "信賴等級"]
+        st.dataframe(v1001_show(df)[cols], use_container_width=True, hide_index=True)
+
+    with tabs[1]:
+        cols = ["代碼", "公司", "Accuracy準確度", "Stability穩定度", "Theme題材分", "DNA可信度", "V97估值", "V99估值", "V99.1估值"]
+        st.dataframe(v1001_show(df)[cols], use_container_width=True, hide_index=True)
+        st.caption("台積電若現價誤差較大，但三模型估值接近且題材分高，可信度不應被判為D級。")
+
+    with tabs[2]:
+        summary = v1001_model_trust_summary(df)
+        st.dataframe(v1001_show(summary), use_container_width=True, hide_index=True)
+
+    with tabs[3]:
+        grade_df = v1001_summary_by_grade(df)
+        st.dataframe(v1001_show(grade_df), use_container_width=True, hide_index=True)
+
+    with tabs[4]:
+        st.markdown("""
+        **V100.1 DNA可信度公式**
+
+        ```
+        DNA可信度 =
+            40% × Accuracy準確度
+          + 40% × Stability穩定度
+          + 20% × Theme題材分
+        ```
+
+        **Accuracy準確度**
+        - 由最佳模型與現價的誤差計算。
+        - 誤差越低，分數越高。
+
+        **Stability穩定度**
+        - 比較 V97、V99、V99.1 三套模型估值是否接近。
+        - 三個模型越一致，表示DNA估值架構越穩定。
+
+        **Theme題材分**
+        - 修正AI、CoWoS、ABF、AI Robot等題材股。
+        - 避免股價因題材溢價偏離估值時，被錯誤判定DNA無效。
+
+        本頁是驗證模型可信度，不是新增估值模型；主估值系統不受影響。
+        """)
+# ===== V100.1 DNA CONFIDENCE ENGINE END =====
+
+
 def v971_dna_tab_page():
-    st.markdown("### ⑮ V100.0 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V100.0 已新增現價驗證、DNA權重校準、自動最佳權重、歷史回測、個股DNA引擎、DNA族群引擎與V100驗證中心，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.markdown("### ⑮ V100.1 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V100.1 已新增現價驗證、DNA權重校準、自動最佳權重、歷史回測、個股DNA引擎、DNA族群引擎、V100驗證中心與DNA可信度引擎，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
-    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "V100驗證中心", "個股說明", "方法說明"])
+    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "V100驗證中心", "V100.1可信度", "個股說明", "方法說明"])
     with tabs[0]:
         st.dataframe(df[["代碼","公司","次產業","DNA定位","主要業務","CAP等級","DNA分數","全球競爭"]], use_container_width=True, hide_index=True)
     with tabs[1]:
@@ -13775,6 +13989,9 @@ def v971_dna_tab_page():
         v100_validation_center_page()
 
     with tabs[10]:
+        v1001_confidence_engine_page()
+
+    with tabs[11]:
         company = st.selectbox("選擇公司", df["公司"].tolist(), key="v971_dna_company")
         row = df[df["公司"] == company].iloc[0]
         st.write(f"**{row['公司']} / {row['代碼']}**")
