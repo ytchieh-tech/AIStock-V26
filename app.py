@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V97.0 DNA Validation Lab"
+APP_VERSION="V97.1 DNA Tab in AIVM Lab"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -12417,6 +12417,171 @@ def aivm_lab_display_df(df):
             show[c] = show[c].apply(aivm_lab_pct)
     return show
 
+
+# ===== V97.1 DNA TAB CORE START =====
+# 注意：此段必須放在舊版 AIVM Lab route guard 之前，否則 page == AIVM Lab 時會 st.stop()，後面新增模組看不到。
+V971_DNA_PROFILES = {
+    "2330.TW": ["台積電", "晶圓代工", "AI先進製程龍頭", "AI/HPC、先進製程、CoWoS", "Samsung / Intel Foundry / SMIC", "S+", 95],
+    "2303.TW": ["聯電", "晶圓代工", "成熟製程現金流型", "成熟製程、車用、工控", "GlobalFoundries / Tower / SMIC", "A", 76],
+    "5347.TWO": ["世界先進", "特殊製程", "特殊製程利基型", "PMIC、DDIC、車用/工控特殊製程", "Tower / DB HiTek / Magnachip", "A", 74],
+    "6770.TW": ["力積電", "記憶體/代工", "記憶體循環型代工", "DRAM、NAND相關與成熟製程代工", "SMIC / Hua Hong / 記憶體同業", "B+", 66],
+    "2383.TW": ["台光電", "CCL", "AI高速材料龍頭", "AI CCL、高速材料、伺服器材料", "Panasonic / Isola / Shengyi", "A+", 88],
+    "3037.TW": ["欣興", "ABF載板", "ABF載板龍頭", "ABF、IC載板、高階PCB", "Ibiden / Shinko / Nan Ya PCB", "A", 80],
+    "8046.TW": ["南電", "ABF載板", "AI載板景氣循環型", "ABF、BT、HPC載板", "Ibiden / Shinko / 欣興", "A", 78],
+    "3711.TW": ["日月光投控", "封測", "全球封測龍頭", "封裝、測試、SiP、先進封裝", "Amkor / JCET / Powertech", "S", 84],
+    "2449.TW": ["京元電子", "測試", "AI測試受惠型", "IC測試、AI/HPC測試、車用測試", "ASE Test / Amkor / Sigurd", "A+", 82],
+    "6215.TWO": ["和椿", "自動化", "自動化代理與整合型", "自動化元件、機器人、設備整合", "Keyence / SMC / Omron", "B+", 70],
+}
+
+V971_BASE_AIVM_VALUE = {
+    "2330.TW": 2536.56, "2303.TW": 145.47, "5347.TWO": 169.92, "6770.TW": 81.40,
+    "2383.TW": 5393.20, "3037.TW": 178.00, "8046.TW": 907.25, "3711.TW": 158.40,
+    "2449.TW": 106.40, "6215.TWO": 92.00,
+}
+V971_FALLBACK_PRICE = {
+    "2330.TW": 2390.00, "2303.TW": 178.00, "5347.TWO": 200.00, "6770.TW": 85.70,
+    "2383.TW": 2000.00, "3037.TW": 185.00, "8046.TW": 955.00, "3711.TW": 165.00,
+    "2449.TW": 112.00, "6215.TWO": 140.00,
+}
+
+def v971_dna_factor(score):
+    s = float(score)
+    if s >= 90: return 1.18
+    if s >= 85: return 1.12
+    if s >= 80: return 1.08
+    if s >= 75: return 1.03
+    if s >= 70: return 1.00
+    if s >= 65: return 0.94
+    return 0.88
+
+def v971_stage(price, fair):
+    try:
+        price = float(price); fair = float(fair)
+        if fair <= 0: return "資料不足"
+        if price < fair * 0.90: return "合理偏低"
+        if price > fair * 1.10: return "高估"
+        if price > fair: return "合理偏高"
+        return "合理"
+    except Exception:
+        return "資料不足"
+
+@st.cache_data(ttl=900, show_spinner=False)
+def v971_live_price(symbol):
+    try:
+        t = yf.Ticker(symbol)
+        try:
+            fi = getattr(t, "fast_info", {}) or {}
+            px = fi.get("last_price", fi.get("lastPrice", np.nan))
+            px = float(px)
+            if np.isfinite(px):
+                return px, "Yahoo fast_info"
+        except Exception:
+            pass
+        h = t.history(period="5d", auto_adjust=False)
+        if h is not None and not h.empty:
+            return float(h["Close"].dropna().iloc[-1]), "Yahoo最近收盤"
+    except Exception:
+        pass
+    return V971_FALLBACK_PRICE.get(symbol, np.nan), "Fallback"
+
+def v971_get_base(symbol, price=np.nan):
+    try:
+        if "v901_valuation" in globals() and pd.notna(price):
+            v = v901_valuation(symbol, price)
+            if isinstance(v, dict) and pd.notna(v.get("base", np.nan)):
+                return float(v["base"]), "v901_valuation"
+    except Exception:
+        pass
+    return V971_BASE_AIVM_VALUE.get(symbol, np.nan), "V97.1試驗基準"
+
+def v971_fmt(x):
+    try:
+        if pd.isna(x): return "N/A"
+        return f"{float(x):,.2f}"
+    except Exception:
+        return "N/A"
+
+def v971_pct(x):
+    try:
+        if pd.isna(x): return "N/A"
+        return f"{float(x):.1f}%"
+    except Exception:
+        return "N/A"
+
+def v971_dna_df():
+    rows = []
+    for sym, arr in V971_DNA_PROFILES.items():
+        company, sub, position, biz, competitors, cap, score = arr
+        price, psrc = v971_live_price(sym)
+        base, bsrc = v971_get_base(sym, price)
+        factor = v971_dna_factor(score)
+        dna = base * factor if pd.notna(base) else np.nan
+        base_err = abs(price - base) / price * 100 if pd.notna(price) and pd.notna(base) and price else np.nan
+        dna_err = abs(price - dna) / price * 100 if pd.notna(price) and pd.notna(dna) and price else np.nan
+        rows.append({
+            "代碼": sym, "公司": company, "次產業": sub, "DNA定位": position, "主要業務": biz,
+            "全球競爭": competitors, "CAP等級": cap, "DNA分數": score, "DNA係數": factor,
+            "現價": price, "原AIVM價值": base, "DNA估值": dna,
+            "原AIVM誤差": base_err, "DNA誤差": dna_err, "誤差改善": base_err - dna_err if pd.notna(base_err) and pd.notna(dna_err) else np.nan,
+            "原位階": v971_stage(price, base), "DNA位階": v971_stage(price, dna), "現價來源": psrc, "估值來源": bsrc
+        })
+    return pd.DataFrame(rows)
+
+def v971_display(df):
+    out = df.copy()
+    for c in ["現價", "原AIVM價值", "DNA估值"]:
+        out[c] = out[c].apply(v971_fmt)
+    for c in ["原AIVM誤差", "DNA誤差", "誤差改善"]:
+        out[c] = out[c].apply(v971_pct)
+    out["DNA係數"] = out["DNA係數"].apply(lambda x: f"{float(x):.2f}" if pd.notna(x) else "N/A")
+    return out
+
+def v971_dna_tab_page():
+    st.markdown("### ⑮ V97.1 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    df = v971_dna_df()
+    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "誤差驗證", "個股說明", "方法說明"])
+    with tabs[0]:
+        st.dataframe(df[["代碼","公司","次產業","DNA定位","主要業務","CAP等級","DNA分數","全球競爭"]], use_container_width=True, hide_index=True)
+    with tabs[1]:
+        show = v971_display(df)
+        st.dataframe(show[["代碼","公司","現價","原AIVM價值","DNA估值","DNA係數","原位階","DNA位階","現價來源","估值來源"]], use_container_width=True, hide_index=True)
+    with tabs[2]:
+        base_mape = df["原AIVM誤差"].mean()
+        dna_mape = df["DNA誤差"].mean()
+        improve = base_mape - dna_mape
+        c1, c2, c3 = st.columns(3)
+        c1.metric("原AIVM MAPE", v971_pct(base_mape))
+        c2.metric("DNA估值 MAPE", v971_pct(dna_mape))
+        c3.metric("平均改善", v971_pct(improve))
+        st.dataframe(v971_display(df)[["代碼","公司","現價","原AIVM價值","DNA估值","原AIVM誤差","DNA誤差","誤差改善"]], use_container_width=True, hide_index=True)
+        if pd.notna(improve) and improve > 0:
+            st.success("初步結果：DNA估值平均誤差較低，可繼續擴大驗證。")
+        else:
+            st.warning("初步結果：DNA估值尚未優於原AIVM，後續需校準DNA分數或係數。")
+    with tabs[3]:
+        company = st.selectbox("選擇公司", df["公司"].tolist(), key="v971_dna_company")
+        row = df[df["公司"] == company].iloc[0]
+        st.write(f"**{row['公司']} / {row['代碼']}**")
+        st.write(f"**DNA定位：** {row['DNA定位']}")
+        st.write(f"**主要業務：** {row['主要業務']}")
+        st.write(f"**全球競爭：** {row['全球競爭']}")
+        st.write(f"**CAP等級：** {row['CAP等級']}；**DNA分數：** {row['DNA分數']}")
+    with tabs[4]:
+        st.markdown("""
+        **V97.1 方法：**
+
+        ```
+        DNA估值 = 原AIVM價值 × DNA修正係數
+        ```
+
+        DNA修正係數由公司目前所處位置、主要營收來源、全球競爭、CAP等級、AI受惠度與景氣循環屬性推導。
+
+        本版只做10檔試驗，不覆蓋主系統。若DNA估值MAPE低於原AIVM，下一版再擴大到半導體50檔。
+        """)
+# ===== V97.1 DNA TAB CORE END =====
+
+
 def aivm_lab_page():
     st.markdown(f"""
     <div class="hero">
@@ -12431,7 +12596,7 @@ def aivm_lab_page():
 
     st.info("固定AIVM價值以最近一期財報、產業景氣與市場評價建立，每季財報公布後更新一次；日常股價波動不影響固定價值。")
 
-    tabs = st.tabs(["① 固定價值總覽", "② 固定 vs 動態", "③ 財報公布日", "④ 產業權重說明", "⑤ 權重總覽", "⑥ 權重回測", "⑦ 最佳權重建議", "⑧ 真實回測試作", "⑨ 半導體類股驗證", "⑩ 產業鏈同業全球競爭", "⑪ 校對檢定", "⑫ 區間校準", "⑬ 誤差分析", "⑭ 方法說明"])
+    tabs = st.tabs(["① 固定價值總覽", "② 固定 vs 動態", "③ 財報公布日", "④ 產業權重說明", "⑤ 權重總覽", "⑥ 權重回測", "⑦ 最佳權重建議", "⑧ 真實回測試作", "⑨ 半導體類股驗證", "⑩ 產業鏈同業全球競爭", "⑪ 校對檢定", "⑫ 區間校準", "⑬ 誤差分析", "⑭ 方法說明", "⑮ 個股DNA"])
 
     with tabs[0]:
         cols = ["公司","代碼","產業","現價","固定AIVM價值","固定安全邊際","固定估值位階","財報季度","財報公布日","固定價值有效至"]
@@ -12544,6 +12709,9 @@ def aivm_lab_page():
         - -25% ~ -10%：高估
         - < -25%：明顯高估
         """)
+
+    with tabs[14]:
+        v971_dna_tab_page()
 # ================= V92.3 AIVM QUARTERLY FIXED VALUE LAB END =================
 
 active = unified_symbol_manager(symbols)
@@ -13076,17 +13244,7 @@ def v97_dna_validation_lab_page():
         本版只驗證10檔，不覆蓋主系統。若DNA估值MAPE低於原AIVM，下一版再擴大到半導體50檔。
         """)
 
-# 包裝 AIVM Lab：新增第1頁「個股DNA驗證」，原 AIVM Lab 全部保留在第2頁
-try:
-    _v97_old_aivm_lab_page = aivm_lab_page
-    def aivm_lab_page():
-        outer_tabs = st.tabs(["🧬 V97個股DNA驗證", "🧪 原AIVM Lab"])
-        with outer_tabs[0]:
-            v97_dna_validation_lab_page()
-        with outer_tabs[1]:
-            _v97_old_aivm_lab_page()
-except Exception:
-    pass
+# V97.0 wrapper disabled by V97.1：DNA已改掛在AIVM Lab第15頁籤
 # ===== V97.0 DNA VALIDATION LAB END =====
 
 
