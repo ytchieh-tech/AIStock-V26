@@ -18,7 +18,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V96.7 Final Financial Display Fix"
+APP_VERSION="V96.8 Wrap Final Dispatch"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -12753,102 +12753,79 @@ def page_kline(symbol, q=None, df=None):
     kline_page(symbol, q, df)
     return None
 
-try:
-    _v963_old_enterprise_value_institute_page = enterprise_value_institute_page
-    def enterprise_value_institute_page(symbol, q=None, df=None):
-        _v963_old_enterprise_value_institute_page(symbol, q, df)
-        return None
-except Exception:
-    pass
 # ===== V96.3 RESTORE KLINE PERIODS END =====
 
 
 
-# ===== V96.4 FIX FINANCIAL DELTAGENERATOR START =====
-try:
-    _v964_enterprise_value_institute_page_base = enterprise_value_institute_page
-    def enterprise_value_institute_page(symbol, q=None, df=None):
-        _v964_enterprise_value_institute_page_base(symbol, q, df)
-        return None
-except Exception:
-    pass
-# ===== V96.4 FIX FINANCIAL DELTAGENERATOR END =====
 
 
 
-# ===== V96.5 FIX FINANCIAL STRAY DISPLAY START =====
-# 修正中文財報下方顯示 enterprise_value_institute_page(...) DeltaGenerator 的問題。
-# 原因是舊版 Streamlit magic 會把函式呼叫/賦值的回傳物件顯示出來。
-try:
-    _v965_enterprise_value_institute_page_base = enterprise_value_institute_page
-    def enterprise_value_institute_page(symbol, q=None, df=None):
-        with st.container():
-            _v965_enterprise_value_institute_page_base(symbol, q, df)
-        return None
-except Exception:
-    pass
-# ===== V96.5 FIX FINANCIAL STRAY DISPLAY END =====
 
 
-try:
-    if page not in ["🏠首頁","📈K線","🏛企業價值研究院","🧪AIVM研究中心","🧪AIVM Lab","⚙設定"] or "監控" in str(page):
+
+
+
+# ================= V96.8 WRAPPED FINAL DISPATCH START =================
+def v968_main_dispatch():
+    global page
+    try:
+        if page not in ["🏠首頁","📈K線","🏛企業價值研究院","🧪AIVM研究中心","🧪AIVM Lab","⚙設定"] or "監控" in str(page):
+            page = "🏠首頁"
+            st.session_state.page = page
+    except Exception:
         page = "🏠首頁"
-        st.session_state.page = page
-except Exception:
-    page = "🏠首頁"
 
-if page == "🏠首頁":
-    try:
-        v906_force_home()
-    except Exception:
+    if page == "🏠首頁":
         try:
-            v906_home_dashboard()
+            v906_force_home()
         except Exception:
             try:
-                v905_sector_dashboard()
-            except Exception as e:
-                st.error(f"首頁全產業類股估值入口載入失敗：{e}")
-
-
-elif page == "📈K線":
-    try:
-        kline_page(active, q, df_daily)
-    except Exception:
-        try:
-            page_kline(active, q, df_daily)
-        except Exception:
-            st.warning("K線頁載入中。")
-
-elif page == "🏛企業價值研究院":
-    # V96.7：不要使用 _v966_enterprise_result = ...，避免 Streamlit 顯示 DeltaGenerator。
-    try:
-        with st.container():
-            enterprise_value_institute_page(active, q, df_daily)
-    except Exception:
-        try:
-            with st.container():
-                value_institute(active, df_daily, q, {})
-        except Exception:
-            try:
-                v901_semiconductor_library_page()
-                st.divider()
                 v906_home_dashboard()
-            except Exception as e:
-                st.error(f"企業價值研究院載入失敗：{e}")
+            except Exception:
+                try:
+                    v905_sector_dashboard()
+                except Exception as e:
+                    st.error(f"首頁全產業類股估值入口載入失敗：{e}")
 
-elif page == "🧪AIVM研究中心":
-    try:
-        v893_aivm_page()
-    except Exception as e:
-        st.error(f"AIVM研究中心載入失敗：{e}")
+    elif page == "📈K線":
+        try:
+            kline_page(active, q, df_daily)
+        except Exception:
+            try:
+                page_kline(active, q, df_daily)
+            except Exception:
+                st.warning("K線頁載入中。")
 
-elif page=="🧪AIVM Lab":
-    aivm_lab_page()
+    elif page == "🏛企業價值研究院":
+        try:
+            enterprise_value_institute_page(active, q, df_daily)
+        except Exception:
+            try:
+                value_institute(active, df_daily, q, {})
+            except Exception:
+                try:
+                    v901_semiconductor_library_page()
+                    st.divider()
+                    v906_home_dashboard()
+                except Exception as e:
+                    st.error(f"企業價值研究院載入失敗：{e}")
 
-elif page == "⚙設定":
-    try:
-        settings_page()
-    except Exception:
-        st.subheader("⚙設定")
-        st.info("設定頁載入中。")
-# ================= V90.7 TRUE HOME DISPATCH OVERRIDE END =================
+    elif page == "🧪AIVM研究中心":
+        try:
+            v893_aivm_page()
+        except Exception as e:
+            st.error(f"AIVM研究中心載入失敗：{e}")
+
+    elif page == "🧪AIVM Lab":
+        aivm_lab_page()
+
+    elif page == "⚙設定":
+        try:
+            settings_page()
+        except Exception:
+            st.subheader("⚙設定")
+            st.info("設定頁載入中。")
+
+v968_main_dispatch()
+# ================= V96.8 WRAPPED FINAL DISPATCH END =================
+
