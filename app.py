@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V93.0 AIVM Real Backtest Trial"
+APP_VERSION="V94.0 Semiconductor Sector Validation Lab"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -11158,7 +11158,144 @@ def v906_force_home():
 
 
 # ================= V92.3 AIVM QUARTERLY FIXED VALUE LAB START =================
-APP_VERSION_CLEAN = "V93.0 AIVM Real Backtest Trial"
+APP_VERSION_CLEAN = "V94.0 Semiconductor Sector Validation Lab"
+
+# ===== V94.0 半導體類股驗證中心 START =====
+AIVM_SEMI_VALIDATION_POOL = {
+    "晶圓代工": [
+        ("2330.TW", "台積電", 2390, 2536.56, 2567.73, 2773.15),
+        ("2303.TW", "聯電", 178, 120.90, 156.00, 156.00),
+        ("5347.TWO", "世界先進", 200, 137.14, 185.56, 181.85),
+        ("6770.TW", "力積電", 85.7, 70.20, 82.40, 88.90),
+    ],
+    "IC設計": [
+        ("2454.TW", "聯發科", 4535, 3920, 4300, 4860),
+        ("2379.TW", "瑞昱", 803, 690, 775, 850),
+        ("3034.TW", "聯詠", 543, 480, 525, 570),
+        ("4966.TW", "譜瑞-KY", 664, 560, 635, 720),
+        ("6415.TW", "矽力*-KY", 605, 500, 570, 680),
+    ],
+    "AI ASIC": [
+        ("3661.TW", "世芯-KY", 4375, 3600, 4200, 5100),
+        ("3443.TW", "創意", 4725, 3900, 4500, 5600),
+        ("6643.TW", "M31", 490.5, 420, 465, 570),
+    ],
+    "CCL/高階載板": [
+        ("2383.TW", "台光電", 5560, 4700, 5350, 6500),
+        ("6274.TWO", "台燿", 1765, 1480, 1700, 2050),
+        ("6213.TW", "聯茂", 309, 250, 295, 350),
+    ],
+    "AI伺服器/散熱": [
+        ("6669.TW", "緯穎", 4605, 3900, 4450, 5400),
+        ("3017.TW", "奇鋐", 2530, 2100, 2450, 3050),
+        ("3653.TW", "健策", 3640, 3000, 3500, 4300),
+        ("3231.TW", "緯創", 157.5, 130, 150, 180),
+    ],
+}
+
+def v94_abs_error(value, price):
+    try:
+        return abs(float(value) - float(price)) / float(price) * 100 if float(price) != 0 else np.nan
+    except Exception:
+        return np.nan
+
+def v94_stage_from_error(err):
+    if pd.isna(err):
+        return "資料不足"
+    if err <= 10:
+        return "優秀"
+    if err <= 15:
+        return "可接受"
+    if err <= 20:
+        return "需觀察"
+    return "需再校準"
+
+def v94_recommend_weights(fin_err, mkt_err, ind_err):
+    errors = {"財報": fin_err, "市場": mkt_err, "產業": ind_err}
+    inv = {k: 1 / max(float(v), 1e-6) for k, v in errors.items() if pd.notna(v)}
+    total = sum(inv.values())
+    if total <= 0:
+        return {"財報": 33, "市場": 34, "產業": 33}
+    raw = {k: inv[k] / total * 100 for k in inv}
+    rounded = {k: int(round(v / 5) * 5) for k, v in raw.items()}
+    best = min(errors, key=errors.get)
+    rounded[best] = rounded.get(best, 0) + (100 - sum(rounded.values()))
+    return rounded
+
+def v94_validation_detail_df():
+    rows = []
+    for group, items in AIVM_SEMI_VALIDATION_POOL.items():
+        for code_, name, price, fin, mkt, ind in items:
+            fin_err = v94_abs_error(fin, price)
+            mkt_err = v94_abs_error(mkt, price)
+            ind_err = v94_abs_error(ind, price)
+            best_axis = min([("財報", fin_err), ("市場", mkt_err), ("產業", ind_err)], key=lambda x: x[1] if pd.notna(x[1]) else 9999)[0]
+            rows.append({
+                "類股": group, "代碼": code_, "公司": name, "現價": price,
+                "財報價值": fin, "市場價值": mkt, "產業價值": ind,
+                "財報誤差": fin_err, "市場誤差": mkt_err, "產業誤差": ind_err,
+                "最佳估值軸": best_axis, "驗證狀態": v94_stage_from_error(min(fin_err, mkt_err, ind_err)),
+            })
+    return pd.DataFrame(rows)
+
+def v94_sector_summary_df():
+    d = v94_validation_detail_df()
+    rows = []
+    for group, sub in d.groupby("類股"):
+        fin_err, mkt_err, ind_err = sub["財報誤差"].mean(), sub["市場誤差"].mean(), sub["產業誤差"].mean()
+        w = v94_recommend_weights(fin_err, mkt_err, ind_err)
+        best = min({"財報": fin_err, "市場": mkt_err, "產業": ind_err}, key={"財報": fin_err, "市場": mkt_err, "產業": ind_err}.get)
+        rows.append({
+            "類股": group,
+            "公司數": len(sub),
+            "平均財報誤差": fin_err,
+            "平均市場誤差": mkt_err,
+            "平均產業誤差": ind_err,
+            "最佳估值軸": best,
+            "建議權重": f"財報{w.get('財報',0)}% / 市場{w.get('市場',0)}% / 產業{w.get('產業',0)}%",
+            "導入建議": "可導入" if min(fin_err, mkt_err, ind_err) <= 15 else "需再校準",
+        })
+    return pd.DataFrame(rows)
+
+def v94_display_df(df):
+    out = df.copy()
+    for c in ["現價", "財報價值", "市場價值", "產業價值"]:
+        if c in out.columns:
+            out[c] = out[c].apply(lambda x: f"{float(x):,.2f}" if pd.notna(x) else "N/A")
+    for c in ["財報誤差", "市場誤差", "產業誤差", "平均財報誤差", "平均市場誤差", "平均產業誤差"]:
+        if c in out.columns:
+            out[c] = out[c].apply(lambda x: f"{float(x):.1f}%" if pd.notna(x) else "N/A")
+    return out
+
+def v94_sector_validation_page_block():
+    st.markdown("### V94.0 半導體類股驗證中心")
+    st.info("統計財報價值、市場價值、產業價值三軸誤差，產出類股建議權重；本頁只驗證，不直接改主系統。")
+    detail = v94_validation_detail_df()
+    summary = v94_sector_summary_df()
+    tabs3 = st.tabs(["類股總覽", "個股明細", "類股篩選", "權重生成邏輯", "導入建議"])
+    with tabs3[0]:
+        st.dataframe(v94_display_df(summary), use_container_width=True, hide_index=True)
+    with tabs3[1]:
+        st.dataframe(v94_display_df(detail), use_container_width=True, hide_index=True)
+    with tabs3[2]:
+        group = st.selectbox("選擇類股", list(AIVM_SEMI_VALIDATION_POOL.keys()), key="v94_sector_filter")
+        sub = detail[detail["類股"] == group]
+        st.dataframe(v94_display_df(sub), use_container_width=True, hide_index=True)
+        ss = summary[summary["類股"] == group]
+        if not ss.empty:
+            st.success(f"{group} 建議權重：{ss.iloc[0]['建議權重']}｜最佳估值軸：{ss.iloc[0]['最佳估值軸']}")
+    with tabs3[3]:
+        st.markdown("""
+        **權重生成邏輯**
+        1. 計算每檔股票三軸誤差：財報、市場、產業。
+        2. 彙總為類股平均誤差。
+        3. 誤差越低，代表該估值軸越適合該類股，權重越高。
+        4. 建議權重四捨五入至 5% 單位。
+        """)
+    with tabs3[4]:
+        st.warning("V94.0 為半導體類股驗證資料庫，不直接覆蓋 AIVM 主系統。")
+# ===== V94.0 半導體類股驗證中心 END =====
+
 
 # ===== V93.0 真實回測試作 START =====
 # 目的：先建立「真實資料回測流程」，但不動主系統。
@@ -11950,7 +12087,7 @@ def aivm_lab_page():
 
     st.info("固定AIVM價值以最近一期財報、產業景氣與市場評價建立，每季財報公布後更新一次；日常股價波動不影響固定價值。")
 
-    tabs = st.tabs(["① 固定價值總覽", "② 固定 vs 動態", "③ 財報公布日", "④ 產業權重說明", "⑤ 權重總覽", "⑥ 權重回測", "⑦ 最佳權重建議", "⑧ 真實回測試作", "⑨ 區間校準", "⑩ 誤差分析", "⑪ 方法說明"])
+    tabs = st.tabs(["① 固定價值總覽", "② 固定 vs 動態", "③ 財報公布日", "④ 產業權重說明", "⑤ 權重總覽", "⑥ 權重回測", "⑦ 最佳權重建議", "⑧ 真實回測試作", "⑨ 半導體類股驗證", "⑩ 區間校準", "⑪ 誤差分析", "⑫ 方法說明"])
 
     with tabs[0]:
         cols = ["公司","代碼","產業","現價","固定AIVM價值","固定安全邊際","固定估值位階","財報季度","財報公布日","固定價值有效至"]
@@ -11999,6 +12136,9 @@ def aivm_lab_page():
         v93_backtest_page_block()
 
     with tabs[8]:
+        v94_sector_validation_page_block()
+
+    with tabs[9]:
         cols = [
             "公司","現價",
             "財報保守","財報價值","財報樂觀",
@@ -12007,13 +12147,13 @@ def aivm_lab_page():
         ]
         st.dataframe(show[cols], use_container_width=True, hide_index=True)
 
-    with tabs[9]:
+    with tabs[10]:
         cols = ["公司","現價","財報價值","市場價值","產業價值","財報誤差","市場誤差","產業誤差"]
         st.dataframe(show[cols], use_container_width=True, hide_index=True)
 
-    with tabs[10]:
+    with tabs[11]:
         st.markdown("""
-        ### V93.0 方法說明
+        ### V94.0 方法說明
 
         **固定AIVM價值**
         ```
@@ -12058,11 +12198,11 @@ def aivm_lab_page():
 
 active = unified_symbol_manager(symbols)
 
-# ===== V93.0 AIVM Lab route guard =====
+# ===== V94.0 AIVM Lab route guard =====
 if page in ["🧪AIVM Lab", "🧪 AIVM Lab"]:
     aivm_lab_page()
     st.stop()
-# ===== V93.0 AIVM Lab route guard end =====
+# ===== V94.0 AIVM Lab route guard end =====
 
 
 
