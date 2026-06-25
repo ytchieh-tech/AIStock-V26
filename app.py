@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V99.0 Individual DNA Engine Trial"
+APP_VERSION="V99.1 DNA Group Engine Trial"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -13240,11 +13240,231 @@ def v990_individual_engine_page():
 # ===== V99.0 INDIVIDUAL DNA ENGINE TRIAL END =====
 
 
+
+# ===== V99.1 DNA GROUP ENGINE TRIAL START =====
+# V99.1：DNA族群權重引擎試作。
+# 目的：避免「每檔個股一套權重」過度擬合，改用「DNA族群」分流。
+# 不動首頁、K線、財報、ESG、法人與主估值核心。
+
+V991_GROUP_MAP = {
+    "2330.TW": "先進製程晶圓代工DNA",
+    "2303.TW": "成熟製程晶圓代工DNA",
+    "5347.TWO": "特殊製程DNA",
+    "6770.TW": "記憶體循環DNA",
+    "2383.TW": "AI高速材料DNA",
+    "3037.TW": "ABF載板DNA",
+    "8046.TW": "ABF載板DNA",
+    "3711.TW": "封測龍頭DNA",
+    "2449.TW": "AI測試DNA",
+    "6215.TWO": "AI Robot自動化DNA",
+}
+
+V991_GROUP_WEIGHTS = {
+    "先進製程晶圓代工DNA": {"技術領先": 0.34, "市場地位": 0.22, "AI受惠度": 0.24, "現金流品質": 0.08, "獲利成長": 0.08, "景氣循環": 0.02, "財務風險": 0.02},
+    "成熟製程晶圓代工DNA": {"技術領先": 0.12, "市場地位": 0.20, "AI受惠度": 0.06, "現金流品質": 0.24, "獲利成長": 0.10, "景氣循環": 0.18, "財務風險": 0.10},
+    "特殊製程DNA": {"技術領先": 0.16, "市場地位": 0.18, "AI受惠度": 0.06, "現金流品質": 0.18, "獲利成長": 0.12, "景氣循環": 0.20, "財務風險": 0.10},
+    "記憶體循環DNA": {"技術領先": 0.08, "市場地位": 0.10, "AI受惠度": 0.04, "現金流品質": 0.12, "獲利成長": 0.10, "景氣循環": 0.42, "財務風險": 0.14},
+    "AI高速材料DNA": {"技術領先": 0.22, "市場地位": 0.16, "AI受惠度": 0.30, "現金流品質": 0.08, "獲利成長": 0.18, "景氣循環": 0.04, "財務風險": 0.02},
+    "ABF載板DNA": {"技術領先": 0.17, "市場地位": 0.16, "AI受惠度": 0.22, "現金流品質": 0.10, "獲利成長": 0.16, "景氣循環": 0.14, "財務風險": 0.05},
+    "封測龍頭DNA": {"技術領先": 0.18, "市場地位": 0.26, "AI受惠度": 0.12, "現金流品質": 0.20, "獲利成長": 0.10, "景氣循環": 0.08, "財務風險": 0.06},
+    "AI測試DNA": {"技術領先": 0.18, "市場地位": 0.16, "AI受惠度": 0.30, "現金流品質": 0.12, "獲利成長": 0.17, "景氣循環": 0.04, "財務風險": 0.03},
+    "AI Robot自動化DNA": {"技術領先": 0.10, "市場地位": 0.12, "AI受惠度": 0.38, "現金流品質": 0.04, "獲利成長": 0.26, "景氣循環": 0.08, "財務風險": 0.02},
+}
+
+V991_GROUP_DESCRIPTION = {
+    "先進製程晶圓代工DNA": "以技術領先、AI/HPC與市場地位為主要估值來源，適合台積電這類高護城河公司。",
+    "成熟製程晶圓代工DNA": "以現金流、成熟製程利用率與景氣循環為主，適合聯電這類成熟製程公司。",
+    "特殊製程DNA": "以利基製程、PMIC/DDIC需求與景氣循環為主，適合世界先進。",
+    "記憶體循環DNA": "以景氣循環與財務風險為主，適合力積電這類高循環公司。",
+    "AI高速材料DNA": "以AI受惠度、技術材料能力與成長為主，適合台光電。",
+    "ABF載板DNA": "以AI/HPC需求、載板景氣與產能利用率為主，適合欣興與南電。",
+    "封測龍頭DNA": "以市場地位、現金流與先進封裝受惠為主，適合日月光投控。",
+    "AI測試DNA": "以AI/HPC測試受惠與成長為主，適合京元電子。",
+    "AI Robot自動化DNA": "以AI Robot題材、成長想像與自動化滲透率為主，適合和椿，不放入半導體權重池。",
+}
+
+def v991_group_score(symbol):
+    group = V991_GROUP_MAP.get(symbol, "未分類DNA")
+    weights = V991_GROUP_WEIGHTS.get(group, V980_FACTOR_BASE)
+    scores = V980_FACTOR_SCORE.get(symbol, {})
+    weights = v980_normalize_weights(weights)
+    return sum(scores.get(k, 60) * weights.get(k, 0) for k in weights.keys())
+
+def v991_group_factor(symbol, score):
+    try:
+        s = float(score)
+    except Exception:
+        return 1.00
+    group = V991_GROUP_MAP.get(symbol, "")
+
+    # 族群分流：AI Robot與AI材料/載板允許較高題材溢價；循環股較保守。
+    if group == "AI Robot自動化DNA":
+        factor = 0.86 + (s - 55) * 0.013
+        return max(0.78, min(1.28, factor))
+    if group in ["AI高速材料DNA", "ABF載板DNA", "AI測試DNA"]:
+        factor = 0.88 + (s - 58) * 0.0105
+        return max(0.80, min(1.25, factor))
+    if group in ["記憶體循環DNA", "成熟製程晶圓代工DNA", "特殊製程DNA"]:
+        factor = 0.90 + (s - 60) * 0.0075
+        return max(0.82, min(1.16, factor))
+
+    factor = 0.88 + (s - 60) * 0.0095
+    return max(0.80, min(1.24, factor))
+
+def v991_group_dna_df():
+    base_df = v971_dna_df()
+    rows = []
+    for _, r in base_df.iterrows():
+        sym = r["代碼"]
+        group = V991_GROUP_MAP.get(sym, "未分類DNA")
+        score = v991_group_score(sym)
+        factor = v991_group_factor(sym, score)
+        price = float(r["現價"]) if pd.notna(r["現價"]) else np.nan
+        base = float(r["原AIVM價值"]) if pd.notna(r["原AIVM價值"]) else np.nan
+        v97 = float(r["DNA估值"]) if pd.notna(r["DNA估值"]) else np.nan
+        v99 = np.nan
+        try:
+            if "v990_individual_dna_df" in globals():
+                tmp = v990_individual_dna_df()
+                hit = tmp[tmp["代碼"] == sym]
+                if not hit.empty:
+                    v99 = float(hit["V99個股DNA估值"].iloc[0])
+        except Exception:
+            pass
+        v991 = base * factor if pd.notna(base) else np.nan
+
+        err97 = abs(price - v97) / price * 100 if pd.notna(price) and pd.notna(v97) and price else np.nan
+        err99 = abs(price - v99) / price * 100 if pd.notna(price) and pd.notna(v99) and price else np.nan
+        err991 = abs(price - v991) / price * 100 if pd.notna(price) and pd.notna(v991) and price else np.nan
+
+        rows.append({
+            "代碼": sym,
+            "公司": r["公司"],
+            "DNA族群": group,
+            "現價": price,
+            "原AIVM價值": base,
+            "V97統一DNA估值": v97,
+            "V99個股DNA估值": v99,
+            "V99.1族群DNA估值": v991,
+            "V99.1 DNA分數": score,
+            "V99.1估值係數": factor,
+            "V97誤差": err97,
+            "V99誤差": err99,
+            "V99.1誤差": err991,
+            "較V97改善": err97 - err991 if pd.notna(err97) and pd.notna(err991) else np.nan,
+            "較V99改善": err99 - err991 if pd.notna(err99) and pd.notna(err991) else np.nan,
+            "V99.1位階": v971_stage(price, v991),
+            "族群說明": V991_GROUP_DESCRIPTION.get(group, ""),
+        })
+    return pd.DataFrame(rows)
+
+def v991_metrics(df, col):
+    try:
+        y = pd.to_numeric(df["現價"], errors="coerce")
+        yhat = pd.to_numeric(df[col], errors="coerce")
+        mask = y.notna() & yhat.notna() & (y != 0)
+        if mask.sum() == 0:
+            return np.nan, np.nan, np.nan
+        mape = ((y[mask] - yhat[mask]).abs() / y[mask] * 100).mean()
+        rmse = np.sqrt(((y[mask] - yhat[mask]) ** 2).mean())
+        ss_res = ((y[mask] - yhat[mask]) ** 2).sum()
+        ss_tot = ((y[mask] - y[mask].mean()) ** 2).sum()
+        r2 = 1 - ss_res / ss_tot if ss_tot else np.nan
+        return mape, rmse, r2
+    except Exception:
+        return np.nan, np.nan, np.nan
+
+def v991_show_df(df):
+    out = df.copy()
+    for c in ["現價", "原AIVM價值", "V97統一DNA估值", "V99個股DNA估值", "V99.1族群DNA估值"]:
+        out[c] = out[c].apply(v971_fmt)
+    for c in ["V99.1 DNA分數"]:
+        out[c] = out[c].apply(lambda x: f"{float(x):.1f}" if pd.notna(x) else "N/A")
+    for c in ["V99.1估值係數"]:
+        out[c] = out[c].apply(lambda x: f"{float(x):.3f}" if pd.notna(x) else "N/A")
+    for c in ["V97誤差", "V99誤差", "V99.1誤差", "較V97改善", "較V99改善"]:
+        out[c] = out[c].apply(v971_pct)
+    return out
+
+def v991_group_weights_table():
+    rows = []
+    for group, weights in V991_GROUP_WEIGHTS.items():
+        row = {"DNA族群": group, "說明": V991_GROUP_DESCRIPTION.get(group, "")}
+        for k, v in v980_normalize_weights(weights).items():
+            row[k] = f"{v*100:.1f}%"
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+def v991_group_members_table(df):
+    return df[["DNA族群", "代碼", "公司", "族群說明"]].sort_values(["DNA族群", "代碼"])
+
+def v991_group_engine_page():
+    st.markdown("### V99.1 DNA族群引擎")
+    st.info("本頁將股票先分到DNA族群，再套用族群專屬權重；目標是避免個股權重過度擬合，也避免和椿被半導體權重拖累。")
+    df = v991_group_dna_df()
+
+    v97_mape, v97_rmse, v97_r2 = v991_metrics(df, "V97統一DNA估值")
+    v99_mape, v99_rmse, v99_r2 = v991_metrics(df, "V99個股DNA估值")
+    v991_mape, v991_rmse, v991_r2 = v991_metrics(df, "V99.1族群DNA估值")
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("V97 MAPE", v971_pct(v97_mape))
+    c2.metric("V99 MAPE", v971_pct(v99_mape))
+    c3.metric("V99.1 MAPE", v971_pct(v991_mape))
+    c4.metric("V99.1 R²", f"{v991_r2:.3f}" if pd.notna(v991_r2) else "N/A")
+
+    tabs = st.tabs(["族群估值總覽", "DNA族群權重", "族群成員", "V97/V99/V99.1比較", "方法說明"])
+
+    with tabs[0]:
+        cols = ["代碼", "公司", "DNA族群", "現價", "V99.1族群DNA估值", "V99.1 DNA分數", "V99.1估值係數", "V99.1誤差", "V99.1位階"]
+        st.dataframe(v991_show_df(df)[cols], use_container_width=True, hide_index=True)
+
+    with tabs[1]:
+        st.dataframe(v991_group_weights_table(), use_container_width=True, hide_index=True)
+
+    with tabs[2]:
+        st.dataframe(v991_group_members_table(df), use_container_width=True, hide_index=True)
+
+    with tabs[3]:
+        cols = ["代碼", "公司", "DNA族群", "現價", "V97統一DNA估值", "V99個股DNA估值", "V99.1族群DNA估值", "V97誤差", "V99誤差", "V99.1誤差", "較V97改善", "較V99改善", "V99.1位階"]
+        st.dataframe(v991_show_df(df)[cols], use_container_width=True, hide_index=True)
+        if pd.notna(v991_mape) and pd.notna(v99_mape) and v991_mape < v99_mape:
+            st.success("初步結果：V99.1族群DNA優於V99個股DNA，代表族群分流方向較穩定。")
+        elif pd.notna(v991_mape) and pd.notna(v97_mape) and v991_mape < v97_mape:
+            st.success("初步結果：V99.1族群DNA優於V97統一DNA，可繼續擴大樣本。")
+        else:
+            st.warning("初步結果：V99.1尚未明顯優於V97，需要校準族群權重或擴大樣本。")
+
+    with tabs[4]:
+        st.markdown("""
+        **V99.1 核心概念**
+
+        V99.0 每家公司一套權重，容易過度擬合。
+
+        V99.1 改成：
+
+        ```
+        個股 → DNA族群 → 族群專屬權重 → 族群DNA估值
+        ```
+
+        好處：
+        1. 和椿不再被放進半導體權重池。
+        2. 台積電、聯電、世界先進雖同屬晶圓代工，但仍分流成不同DNA。
+        3. 權重比單一個股更穩定，也比全市場統一權重更有解釋力。
+
+        下一版可做：
+        - 半導體族群擴大到50檔
+        - AI Robot族群擴大到10檔
+        - 每個族群獨立回測MAPE
+        """)
+# ===== V99.1 DNA GROUP ENGINE TRIAL END =====
+
+
 def v971_dna_tab_page():
-    st.markdown("### ⑮ V99.0 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V99.0 已新增現價驗證、DNA權重校準、自動最佳權重、歷史回測與個股DNA引擎，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.markdown("### ⑮ V99.1 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V99.1 已新增現價驗證、DNA權重校準、自動最佳權重、歷史回測、個股DNA引擎與DNA族群引擎，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
-    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "個股說明", "方法說明"])
+    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "個股說明", "方法說明"])
     with tabs[0]:
         st.dataframe(df[["代碼","公司","次產業","DNA定位","主要業務","CAP等級","DNA分數","全球競爭"]], use_container_width=True, hide_index=True)
     with tabs[1]:
@@ -13292,6 +13512,9 @@ def v971_dna_tab_page():
         v990_individual_engine_page()
 
     with tabs[8]:
+        v991_group_engine_page()
+
+    with tabs[9]:
         company = st.selectbox("選擇公司", df["公司"].tolist(), key="v971_dna_company")
         row = df[df["公司"] == company].iloc[0]
         st.write(f"**{row['公司']} / {row['代碼']}**")
