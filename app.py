@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V94.0 Semiconductor Sector Validation Lab"
+APP_VERSION="V95.0 Semiconductor Industry Chain DNA Lab"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -11158,7 +11158,173 @@ def v906_force_home():
 
 
 # ================= V92.3 AIVM QUARTERLY FIXED VALUE LAB START =================
-APP_VERSION_CLEAN = "V94.0 Semiconductor Sector Validation Lab"
+APP_VERSION_CLEAN = "V95.0 Semiconductor Industry Chain DNA Lab"
+
+# ===== V95.0 半導體產業鏈 / 同業 / 全球競爭資料庫 START =====
+# 目的：建立半導體大類股 → 次產業 → 個股 → 同業比較 → 全球競爭的資料骨架。
+# 本版只補 AIVM Lab 資料庫，不改主系統首頁與估值計算。
+
+AIVM_SEMI_INDUSTRY_TREE = {
+    "半導體": {
+        "晶圓代工": [
+            {"代碼":"2330.TW","公司":"台積電","定位":"先進製程龍頭","台灣同業":"聯電、世界先進、力積電","全球競爭":"Samsung Foundry、Intel Foundry、SMIC、GlobalFoundries","核心產品":"先進製程、CoWoS、先進封裝","護城河":"先進製程、客戶黏著度、資本支出規模","AI受惠":"高","景氣敏感度":"中","AIVM重點":"FCFF / EVA / CAP"},
+            {"代碼":"2303.TW","公司":"聯電","定位":"成熟製程晶圓代工","台灣同業":"台積電、世界先進、力積電","全球競爭":"GlobalFoundries、SMIC、Tower Semiconductor","核心產品":"成熟製程、車用、工控、通訊","護城河":"成熟製程客戶組合、產能利用率","AI受惠":"中","景氣敏感度":"高","AIVM重點":"市場價值 / FCFF / FCFE"},
+            {"代碼":"5347.TWO","公司":"世界先進","定位":"特殊製程 / 成熟製程","台灣同業":"聯電、力積電","全球競爭":"Tower Semiconductor、SMIC、DB HiTek","核心產品":"PMIC、DDIC、Power IC製程","護城河":"特殊製程、客戶合作、股利能力","AI受惠":"中","景氣敏感度":"高","AIVM重點":"市場價值 / FCFE / 股利能力"},
+            {"代碼":"6770.TW","公司":"力積電","定位":"成熟製程 / 記憶體相關代工","台灣同業":"聯電、世界先進","全球競爭":"SMIC、DB HiTek、Hua Hong Semiconductor","核心產品":"成熟製程、DRAM代工、特殊製程","護城河":"產能規模與製程轉換能力","AI受惠":"低中","景氣敏感度":"高","AIVM重點":"PB / 市場循環 / 產能利用率"},
+        ],
+        "IC設計": [
+            {"代碼":"2454.TW","公司":"聯發科","定位":"手機 / 通訊 / AI邊緣晶片","台灣同業":"瑞昱、聯詠、譜瑞、矽力","全球競爭":"Qualcomm、Broadcom、NVIDIA、Samsung LSI","核心產品":"手機SoC、WiFi、ASIC、車用晶片","護城河":"平台整合、客戶規模、產品組合","AI受惠":"高","景氣敏感度":"中高","AIVM重點":"PE / EBO / CAP"},
+            {"代碼":"2379.TW","公司":"瑞昱","定位":"網通與多媒體IC","台灣同業":"聯發科、聯詠、義隆","全球競爭":"Broadcom、Marvell、Qualcomm","核心產品":"Ethernet、WiFi、Audio、TV IC","護城河":"產品線廣、成本效率、客戶基礎","AI受惠":"中","景氣敏感度":"中","AIVM重點":"PE / FCFF / EBO"},
+            {"代碼":"3034.TW","公司":"聯詠","定位":"顯示驅動IC","台灣同業":"矽創、敦泰、瑞鼎","全球競爭":"Samsung LSI、LX Semicon、Synaptics","核心產品":"DDIC、TDDI、SoC","護城河":"面板客戶關係、產品迭代","AI受惠":"低中","景氣敏感度":"高","AIVM重點":"PE / FCFE / 景氣循環"},
+            {"代碼":"4966.TW","公司":"譜瑞-KY","定位":"高速傳輸IC","台灣同業":"祥碩、創意、瑞昱","全球競爭":"Parade peers、Analogix、Synaptics","核心產品":"高速介面、USB、DisplayPort","護城河":"高速訊號技術、筆電與AI PC應用","AI受惠":"中高","景氣敏感度":"中","AIVM重點":"PE / EBO / CAP"},
+            {"代碼":"6415.TW","公司":"矽力*-KY","定位":"類比 / 電源管理IC","台灣同業":"致新、茂達","全球競爭":"Texas Instruments、Analog Devices、Monolithic Power Systems","核心產品":"PMIC、電源管理、工控與車用","護城河":"類比設計能力、產品週期長","AI受惠":"中","景氣敏感度":"中","AIVM重點":"EVA / EBO / PE"},
+            {"代碼":"8299.TWO","公司":"群聯","定位":"NAND控制IC","台灣同業":"慧榮、威剛供應鏈","全球競爭":"Silicon Motion、Marvell、Samsung controller","核心產品":"SSD Controller、NAND解決方案","護城河":"控制IC韌體、NAND供應鏈整合","AI受惠":"中高","景氣敏感度":"高","AIVM重點":"PE / 記憶體循環 / FCFF"},
+            {"代碼":"3035.TW","公司":"智原","定位":"ASIC / 設計服務","台灣同業":"創意、世芯、M31","全球競爭":"Alchip peers、Synopsys design services","核心產品":"ASIC設計服務、IP整合","護城河":"設計服務經驗、特殊製程合作","AI受惠":"中高","景氣敏感度":"中高","AIVM重點":"EBO / CAP / PE"},
+        ],
+        "AI ASIC / IP": [
+            {"代碼":"3661.TW","公司":"世芯-KY","定位":"AI ASIC設計服務","台灣同業":"創意、智原、M31","全球競爭":"Marvell、Broadcom ASIC、Global Unichip peers","核心產品":"AI ASIC、HPC晶片設計服務","護城河":"先進製程設計能力、客戶專案","AI受惠":"高","景氣敏感度":"高","AIVM重點":"EBO / CAP / 產業價值"},
+            {"代碼":"3443.TW","公司":"創意","定位":"ASIC設計服務 / GUC","台灣同業":"世芯、智原、M31","全球競爭":"Broadcom ASIC、Marvell、Synopsys services","核心產品":"ASIC、NRE、先進製程設計服務","護城河":"台積電生態系、先進製程支援","AI受惠":"高","景氣敏感度":"高","AIVM重點":"EBO / CAP / PE"},
+            {"代碼":"6643.TWO","公司":"M31","定位":"高速IP / 矽智財","台灣同業":"晶心科、力旺","全球競爭":"Synopsys、Cadence、Rambus","核心產品":"高速介面IP、記憶體IP","護城河":"IP授權、先進製程認證","AI受惠":"中高","景氣敏感度":"中","AIVM重點":"EBO / CAP / 高毛利"},
+            {"代碼":"6533.TW","公司":"晶心科","定位":"RISC-V IP","台灣同業":"M31、力旺","全球競爭":"Arm、SiFive、Synopsys ARC","核心產品":"CPU IP、RISC-V處理器IP","護城河":"RISC-V生態、IP授權模式","AI受惠":"中高","景氣敏感度":"中","AIVM重點":"EBO / CAP / IP授權"},
+        ],
+        "封測": [
+            {"代碼":"3711.TW","公司":"日月光投控","定位":"全球封測龍頭","台灣同業":"力成、京元電、矽格","全球競爭":"Amkor、JCET、Tongfu Microelectronics","核心產品":"封裝、測試、SiP、先進封裝","護城河":"全球產能、客戶組合、先進封裝","AI受惠":"高","景氣敏感度":"中高","AIVM重點":"FCFF / PE / 產業循環"},
+            {"代碼":"2449.TW","公司":"京元電子","定位":"IC測試服務","台灣同業":"矽格、欣銓、日月光","全球競爭":"Teradyne ecosystem、ASE test peers","核心產品":"晶圓測試、成品測試","護城河":"測試產能、AI/HPC測試需求","AI受惠":"高","景氣敏感度":"中高","AIVM重點":"PE / FCFF / 產業價值"},
+            {"代碼":"6239.TW","公司":"力成","定位":"記憶體封測","台灣同業":"日月光、南茂、華東","全球競爭":"Amkor、JCET、UTAC","核心產品":"記憶體封測、邏輯封測","護城河":"記憶體客戶、封裝能力","AI受惠":"中","景氣敏感度":"高","AIVM重點":"PB / PE / 記憶體循環"},
+            {"代碼":"3264.TWO","公司":"欣銓","定位":"晶圓測試","台灣同業":"京元電、矽格","全球競爭":"ASE test peers、Amkor test","核心產品":"晶圓測試、邏輯IC測試","護城河":"測試平台、客戶黏著度","AI受惠":"中","景氣敏感度":"中高","AIVM重點":"PE / FCFF / FCFE"},
+        ],
+        "載板 / PCB / CCL": [
+            {"代碼":"3037.TW","公司":"欣興","定位":"ABF載板 / PCB","台灣同業":"南電、景碩、臻鼎","全球競爭":"Ibiden、Shinko、AT&S","核心產品":"ABF載板、HDI、PCB","護城河":"ABF技術、客戶認證、產能","AI受惠":"高","景氣敏感度":"高","AIVM重點":"產業價值 / FCFF / CAP"},
+            {"代碼":"8046.TW","公司":"南電","定位":"ABF載板","台灣同業":"欣興、景碩","全球競爭":"Ibiden、Shinko、AT&S","核心產品":"ABF、BT載板","護城河":"高階載板製程、客戶認證","AI受惠":"高","景氣敏感度":"高","AIVM重點":"產業價值 / PB / FCFF"},
+            {"代碼":"3189.TWO","公司":"景碩","定位":"IC載板","台灣同業":"欣興、南電","全球競爭":"Shinko、Ibiden、AT&S","核心產品":"ABF、BT載板","護城河":"載板製程、客戶認證","AI受惠":"中高","景氣敏感度":"高","AIVM重點":"PB / PE / 產業循環"},
+            {"代碼":"2383.TW","公司":"台光電","定位":"高階CCL龍頭","台灣同業":"台燿、聯茂","全球競爭":"Panasonic Industry、Rogers、Isola、Doosan","核心產品":"高速CCL、低損耗材料","護城河":"材料配方、AI伺服器認證","AI受惠":"高","景氣敏感度":"中高","AIVM重點":"產業價值 / FCFF / PE"},
+            {"代碼":"6274.TWO","公司":"台燿","定位":"高頻高速CCL","台灣同業":"台光電、聯茂","全球競爭":"Panasonic、Rogers、Isola","核心產品":"高速CCL、伺服器材料","護城河":"材料認證、客戶導入","AI受惠":"高","景氣敏感度":"中高","AIVM重點":"產業價值 / PE / FCFF"},
+            {"代碼":"6213.TW","公司":"聯茂","定位":"CCL材料","台灣同業":"台光電、台燿","全球競爭":"Panasonic、Isola、Doosan","核心產品":"CCL、PCB材料","護城河":"材料製程、成本控制","AI受惠":"中高","景氣敏感度":"高","AIVM重點":"PE / FCFF / 市場價值"},
+        ],
+        "半導體設備": [
+            {"代碼":"3131.TWO","公司":"弘塑","定位":"濕製程設備","台灣同業":"辛耘、均豪、萬潤","全球競爭":"SCREEN、Tokyo Electron、Lam Research","核心產品":"濕製程、先進封裝設備","護城河":"先進封裝供應鏈、設備客製化","AI受惠":"高","景氣敏感度":"高","AIVM重點":"產業價值 / CAP / PE"},
+            {"代碼":"3583.TW","公司":"辛耘","定位":"半導體設備 / 再生晶圓","台灣同業":"弘塑、家登、中砂","全球競爭":"DISCO ecosystem、SCREEN peers","核心產品":"設備代理、再生晶圓、製程服務","護城河":"客戶關係、設備代理、製程服務","AI受惠":"中高","景氣敏感度":"中高","AIVM重點":"PE / FCFF / 產業價值"},
+            {"代碼":"3680.TW","公司":"家登","定位":"EUV載具 / 晶圓傳載","台灣同業":"中砂、弘塑","全球競爭":"Entegris、Miraial","核心產品":"EUV POD、晶圓載具","護城河":"EUV認證、先進製程供應鏈","AI受惠":"高","景氣敏感度":"中高","AIVM重點":"CAP / EBO / 產業價值"},
+            {"代碼":"1560.TW","公司":"中砂","定位":"鑽石碟 / 再生晶圓","台灣同業":"辛耘、家登","全球競爭":"3M、Asahi Diamond、Disco materials peers","核心產品":"CMP鑽石碟、再生晶圓","護城河":"材料技術、先進製程耗材","AI受惠":"中高","景氣敏感度":"中","AIVM重點":"FCFF / EVA / CAP"},
+        ],
+        "矽晶圓 / 材料": [
+            {"代碼":"6488.TWO","公司":"環球晶","定位":"全球矽晶圓供應商","台灣同業":"台勝科、合晶、中美晶","全球競爭":"Shin-Etsu、SUMCO、Siltronic、SK Siltron","核心產品":"矽晶圓、SOI、特殊晶圓","護城河":"長約、產能、品質認證","AI受惠":"中","景氣敏感度":"高","AIVM重點":"PB / FCFF / 產業循環"},
+            {"代碼":"5483.TWO","公司":"中美晶","定位":"矽晶圓 / 投控","台灣同業":"環球晶、合晶","全球競爭":"SUMCO、Siltronic、Shin-Etsu","核心產品":"矽晶圓、太陽能材料投資","護城河":"轉投資、矽晶圓供應鏈","AI受惠":"中","景氣敏感度":"高","AIVM重點":"PB / NAV / FCFE"},
+            {"代碼":"6182.TWO","公司":"合晶","定位":"矽晶圓","台灣同業":"環球晶、台勝科","全球競爭":"SUMCO、Siltronic、SK Siltron","核心產品":"矽晶圓","護城河":"產能、客戶認證","AI受惠":"低中","景氣敏感度":"高","AIVM重點":"PB / 產業循環 / FCFF"},
+        ],
+    }
+}
+
+def v95_industry_tree_flat_df():
+    rows = []
+    for major, subs in AIVM_SEMI_INDUSTRY_TREE.items():
+        for sub, items in subs.items():
+            for x in items:
+                row = {"大類股": major, "次產業": sub}
+                row.update(x)
+                rows.append(row)
+    return pd.DataFrame(rows)
+
+def v95_industry_tree_summary_df():
+    d = v95_industry_tree_flat_df()
+    rows = []
+    for (major, sub), g in d.groupby(["大類股", "次產業"]):
+        ai_high = (g["AI受惠"] == "高").sum()
+        rows.append({
+            "大類股": major,
+            "次產業": sub,
+            "公司數": len(g),
+            "AI高受惠公司數": int(ai_high),
+            "主要AIVM重點": " / ".join(sorted(set(" / ".join(g["AIVM重點"]).split(" / ")))),
+        })
+    return pd.DataFrame(rows)
+
+def v95_peer_map_df(company_name):
+    d = v95_industry_tree_flat_df()
+    row = d[d["公司"] == company_name]
+    if row.empty:
+        return pd.DataFrame()
+    r = row.iloc[0]
+    return pd.DataFrame([
+        ["公司", r["公司"]],
+        ["代碼", r["代碼"]],
+        ["大類股", r["大類股"]],
+        ["次產業", r["次產業"]],
+        ["產業定位", r["定位"]],
+        ["台灣同業", r["台灣同業"]],
+        ["全球競爭", r["全球競爭"]],
+        ["核心產品", r["核心產品"]],
+        ["護城河", r["護城河"]],
+        ["AI受惠", r["AI受惠"]],
+        ["景氣敏感度", r["景氣敏感度"]],
+        ["AIVM重點", r["AIVM重點"]],
+    ], columns=["項目", "內容"])
+
+def v95_global_competition_df():
+    d = v95_industry_tree_flat_df()
+    rows = []
+    for _, r in d.iterrows():
+        competitors = [x.strip() for x in str(r["全球競爭"]).split("、") if x.strip()]
+        for comp in competitors:
+            rows.append({
+                "台灣公司": r["公司"],
+                "代碼": r["代碼"],
+                "次產業": r["次產業"],
+                "全球競爭對手": comp,
+                "競爭主軸": r["核心產品"],
+                "護城河": r["護城河"],
+            })
+    return pd.DataFrame(rows)
+
+def v95_industry_chain_page_block():
+    st.markdown("### V95.0 半導體產業鏈 / 同業 / 全球競爭資料庫")
+    st.info("本頁建立半導體 → 次產業 → 個股 → 台灣同業 → 全球競爭對手的資料骨架；先補資料庫，不直接改主系統。")
+
+    tabs4 = st.tabs(["產業樹總覽", "次產業公司清單", "個股產業DNA", "全球競爭對照", "資料庫說明"])
+
+    flat = v95_industry_tree_flat_df()
+    summary = v95_industry_tree_summary_df()
+
+    with tabs4[0]:
+        st.dataframe(summary, use_container_width=True, hide_index=True)
+        st.caption("先以半導體大類股為第一層，底下再分晶圓代工、IC設計、AI ASIC、封測、載板/PCB/CCL、設備、材料。")
+    with tabs4[1]:
+        sub = st.selectbox("選擇次產業", sorted(flat["次產業"].unique().tolist()), key="v95_sub_industry")
+        cols = ["大類股", "次產業", "代碼", "公司", "定位", "AI受惠", "景氣敏感度", "AIVM重點"]
+        st.dataframe(flat[flat["次產業"] == sub][cols], use_container_width=True, hide_index=True)
+    with tabs4[2]:
+        company = st.selectbox("選擇公司", flat["公司"].tolist(), key="v95_company_dna")
+        st.dataframe(v95_peer_map_df(company), use_container_width=True, hide_index=True)
+    with tabs4[3]:
+        st.dataframe(v95_global_competition_df(), use_container_width=True, hide_index=True)
+        st.caption("全球競爭資料是產業價值、CAP、護城河與同業比較的基礎。")
+    with tabs4[4]:
+        st.markdown("""
+        **V95.0 建置原則**
+
+        1. 先建立大類股：半導體。
+        2. 半導體底下再拆次產業，不把晶圓代工、IC設計、封測全部放在第一層。
+        3. 每檔股票固定欄位：
+           - 大類股
+           - 次產業
+           - 台灣同業
+           - 全球競爭對手
+           - 核心產品
+           - 護城河
+           - AI受惠
+           - 景氣敏感度
+           - AIVM估值重點
+
+        **用途**
+        - 公司DNA
+        - 同業比較
+        - 全球競爭分析
+        - 產業價值軸
+        - CAP競爭優勢期間
+        - AIVM動態權重
+        """)
+# ===== V95.0 半導體產業鏈 / 同業 / 全球競爭資料庫 END =====
+
 
 # ===== V94.0 半導體類股驗證中心 START =====
 AIVM_SEMI_VALIDATION_POOL = {
@@ -12087,7 +12253,7 @@ def aivm_lab_page():
 
     st.info("固定AIVM價值以最近一期財報、產業景氣與市場評價建立，每季財報公布後更新一次；日常股價波動不影響固定價值。")
 
-    tabs = st.tabs(["① 固定價值總覽", "② 固定 vs 動態", "③ 財報公布日", "④ 產業權重說明", "⑤ 權重總覽", "⑥ 權重回測", "⑦ 最佳權重建議", "⑧ 真實回測試作", "⑨ 半導體類股驗證", "⑩ 區間校準", "⑪ 誤差分析", "⑫ 方法說明"])
+    tabs = st.tabs(["① 固定價值總覽", "② 固定 vs 動態", "③ 財報公布日", "④ 產業權重說明", "⑤ 權重總覽", "⑥ 權重回測", "⑦ 最佳權重建議", "⑧ 真實回測試作", "⑨ 半導體類股驗證", "⑩ 產業鏈同業全球競爭", "⑪ 區間校準", "⑫ 誤差分析", "⑬ 方法說明"])
 
     with tabs[0]:
         cols = ["公司","代碼","產業","現價","固定AIVM價值","固定安全邊際","固定估值位階","財報季度","財報公布日","固定價值有效至"]
@@ -12139,6 +12305,9 @@ def aivm_lab_page():
         v94_sector_validation_page_block()
 
     with tabs[9]:
+        v95_industry_chain_page_block()
+
+    with tabs[10]:
         cols = [
             "公司","現價",
             "財報保守","財報價值","財報樂觀",
@@ -12147,13 +12316,13 @@ def aivm_lab_page():
         ]
         st.dataframe(show[cols], use_container_width=True, hide_index=True)
 
-    with tabs[10]:
+    with tabs[11]:
         cols = ["公司","現價","財報價值","市場價值","產業價值","財報誤差","市場誤差","產業誤差"]
         st.dataframe(show[cols], use_container_width=True, hide_index=True)
 
-    with tabs[11]:
+    with tabs[12]:
         st.markdown("""
-        ### V94.0 方法說明
+        ### V95.0 方法說明
 
         **固定AIVM價值**
         ```
@@ -12198,11 +12367,11 @@ def aivm_lab_page():
 
 active = unified_symbol_manager(symbols)
 
-# ===== V94.0 AIVM Lab route guard =====
+# ===== V95.0 AIVM Lab route guard =====
 if page in ["🧪AIVM Lab", "🧪 AIVM Lab"]:
     aivm_lab_page()
     st.stop()
-# ===== V94.0 AIVM Lab route guard end =====
+# ===== V95.0 AIVM Lab route guard end =====
 
 
 
