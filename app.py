@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V98.1 DNA Auto Weight Optimizer"
+APP_VERSION="V98.2 DNA Historical Backtest Trial"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -12838,11 +12838,193 @@ def v981_auto_optimizer_page():
 # ===== V98.1 DNA AUTO WEIGHT OPTIMIZER END =====
 
 
+
+# ===== V98.2 DNA HISTORICAL BACKTEST TRIAL START =====
+# V98.2：DNA歷史回測試作。先用歷史情境資料驗證權重穩定性，不動首頁/K線/財報/ESG/法人/主估值。
+
+V982_BACKTEST_DATES = ["2023-H1", "2023-H2", "2024-H1", "2024-H2", "2025-H1", "2025-H2", "2026-Q2"]
+
+# 歷史情境倍率：用來模擬不同景氣階段下的原AIVM價值、現價與DNA因子分數。
+# 正式版可改為接歷史日收盤、歷史財報與每期模型估值。
+V982_PHASE = {
+    "2023-H1": {"price": 0.62, "base": 0.66, "tech": -6, "ai": -10, "cash": -2, "growth": -8, "cycle": -12},
+    "2023-H2": {"price": 0.70, "base": 0.72, "tech": -5, "ai": -7, "cash": -1, "growth": -5, "cycle": -8},
+    "2024-H1": {"price": 0.82, "base": 0.84, "tech": -3, "ai": -2, "cash": 0, "growth": -2, "cycle": -4},
+    "2024-H2": {"price": 0.92, "base": 0.93, "tech": -1, "ai": 2, "cash": 0, "growth": 1, "cycle": 0},
+    "2025-H1": {"price": 1.00, "base": 1.00, "tech": 0, "ai": 4, "cash": 0, "growth": 3, "cycle": 2},
+    "2025-H2": {"price": 1.06, "base": 1.04, "tech": 1, "ai": 6, "cash": 1, "growth": 4, "cycle": 4},
+    "2026-Q2": {"price": 1.00, "base": 1.00, "tech": 0, "ai": 0, "cash": 0, "growth": 0, "cycle": 0},
+}
+
+def v982_symbol_history_adjust(symbol, phase):
+    # 不同公司對景氣/AI的敏感度不同，避免所有股票同倍率。
+    if symbol == "2330.TW":
+        return {"price": phase["price"] * 1.08, "base": phase["base"] * 1.05, "ai": phase["ai"] + 5, "tech": phase["tech"] + 3}
+    if symbol in ["2383.TW", "3037.TW", "8046.TW", "2449.TW"]:
+        return {"price": phase["price"] * (1 + phase["ai"]/100), "base": phase["base"] * 1.02, "ai": phase["ai"] + 4, "tech": phase["tech"] + 1}
+    if symbol in ["2303.TW", "5347.TWO", "6770.TW"]:
+        return {"price": phase["price"] * (1 + phase["cycle"]/120), "base": phase["base"] * 0.98, "cycle": phase["cycle"] - 2, "growth": phase["growth"] - 2}
+    if symbol == "6215.TWO":
+        return {"price": phase["price"] * 0.96, "base": phase["base"] * 0.97, "cash": phase["cash"] - 1, "growth": phase["growth"] - 1}
+    return {}
+
+def v982_adjust_factor_scores(symbol, date_key):
+    base = V980_FACTOR_SCORE.get(symbol, {}).copy()
+    phase = V982_PHASE.get(date_key, {})
+    adj = v982_symbol_history_adjust(symbol, phase)
+    def add(k, v):
+        if k in base:
+            base[k] = max(0, min(100, base[k] + v))
+    add("技術領先", phase.get("tech", 0) + adj.get("tech", 0))
+    add("AI受惠度", phase.get("ai", 0) + adj.get("ai", 0))
+    add("現金流品質", phase.get("cash", 0) + adj.get("cash", 0))
+    add("獲利成長", phase.get("growth", 0) + adj.get("growth", 0))
+    add("景氣循環", phase.get("cycle", 0) + adj.get("cycle", 0))
+    return base
+
+def v982_dna_score(symbol, weights, date_key):
+    scores = v982_adjust_factor_scores(symbol, date_key)
+    w = v980_normalize_weights(weights)
+    return sum(scores.get(k, 60) * w.get(k, 0) for k in w.keys())
+
+def v982_backtest_df(weights):
+    current = v971_dna_df()
+    current_map = {r["代碼"]: r for _, r in current.iterrows()}
+    rows = []
+    for date_key in V982_BACKTEST_DATES:
+        phase = V982_PHASE[date_key]
+        for sym in V971_DNA_PROFILES.keys():
+            if sym not in current_map:
+                continue
+            r = current_map[sym]
+            adj = v982_symbol_history_adjust(sym, phase)
+            price_mult = adj.get("price", phase["price"])
+            base_mult = adj.get("base", phase["base"])
+            price = float(r["現價"]) * price_mult if pd.notna(r["現價"]) else np.nan
+            base = float(r["原AIVM價值"]) * base_mult if pd.notna(r["原AIVM價值"]) else np.nan
+            score = v982_dna_score(sym, weights, date_key)
+            factor = v980_factor_to_value_factor(score)
+            dna_value = base * factor if pd.notna(base) else np.nan
+            err = abs(price - dna_value) / price * 100 if pd.notna(price) and pd.notna(dna_value) and price > 0 else np.nan
+            rows.append({
+                "期間": date_key,
+                "代碼": sym,
+                "公司": r["公司"],
+                "次產業": r["次產業"],
+                "歷史模擬現價": price,
+                "歷史AIVM價值": base,
+                "歷史DNA估值": dna_value,
+                "DNA分數": score,
+                "估值係數": factor,
+                "MAPE誤差": err,
+                "估值位階": v971_stage(price, dna_value),
+            })
+    return pd.DataFrame(rows)
+
+def v982_period_summary(df):
+    rows = []
+    for period, g in df.groupby("期間"):
+        y = pd.to_numeric(g["歷史模擬現價"], errors="coerce")
+        yhat = pd.to_numeric(g["歷史DNA估值"], errors="coerce")
+        mask = y.notna() & yhat.notna() & (y != 0)
+        if mask.sum() == 0:
+            mape = rmse = r2 = np.nan
+        else:
+            mape = ((y[mask] - yhat[mask]).abs() / y[mask] * 100).mean()
+            rmse = np.sqrt(((y[mask] - yhat[mask]) ** 2).mean())
+            ss_res = ((y[mask] - yhat[mask]) ** 2).sum()
+            ss_tot = ((y[mask] - y[mask].mean()) ** 2).sum()
+            r2 = 1 - ss_res / ss_tot if ss_tot else np.nan
+        rows.append({"期間": period, "MAPE": mape, "RMSE": rmse, "R2": r2, "樣本數": int(mask.sum())})
+    out = pd.DataFrame(rows)
+    out["期間排序"] = out["期間"].apply(lambda x: V982_BACKTEST_DATES.index(x) if x in V982_BACKTEST_DATES else 999)
+    return out.sort_values("期間排序").drop(columns=["期間排序"])
+
+def v982_show_backtest_df(df):
+    out = df.copy()
+    for c in ["歷史模擬現價", "歷史AIVM價值", "歷史DNA估值"]:
+        out[c] = out[c].apply(v971_fmt)
+    for c in ["DNA分數"]:
+        out[c] = out[c].apply(lambda x: f"{float(x):.1f}" if pd.notna(x) else "N/A")
+    for c in ["估值係數"]:
+        out[c] = out[c].apply(lambda x: f"{float(x):.3f}" if pd.notna(x) else "N/A")
+    for c in ["MAPE誤差"]:
+        out[c] = out[c].apply(v971_pct)
+    return out
+
+def v982_show_summary(df):
+    out = df.copy()
+    out["MAPE"] = out["MAPE"].apply(v971_pct)
+    out["RMSE"] = out["RMSE"].apply(v971_fmt)
+    out["R2"] = out["R2"].apply(lambda x: f"{float(x):.3f}" if pd.notna(x) else "N/A")
+    return out
+
+def v982_weight_stability_page():
+    st.markdown("### V98.2 DNA歷史回測引擎")
+    st.info("本頁是歷史回測試作：先用2023~2026情境資料驗證DNA權重是否穩定。正式版再接歷史股價與歷史財報。")
+
+    source = st.radio("回測權重來源", ["V98.1 自動最佳權重", "V98.0 預設權重"], horizontal=True, key="v982_weight_source")
+    if source == "V98.1 自動最佳權重":
+        try:
+            best, _ = v981_cached_optimizer(600)
+            weights = best["weights"]
+        except Exception:
+            weights = V980_FACTOR_BASE.copy()
+    else:
+        weights = V980_FACTOR_BASE.copy()
+
+    df = v982_backtest_df(weights)
+    summary = v982_period_summary(df)
+
+    avg_mape = summary["MAPE"].mean()
+    avg_rmse = summary["RMSE"].mean()
+    avg_r2 = summary["R2"].mean()
+    c1, c2, c3 = st.columns(3)
+    c1.metric("歷史平均 MAPE", v971_pct(avg_mape))
+    c2.metric("歷史平均 RMSE", v971_fmt(avg_rmse))
+    c3.metric("歷史平均 R²", f"{avg_r2:.3f}" if pd.notna(avg_r2) else "N/A")
+
+    tabs = st.tabs(["期間總覽", "個股明細", "權重穩定性", "回測說明"])
+    with tabs[0]:
+        st.dataframe(v982_show_summary(summary), use_container_width=True, hide_index=True)
+        st.caption("若各期間MAPE都維持在10%以下，代表DNA權重不是只適合當下，也具有初步穩定性。")
+    with tabs[1]:
+        period = st.selectbox("選擇期間", V982_BACKTEST_DATES, index=len(V982_BACKTEST_DATES)-1, key="v982_period")
+        st.dataframe(v982_show_backtest_df(df[df["期間"] == period]), use_container_width=True, hide_index=True)
+    with tabs[2]:
+        st.markdown("#### 回測使用權重")
+        st.dataframe(pd.DataFrame([{"因子": k, "權重": f"{v*100:.1f}%"} for k, v in weights.items()]), use_container_width=True, hide_index=True)
+        stable = "通過" if pd.notna(avg_mape) and avg_mape < 10 else "需再校準"
+        if stable == "通過":
+            st.success("初步穩定性：通過。歷史平均MAPE低於10%。")
+        else:
+            st.warning("初步穩定性：需再校準。歷史平均MAPE高於10%。")
+    with tabs[3]:
+        st.markdown("""
+        **V98.2 回測邏輯**
+
+        本版先建立回測流程，不直接接正式資料庫。
+
+        回測方式：
+        1. 以目前10檔為基礎樣本。
+        2. 建立2023-H1至2026-Q2共7個情境期間。
+        3. 依不同景氣階段調整現價、AIVM價值與DNA因子分數。
+        4. 檢查同一組DNA權重在不同期間的 MAPE、RMSE、R²。
+
+        正式版 V98.3 可改接：
+        - yfinance 歷史收盤價
+        - 公司歷史財報
+        - 每季固定AIVM價值
+        - 歷史DNA因子分數
+        """)
+# ===== V98.2 DNA HISTORICAL BACKTEST TRIAL END =====
+
+
 def v971_dna_tab_page():
-    st.markdown("### ⑮ V98.1 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V98.1 已新增現價驗證、DNA權重校準與自動最佳權重，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.markdown("### ⑮ V98.2 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V98.2 已新增現價驗證、DNA權重校準、自動最佳權重與歷史回測，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
-    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "個股說明", "方法說明"])
+    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股說明", "方法說明"])
     with tabs[0]:
         st.dataframe(df[["代碼","公司","次產業","DNA定位","主要業務","CAP等級","DNA分數","全球競爭"]], use_container_width=True, hide_index=True)
     with tabs[1]:
@@ -12884,6 +13066,9 @@ def v971_dna_tab_page():
         v981_auto_optimizer_page()
 
     with tabs[6]:
+        v982_weight_stability_page()
+
+    with tabs[7]:
         company = st.selectbox("選擇公司", df["公司"].tolist(), key="v971_dna_company")
         row = df[df["公司"] == company].iloc[0]
         st.write(f"**{row['公司']} / {row['代碼']}**")
