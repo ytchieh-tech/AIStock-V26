@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V98.0 DNA Weight Calibration Trial"
+APP_VERSION="V98.1 DNA Auto Weight Optimizer"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -12720,11 +12720,129 @@ def v980_weight_calibration_page():
 # ===== V98.0 DNA WEIGHT CALIBRATION TRIAL END =====
 
 
+
+# ===== V98.1 DNA AUTO WEIGHT OPTIMIZER START =====
+# V98.1：自動搜尋最佳DNA權重；仍只在 AIVM Lab 第15頁籤內運作，不覆蓋主系統。
+
+def v981_weight_vector_to_dict(vec):
+    keys = list(V980_FACTOR_BASE.keys())
+    vec = np.array(vec, dtype=float)
+    vec = np.maximum(vec, 0)
+    s = vec.sum()
+    if s <= 0:
+        return V980_FACTOR_BASE.copy()
+    return {k: float(v / s) for k, v in zip(keys, vec)}
+
+def v981_score_mape(weights):
+    try:
+        df = v980_calibration_df(weights)
+        mape, rmse, r2 = v980_calibration_metrics(df)
+        return float(mape) if pd.notna(mape) else 9999
+    except Exception:
+        return 9999
+
+def v981_random_search(n_iter=600, seed=42):
+    rng = np.random.default_rng(seed)
+    keys = list(V980_FACTOR_BASE.keys())
+
+    candidates = []
+    # 先放入目前預設權重
+    base_vec = np.array([V980_FACTOR_BASE[k] for k in keys], dtype=float)
+    candidates.append(base_vec)
+
+    # 加入偏向AI與技術的候選
+    candidates.extend([
+        np.array([0.24,0.16,0.24,0.12,0.12,0.06,0.06]),
+        np.array([0.18,0.18,0.22,0.16,0.14,0.06,0.06]),
+        np.array([0.16,0.16,0.18,0.18,0.18,0.07,0.07]),
+        np.array([0.22,0.20,0.16,0.16,0.14,0.06,0.06]),
+    ])
+
+    for _ in range(int(n_iter)):
+        # Dirichlet 讓總權重自然等於1
+        alpha = np.array([2.5, 2.2, 2.4, 1.8, 1.8, 1.1, 1.1])
+        candidates.append(rng.dirichlet(alpha))
+
+    rows = []
+    best = None
+    for vec in candidates:
+        w = v981_weight_vector_to_dict(vec)
+        df = v980_calibration_df(w)
+        mape, rmse, r2 = v980_calibration_metrics(df)
+        row = {"MAPE": mape, "RMSE": rmse, "R2": r2}
+        row.update({k: w[k] for k in keys})
+        rows.append(row)
+        if best is None or (pd.notna(mape) and mape < best["MAPE"]):
+            best = {"weights": w, "df": df, "MAPE": mape, "RMSE": rmse, "R2": r2}
+
+    result_df = pd.DataFrame(rows).sort_values("MAPE", ascending=True).reset_index(drop=True)
+    return best, result_df
+
+@st.cache_data(ttl=600, show_spinner=False)
+def v981_cached_optimizer(n_iter=600):
+    best, result = v981_random_search(n_iter=n_iter, seed=42)
+    return best, result
+
+def v981_weight_table(weights):
+    return pd.DataFrame([
+        {"因子": k, "最佳權重": f"{v*100:.1f}%"}
+        for k, v in weights.items()
+    ])
+
+def v981_result_table(df):
+    show = v980_show_df(df)
+    cols = ["代碼", "公司", "現價", "V97 DNA估值", "V98校準DNA估值", "V98 DNA分數", "V98估值係數", "V97 DNA誤差", "V98 DNA誤差", "誤差改善", "V98位階", "現價來源"]
+    return show[cols]
+
+def v981_top_candidates_table(result_df, n=10):
+    out = result_df.head(n).copy()
+    for c in ["MAPE"]:
+        out[c] = out[c].apply(v971_pct)
+    for c in ["RMSE"]:
+        out[c] = out[c].apply(v971_fmt)
+    out["R2"] = out["R2"].apply(lambda x: f"{float(x):.3f}" if pd.notna(x) else "N/A")
+    for k in V980_FACTOR_BASE.keys():
+        out[k] = out[k].apply(lambda x: f"{float(x)*100:.1f}%" if pd.notna(x) else "N/A")
+    return out
+
+def v981_auto_optimizer_page():
+    st.markdown("### V98.1 DNA自動最佳化權重引擎")
+    st.info("本頁會自動搜尋讓 MAPE 最低的 DNA 因子權重組合；結果只作建議，不覆蓋 V98.0 手動權重與主系統。")
+
+    n_iter = st.slider("搜尋次數", 100, 2000, 600, 100, key="v981_search_iter")
+    best, result_df = v981_cached_optimizer(n_iter)
+
+    if best is None:
+        st.warning("目前無法產生最佳化結果。")
+        return
+
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        st.markdown("#### 最佳權重建議")
+        st.dataframe(v981_weight_table(best["weights"]), use_container_width=True, hide_index=True)
+        st.caption("權重總和已正規化為100%。")
+
+    with c2:
+        m1, m2, m3 = st.columns(3)
+        m1.metric("最佳 MAPE", v971_pct(best["MAPE"]))
+        m2.metric("最佳 RMSE", v971_fmt(best["RMSE"]))
+        m3.metric("最佳 R²", f"{best['R2']:.3f}" if pd.notna(best["R2"]) else "N/A")
+        st.dataframe(v981_result_table(best["df"]), use_container_width=True, hide_index=True)
+
+    st.markdown("#### 前10組候選權重")
+    st.dataframe(v981_top_candidates_table(result_df, 10), use_container_width=True, hide_index=True)
+
+    st.markdown("#### 解讀")
+    st.success("若最佳 MAPE 低於 V98.0 手動權重，代表 DNA 因子權重可由資料自動校準；下一版可加入更多個股與歷史期間。")
+    st.caption("V98.1 使用隨機搜尋 / Dirichlet 權重組合。正式版可再升級 Grid Search、Genetic Algorithm 或 Bayesian Optimization。")
+# ===== V98.1 DNA AUTO WEIGHT OPTIMIZER END =====
+
+
 def v971_dna_tab_page():
-    st.markdown("### ⑮ V98.0 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V98.0 已新增現價驗證與DNA權重校準，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.markdown("### ⑮ V98.1 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V98.1 已新增現價驗證、DNA權重校準與自動最佳權重，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
-    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "個股說明", "方法說明"])
+    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "個股說明", "方法說明"])
     with tabs[0]:
         st.dataframe(df[["代碼","公司","次產業","DNA定位","主要業務","CAP等級","DNA分數","全球競爭"]], use_container_width=True, hide_index=True)
     with tabs[1]:
@@ -12763,6 +12881,9 @@ def v971_dna_tab_page():
         v980_weight_calibration_page()
 
     with tabs[5]:
+        v981_auto_optimizer_page()
+
+    with tabs[6]:
         company = st.selectbox("選擇公司", df["公司"].tolist(), key="v971_dna_company")
         row = df[df["公司"] == company].iloc[0]
         st.write(f"**{row['公司']} / {row['代碼']}**")
