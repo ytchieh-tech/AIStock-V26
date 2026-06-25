@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V96.1 Restore KLine Financial Stable"
+APP_VERSION="V96.2 Restore ESG Institutional Valuation No Monitor"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -1978,6 +1978,18 @@ def v761_valuation_input_explain(inp):
         rows.append([k, v, explain.get(k,'模型使用之估值參數；若原始資料缺漏，使用代理或反推值。')])
     return pd.DataFrame(rows,columns=['使用數值','值','說明'])
 # ================= V76.1 TRANSPARENCY + NAME FIX LAYER END =================
+
+# ===== V96.2 CLEAN MAIN MENU NO MONITOR START =====
+try:
+    MAIN = [x for x in MAIN if "監控" not in str(x)]
+    menu_items = [x for x in globals().get("menu_items", MAIN) if "監控" not in str(x)]
+    main_tabs = [x for x in globals().get("main_tabs", MAIN) if "監控" not in str(x)]
+    if st.session_state.get("page") and "監控" in str(st.session_state.page):
+        st.session_state.page = "🏠首頁"
+except Exception:
+    MAIN = ["🏠首頁","📈K線","🏛企業價值研究院","🧪AIVM研究中心","⚙設定","🧪AIVM Lab"]
+# ===== V96.2 CLEAN MAIN MENU NO MONITOR END =====
+
 page=st.radio("主選單",MAIN,index=MAIN.index(st.session_state.page) if st.session_state.page in MAIN else 0,horizontal=True,key="stable_page_menu")
 if page in ["🏦法人","🏢法人","💎評價","🌱ESG永續","📑中文財報"]:
     page="🏠首頁"
@@ -12523,19 +12535,31 @@ if pd.isna(effective_price(q, df_daily)) and df_daily.empty:
 # ================= V90.7 TRUE HOME DISPATCH OVERRIDE =================
 # 重新路由頁面：首頁一定顯示全產業類股估值入口，不再顯示 AIVM 舊表格。
 
-# ===== V96.1 RESTORE KLINE FINANCIAL MODULES START =====
-# 目的：先恢復原本可用的 K線、財報、監控與設定入口。
-# 原則：不覆蓋 AIVM Lab、不改估值核心、不改首頁；只補回缺失的頁面函式。
+# ===== V96.2 RESTORE ESG INSTITUTIONAL VALUATION START =====
+# 目的：移除監控主選單；恢復企業評價、中文財報、ESG、法人、AI研究；保留K線。
 
-def v961_safe_history(symbol, df=None):
-    """K線頁資料保險：若 df_daily 為空，改抓 Yahoo 近一年資料。"""
+def v962_default_scores(symbol=None, q=None, df=None):
+    base = {"total": 60, "ai": 60, "tech": 55, "fund": 60, "inst": 50, "chip": 50, "main": 50, "esg": 60}
     try:
-        if df is not None and isinstance(df, pd.DataFrame) and not df.empty:
+        if isinstance(q, dict):
+            pe = q.get("pe", np.nan)
+            pb = q.get("pb", np.nan)
+            if pd.notna(pe) and float(pe) < 25:
+                base["fund"] += 5
+            if pd.notna(pb) and float(pb) < 5:
+                base["fund"] += 3
+    except Exception:
+        pass
+    return base
+
+def v962_safe_history(symbol, df=None):
+    try:
+        if isinstance(df, pd.DataFrame) and not df.empty:
             d = df.copy()
             if "Date" not in d.columns:
                 d = d.reset_index()
-                if "Date" not in d.columns and "Datetime" in d.columns:
-                    d["Date"] = d["Datetime"]
+            if "Date" not in d.columns and "Datetime" in d.columns:
+                d["Date"] = d["Datetime"]
             return d
     except Exception:
         pass
@@ -12552,125 +12576,104 @@ def v961_safe_history(symbol, df=None):
 
 def kline_page(symbol, q=None, df=None):
     st.subheader(f"📈 K線技術分析：{display_name(symbol)}")
-    st.caption("V96.1：恢復原本 K線入口；若主資料缺漏，會自動改抓 Yahoo 歷史股價。")
-    d = v961_safe_history(symbol, df)
+    st.caption("V96.2：K線保留；若主資料不足會自動改抓 Yahoo 歷史股價。")
+    d = v962_safe_history(symbol, df)
     if d is None or d.empty:
         st.warning("目前無法取得K線資料，請稍後重試或檢查 yfinance 連線。")
-        return
-
+        return None
     c1, c2 = st.columns([2, 1])
     with c1:
         overlays = st.multiselect(
             "主圖均線 / 指標",
             ["MA5", "MA10", "MA20", "MA60", "MA120", "MA240", "布林通道"],
             default=["MA5", "MA20", "MA60"],
-            key="v961_kline_overlays"
+            key="v962_kline_overlays"
         )
     with c2:
         panel = st.selectbox(
             "副圖",
             ["成交量", "MACD", "KD", "RSI", "BIAS", "OBV", "MFI", "威廉%R", "CCI", "ADX", "ATR", "ROC", "Momentum"],
             index=0,
-            key="v961_kline_panel"
+            key="v962_kline_panel"
         )
-
     try:
         kline_chart(d, overlays, panel)
     except Exception as e:
         st.error(f"K線圖載入失敗：{e}")
         st.dataframe(d.tail(120), use_container_width=True)
+    return None
 
-# 有些舊版 dispatcher 會呼叫 page_kline，保留別名避免再出現「K線載入中」。
 def page_kline(symbol, q=None, df=None):
-    return kline_page(symbol, q, df)
-
-def market_dashboard(symbol=None, q=None, df=None):
-    st.subheader("📊 監控")
-    st.caption("V96.1：恢復監控入口；保留輕量化，避免拖慢首頁。")
-    try:
-        symbols = st.session_state.get("recent_symbols", []) or DEFAULT_MONITOR[:8]
-    except Exception:
-        symbols = ["2330.TW", "2303.TW", "5347.TWO", "2454.TW"]
-    rows = []
-    for s in symbols[:12]:
-        try:
-            px = v901_quote(s) if "v901_quote" in globals() else np.nan
-        except Exception:
-            px = np.nan
-        if pd.isna(px):
-            try:
-                hist = yf.Ticker(s).history(period="5d")
-                px = float(hist["Close"].dropna().iloc[-1]) if hist is not None and not hist.empty else np.nan
-            except Exception:
-                px = np.nan
-        rows.append({
-            "代碼": s,
-            "公司": display_name(s),
-            "現價": fmt(px) if "fmt" in globals() else px,
-        })
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-    st.info("若要完整技術線圖，請切到「K線」。")
-
-def settings_page():
-    st.subheader("⚙ 設定")
-    st.caption("V96.1：恢復設定入口。")
-    st.write("目前主要設定仍在左側欄：監控更新頻率、歷史期間、類股清單、自選股。")
-    st.info("後續正式版可在此整合：預設首頁、更新頻率、K線預設指標、資料來源檢查。")
+    kline_page(symbol, q, df)
+    return None
 
 def enterprise_value_institute_page(symbol, q=None, df=None):
-    """恢復企業價值研究院裡的財報與估值入口。"""
     st.subheader(f"🏛 AI企業價值研究院：{display_name(symbol)}")
-    st.caption("V96.1：先恢復原本估值、中文財報、AI研究入口；DNA Validation Lab 之後再加，不覆蓋核心功能。")
+    st.caption("V96.2：恢復企業評價、中文財報、ESG、法人與AI研究；DNA Validation Lab 之後再加，不覆蓋核心功能。")
+    scores = v962_default_scores(symbol, q or {}, df)
 
-    tabs = st.tabs(["估值總覽", "中文財報中心", "AI研究摘要", "AIVM研究中心入口"])
+    tabs = st.tabs(["估值總覽", "企業評價", "中文財報中心", "ESG永續", "法人籌碼", "AI研究摘要", "AIVM研究中心入口"])
 
     with tabs[0]:
         try:
             price = effective_price(q or {}, df) if "effective_price" in globals() else np.nan
-        except Exception:
-            price = np.nan
-        try:
             val = v901_valuation(symbol, price) if "v901_valuation" in globals() else {}
-        except Exception:
-            val = {}
-        if isinstance(val, dict) and val:
-            kpi([
-                ("現價", fmt(val.get("price"))),
-                ("基準價值", fmt(val.get("base"))),
-                ("估值區間", f"{fmt(val.get('low'))} ~ {fmt(val.get('high'))}"),
-                ("估值位階", val.get("position", "N/A")),
-            ])
-            st.caption("詳細模型、權重、DNA與全球競爭，請於 AIVM研究中心 / AIVM Lab 查看。")
-        else:
-            st.info("估值資料暫時不足。")
+            if isinstance(val, dict) and val:
+                kpi([
+                    ("現價", fmt(val.get("price"))),
+                    ("基準價值", fmt(val.get("base"))),
+                    ("估值區間", f"{fmt(val.get('low'))} ~ {fmt(val.get('high'))}"),
+                    ("估值位階", val.get("position", "N/A")),
+                ])
+            else:
+                v85_original_valuation_center(symbol, q or {}, df, scores)
+        except Exception as e:
+            st.warning(f"估值總覽載入失敗：{e}")
 
     with tabs[1]:
+        try:
+            v85_original_valuation_center(symbol, q or {}, df, scores)
+        except Exception as e:
+            st.warning(f"企業評價載入失敗：{e}")
+
+    with tabs[2]:
         try:
             financial_center(symbol, q or {}, df)
         except Exception as e:
             st.error(f"中文財報中心載入失敗：{e}")
 
-    with tabs[2]:
+    with tabs[3]:
         try:
-            scores = {
-                "fund": 60,
-                "tech": 55,
-                "inst": 50,
-                "chip": 50,
-                "main": 50,
-                "esg": 60,
-            }
+            v85_original_esg_center(symbol, q or {}, df, scores)
+        except Exception as e:
+            st.warning(f"ESG永續中心載入失敗：{e}")
+
+    with tabs[4]:
+        try:
+            v85_original_institutional_center(symbol, q or {}, df, scores)
+        except Exception as e:
+            st.warning(f"法人籌碼中心載入失敗：{e}")
+
+    with tabs[5]:
+        try:
             v50_ai_research_center(symbol, df, q or {}, scores)
         except Exception as e:
             st.warning(f"AI研究摘要載入失敗：{e}")
 
-    with tabs[3]:
+    with tabs[6]:
         st.info("個股DNA、全球競爭、權重驗證與校對檢定請進入「AIVM研究中心」或「AIVM Lab」。")
-# ===== V96.1 RESTORE KLINE FINANCIAL MODULES END =====
+    return None
+
+def settings_page():
+    st.subheader("⚙ 設定")
+    st.caption("V96.2：監控主選單已移除；保留K線、企業價值研究院、AIVM研究中心。")
+    st.info("後續正式版可整合：預設首頁、K線預設指標、資料來源檢查、DNA Validation Lab。")
+    return None
+# ===== V96.2 RESTORE ESG INSTITUTIONAL VALUATION END =====
 
 
 try:
-    if page not in ["🏠首頁","📊監控","📈K線","🏛企業價值研究院","🧪AIVM研究中心","🧪AIVM Lab","⚙設定"]:
+    if page not in ["🏠首頁","📈K線","🏛企業價值研究院","🧪AIVM研究中心","🧪AIVM Lab","⚙設定"] or "監控" in str(page):
         page = "🏠首頁"
         st.session_state.page = page
 except Exception:
@@ -12688,11 +12691,6 @@ if page == "🏠首頁":
             except Exception as e:
                 st.error(f"首頁全產業類股估值入口載入失敗：{e}")
 
-elif page == "📊監控":
-    try:
-        market_dashboard(active, q, df_daily)
-    except Exception:
-        st.warning("監控頁載入中。")
 
 elif page == "📈K線":
     try:
