@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V97.2 DNA Price Validation"
+APP_VERSION="V98.0 DNA Weight Calibration Trial"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -12574,11 +12574,157 @@ def v971_display(df):
     out["DNA係數"] = out["DNA係數"].apply(lambda x: f"{float(x):.2f}" if pd.notna(x) else "N/A")
     return out
 
+
+# ===== V98.0 DNA WEIGHT CALIBRATION TRIAL START =====
+# V98.0：在 AIVM Lab 第15頁籤內新增 DNA權重校準，不動首頁、K線、財報、ESG、法人。
+
+V980_FACTOR_BASE = {
+    "技術領先": 0.20,
+    "市場地位": 0.18,
+    "AI受惠度": 0.18,
+    "現金流品質": 0.14,
+    "獲利成長": 0.14,
+    "景氣循環": 0.08,
+    "財務風險": 0.08,
+}
+
+V980_FACTOR_SCORE = {
+    "2330.TW": {"技術領先": 98, "市場地位": 96, "AI受惠度": 98, "現金流品質": 95, "獲利成長": 92, "景氣循環": 82, "財務風險": 90},
+    "2303.TW": {"技術領先": 74, "市場地位": 76, "AI受惠度": 62, "現金流品質": 82, "獲利成長": 66, "景氣循環": 64, "財務風險": 82},
+    "5347.TWO": {"技術領先": 72, "市場地位": 70, "AI受惠度": 58, "現金流品質": 76, "獲利成長": 62, "景氣循環": 62, "財務風險": 78},
+    "6770.TW": {"技術領先": 62, "市場地位": 58, "AI受惠度": 52, "現金流品質": 58, "獲利成長": 50, "景氣循環": 45, "財務風險": 60},
+    "2383.TW": {"技術領先": 86, "市場地位": 82, "AI受惠度": 94, "現金流品質": 80, "獲利成長": 88, "景氣循環": 72, "財務風險": 76},
+    "3037.TW": {"技術領先": 80, "市場地位": 78, "AI受惠度": 82, "現金流品質": 72, "獲利成長": 76, "景氣循環": 60, "財務風險": 70},
+    "8046.TW": {"技術領先": 78, "市場地位": 74, "AI受惠度": 80, "現金流品質": 70, "獲利成長": 72, "景氣循環": 58, "財務風險": 68},
+    "3711.TW": {"技術領先": 82, "市場地位": 88, "AI受惠度": 80, "現金流品質": 84, "獲利成長": 76, "景氣循環": 68, "財務風險": 78},
+    "2449.TW": {"技術領先": 80, "市場地位": 78, "AI受惠度": 86, "現金流品質": 78, "獲利成長": 82, "景氣循環": 70, "財務風險": 74},
+    "6215.TWO": {"技術領先": 66, "市場地位": 62, "AI受惠度": 58, "現金流品質": 68, "獲利成長": 64, "景氣循環": 60, "財務風險": 70},
+}
+
+def v980_normalize_weights(w):
+    total = sum(float(v) for v in w.values())
+    if total <= 0:
+        return V980_FACTOR_BASE.copy()
+    return {k: float(v) / total for k, v in w.items()}
+
+def v980_dna_score_by_weights(symbol, weights):
+    scores = V980_FACTOR_SCORE.get(symbol, {})
+    if not scores:
+        return np.nan
+    w = v980_normalize_weights(weights)
+    return sum(scores.get(k, 60) * w.get(k, 0) for k in w.keys())
+
+def v980_factor_to_value_factor(score):
+    try:
+        s = float(score)
+    except Exception:
+        return 1.00
+    # 分數對估值係數：60分=0.90，80分=1.06，95分=1.18，上下限避免過度放大
+    factor = 0.90 + (s - 60) * 0.008
+    return max(0.82, min(1.22, factor))
+
+def v980_calibration_df(weights):
+    base_df = v971_dna_df()
+    rows = []
+    for _, r in base_df.iterrows():
+        sym = r["代碼"]
+        score = v980_dna_score_by_weights(sym, weights)
+        factor = v980_factor_to_value_factor(score)
+        base = float(r["原AIVM價值"]) if pd.notna(r["原AIVM價值"]) else np.nan
+        price = float(r["現價"]) if pd.notna(r["現價"]) else np.nan
+        dna_value = base * factor if pd.notna(base) else np.nan
+        err = abs(price - dna_value) / price * 100 if pd.notna(price) and pd.notna(dna_value) and price > 0 else np.nan
+        old_err = float(r["DNA誤差"]) if pd.notna(r["DNA誤差"]) else np.nan
+        rows.append({
+            "代碼": sym,
+            "公司": r["公司"],
+            "次產業": r["次產業"],
+            "現價": price,
+            "原AIVM價值": base,
+            "V97 DNA估值": r["DNA估值"],
+            "V98校準DNA估值": dna_value,
+            "V98 DNA分數": score,
+            "V98估值係數": factor,
+            "V97 DNA誤差": old_err,
+            "V98 DNA誤差": err,
+            "誤差改善": old_err - err if pd.notna(old_err) and pd.notna(err) else np.nan,
+            "V98位階": v971_stage(price, dna_value),
+            "現價來源": r["現價來源"],
+        })
+    return pd.DataFrame(rows)
+
+def v980_calibration_metrics(df):
+    try:
+        y = pd.to_numeric(df["現價"], errors="coerce")
+        yhat = pd.to_numeric(df["V98校準DNA估值"], errors="coerce")
+        mask = y.notna() & yhat.notna() & (y != 0)
+        if mask.sum() == 0:
+            return np.nan, np.nan, np.nan
+        err_pct = (y[mask] - yhat[mask]).abs() / y[mask] * 100
+        mape = err_pct.mean()
+        rmse = np.sqrt(((y[mask] - yhat[mask]) ** 2).mean())
+        ss_res = ((y[mask] - yhat[mask]) ** 2).sum()
+        ss_tot = ((y[mask] - y[mask].mean()) ** 2).sum()
+        r2 = 1 - ss_res / ss_tot if ss_tot else np.nan
+        return mape, rmse, r2
+    except Exception:
+        return np.nan, np.nan, np.nan
+
+def v980_show_df(df):
+    out = df.copy()
+    for c in ["現價", "原AIVM價值", "V97 DNA估值", "V98校準DNA估值"]:
+        out[c] = out[c].apply(v971_fmt)
+    for c in ["V98 DNA分數"]:
+        out[c] = out[c].apply(lambda x: f"{float(x):.1f}" if pd.notna(x) else "N/A")
+    for c in ["V98估值係數"]:
+        out[c] = out[c].apply(lambda x: f"{float(x):.3f}" if pd.notna(x) else "N/A")
+    for c in ["V97 DNA誤差", "V98 DNA誤差", "誤差改善"]:
+        out[c] = out[c].apply(v971_pct)
+    return out
+
+def v980_weight_calibration_page():
+    st.markdown("### V98.0 DNA權重校準引擎")
+    st.info("本頁先做試作：手動調整DNA因子權重，觀察 V98校準DNA估值 是否降低誤差。暫不覆蓋V97與主系統。")
+
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        st.markdown("#### 手動權重設定")
+        raw = {}
+        for k, default in V980_FACTOR_BASE.items():
+            raw[k] = st.slider(k, 0, 40, int(default * 100), 1, key=f"v980_weight_{k}") / 100
+        weights = v980_normalize_weights(raw)
+        st.caption("系統會自動正規化，確保總權重 = 100%。")
+        st.dataframe(pd.DataFrame([{"因子": k, "正規化權重": f"{v*100:.1f}%"} for k, v in weights.items()]), use_container_width=True, hide_index=True)
+
+    with c2:
+        df = v980_calibration_df(weights)
+        mape, rmse, r2 = v980_calibration_metrics(df)
+        m1, m2, m3 = st.columns(3)
+        m1.metric("V98 MAPE", v971_pct(mape))
+        m2.metric("V98 RMSE", v971_fmt(rmse))
+        m3.metric("V98 R²", f"{r2:.3f}" if pd.notna(r2) else "N/A")
+        cols = ["代碼", "公司", "現價", "原AIVM價值", "V97 DNA估值", "V98校準DNA估值", "V98 DNA分數", "V98估值係數", "V97 DNA誤差", "V98 DNA誤差", "誤差改善", "V98位階", "現價來源"]
+        st.dataframe(v980_show_df(df)[cols], use_container_width=True, hide_index=True)
+
+    st.markdown("#### 因子分數資料庫")
+    factor_rows = []
+    for sym, scores in V980_FACTOR_SCORE.items():
+        name = V971_DNA_PROFILES.get(sym, ["", "", "", "", "", "", ""])[0]
+        row = {"代碼": sym, "公司": name}
+        row.update(scores)
+        factor_rows.append(row)
+    st.dataframe(pd.DataFrame(factor_rows), use_container_width=True, hide_index=True)
+
+    st.markdown("#### 試作結論")
+    st.warning("V98.0 仍是手動權重校準。若調整後 MAPE 下降，代表個股DNA權重方向有效；下一版 V98.1 再做自動搜尋最佳權重。")
+# ===== V98.0 DNA WEIGHT CALIBRATION TRIAL END =====
+
+
 def v971_dna_tab_page():
-    st.markdown("### ⑮ V97.2 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V97.2 已新增現價驗證，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.markdown("### ⑮ V98.0 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V98.0 已新增現價驗證與DNA權重校準，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
-    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "個股說明", "方法說明"])
+    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "個股說明", "方法說明"])
     with tabs[0]:
         st.dataframe(df[["代碼","公司","次產業","DNA定位","主要業務","CAP等級","DNA分數","全球競爭"]], use_container_width=True, hide_index=True)
     with tabs[1]:
@@ -12614,6 +12760,9 @@ def v971_dna_tab_page():
         else:
             st.warning("初步結果：DNA估值尚未優於原AIVM，後續需校準DNA分數或係數。")
     with tabs[4]:
+        v980_weight_calibration_page()
+
+    with tabs[5]:
         company = st.selectbox("選擇公司", df["公司"].tolist(), key="v971_dna_company")
         row = df[df["公司"] == company].iloc[0]
         st.write(f"**{row['公司']} / {row['代碼']}**")
