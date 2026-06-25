@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V99.1 DNA Group Engine Trial"
+APP_VERSION="V100.0 DNA Validation Center"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -13460,11 +13460,268 @@ def v991_group_engine_page():
 # ===== V99.1 DNA GROUP ENGINE TRIAL END =====
 
 
+
+# ===== V100.0 DNA VALIDATION CENTER START =====
+# V100.0：DNA模型可信度驗證中心。
+# 目的：不是再做新估值，而是驗證 V97 / V99 / V99.1 哪個模型最可信，避免過度擬合。
+# 不動首頁、K線、財報、ESG、法人與主估值核心。
+
+def v100_model_error_df():
+    rows = []
+
+    try:
+        v97_df = v971_dna_df()
+    except Exception:
+        v97_df = pd.DataFrame()
+
+    try:
+        v99_df = v990_individual_dna_df() if "v990_individual_dna_df" in globals() else pd.DataFrame()
+    except Exception:
+        v99_df = pd.DataFrame()
+
+    try:
+        v991_df = v991_group_dna_df() if "v991_group_dna_df" in globals() else pd.DataFrame()
+    except Exception:
+        v991_df = pd.DataFrame()
+
+    # 建立統一資料列
+    for _, r in v97_df.iterrows():
+        sym = r.get("代碼")
+        company = r.get("公司")
+        price = float(r.get("現價", np.nan)) if pd.notna(r.get("現價", np.nan)) else np.nan
+
+        v97_val = float(r.get("DNA估值", np.nan)) if pd.notna(r.get("DNA估值", np.nan)) else np.nan
+
+        v99_val = np.nan
+        if not v99_df.empty and sym in v99_df["代碼"].values:
+            hit = v99_df[v99_df["代碼"] == sym]
+            v99_val = float(hit["V99個股DNA估值"].iloc[0]) if pd.notna(hit["V99個股DNA估值"].iloc[0]) else np.nan
+
+        v991_val = np.nan
+        group = "未分類"
+        if not v991_df.empty and sym in v991_df["代碼"].values:
+            hit = v991_df[v991_df["代碼"] == sym]
+            v991_val = float(hit["V99.1族群DNA估值"].iloc[0]) if pd.notna(hit["V99.1族群DNA估值"].iloc[0]) else np.nan
+            group = hit["DNA族群"].iloc[0] if "DNA族群" in hit.columns else "未分類"
+
+        def err(v):
+            return abs(price - v) / price * 100 if pd.notna(price) and pd.notna(v) and price else np.nan
+
+        rows.append({
+            "代碼": sym,
+            "公司": company,
+            "DNA族群": group,
+            "現價": price,
+            "V97估值": v97_val,
+            "V99估值": v99_val,
+            "V99.1估值": v991_val,
+            "V97誤差": err(v97_val),
+            "V99誤差": err(v99_val),
+            "V99.1誤差": err(v991_val),
+            "最佳模型": "待計算",
+        })
+
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return df
+
+    best_models = []
+    for _, r in df.iterrows():
+        errs = {
+            "V97統一DNA": r["V97誤差"],
+            "V99個股DNA": r["V99誤差"],
+            "V99.1族群DNA": r["V99.1誤差"],
+        }
+        errs = {k: v for k, v in errs.items() if pd.notna(v)}
+        best_models.append(min(errs, key=errs.get) if errs else "資料不足")
+    df["最佳模型"] = best_models
+    return df
+
+def v100_metrics_from_error(df, col):
+    try:
+        e = pd.to_numeric(df[col], errors="coerce").dropna()
+        if len(e) == 0:
+            return np.nan
+        return e.mean()
+    except Exception:
+        return np.nan
+
+def v100_model_ranking(df):
+    rows = []
+    model_cols = {
+        "V97統一DNA": "V97誤差",
+        "V99個股DNA": "V99誤差",
+        "V99.1族群DNA": "V99.1誤差",
+    }
+    for model, col in model_cols.items():
+        mape = v100_metrics_from_error(df, col)
+        valid = pd.to_numeric(df[col], errors="coerce").notna().sum()
+        win = (df["最佳模型"] == model).sum() if "最佳模型" in df.columns else 0
+        stability = max(0, 100 - mape * 8) + win * 2 if pd.notna(mape) else np.nan
+        rows.append({
+            "模型": model,
+            "平均MAPE": mape,
+            "有效樣本數": int(valid),
+            "單股勝出次數": int(win),
+            "穩定度分數": stability,
+        })
+    out = pd.DataFrame(rows).sort_values("穩定度分數", ascending=False)
+    return out
+
+def v100_leave_one_out(df):
+    rows = []
+    models = {
+        "V97統一DNA": "V97誤差",
+        "V99個股DNA": "V99誤差",
+        "V99.1族群DNA": "V99.1誤差",
+    }
+    for _, removed in df.iterrows():
+        test_df = df[df["代碼"] != removed["代碼"]]
+        row = {"剔除股票": f"{removed['公司']} / {removed['代碼']}"}
+        best_model = None
+        best_mape = None
+        for model, col in models.items():
+            mape = v100_metrics_from_error(test_df, col)
+            row[model + " MAPE"] = mape
+            if pd.notna(mape) and (best_mape is None or mape < best_mape):
+                best_mape = mape
+                best_model = model
+        row["剔除後最佳模型"] = best_model or "資料不足"
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+def v100_group_validation(df):
+    rows = []
+    models = {
+        "V97統一DNA": "V97誤差",
+        "V99個股DNA": "V99誤差",
+        "V99.1族群DNA": "V99.1誤差",
+    }
+    for group, g in df.groupby("DNA族群"):
+        row = {"DNA族群": group, "樣本數": len(g)}
+        best_model = None
+        best_mape = None
+        for model, col in models.items():
+            mape = v100_metrics_from_error(g, col)
+            row[model + " MAPE"] = mape
+            if pd.notna(mape) and (best_mape is None or mape < best_mape):
+                best_mape = mape
+                best_model = model
+        row["族群最佳模型"] = best_model or "資料不足"
+        rows.append(row)
+    return pd.DataFrame(rows).sort_values("樣本數", ascending=False)
+
+def v100_dna_confidence(row):
+    errs = [row.get("V97誤差"), row.get("V99誤差"), row.get("V99.1誤差")]
+    errs = [float(x) for x in errs if pd.notna(x)]
+    if not errs:
+        return 0, "資料不足"
+    best = min(errs)
+    spread = max(errs) - min(errs)
+    score = max(0, min(100, 100 - best * 6 - spread * 1.5))
+    if score >= 85:
+        grade = "A級：可直接使用"
+    elif score >= 70:
+        grade = "B級：可參考"
+    elif score >= 60:
+        grade = "C級：需人工判讀"
+    else:
+        grade = "D級：不建議單獨使用"
+    return score, grade
+
+def v100_confidence_df(df):
+    rows = []
+    for _, r in df.iterrows():
+        score, grade = v100_dna_confidence(r)
+        rows.append({
+            "代碼": r["代碼"],
+            "公司": r["公司"],
+            "DNA族群": r["DNA族群"],
+            "最佳模型": r["最佳模型"],
+            "DNA有效度": score,
+            "信賴等級": grade,
+            "V97誤差": r["V97誤差"],
+            "V99誤差": r["V99誤差"],
+            "V99.1誤差": r["V99.1誤差"],
+        })
+    return pd.DataFrame(rows).sort_values("DNA有效度", ascending=False)
+
+def v100_show(df):
+    out = df.copy()
+    for c in out.columns:
+        if "誤差" in c or "MAPE" in c or "平均MAPE" in c:
+            out[c] = out[c].apply(v971_pct)
+        elif c in ["現價", "V97估值", "V99估值", "V99.1估值"]:
+            out[c] = out[c].apply(v971_fmt)
+        elif c in ["穩定度分數", "DNA有效度"]:
+            out[c] = out[c].apply(lambda x: f"{float(x):.1f}" if pd.notna(x) else "N/A")
+    return out
+
+def v100_validation_center_page():
+    st.markdown("### V100.0 DNA Validation Center")
+    st.info("本頁不是新增估值模型，而是驗證 V97、V99、V99.1 哪個DNA模型最可信，避免過度擬合。")
+
+    df = v100_model_error_df()
+    if df.empty:
+        st.warning("目前無法產生V100驗證資料。")
+        return
+
+    ranking = v100_model_ranking(df)
+    best_model = ranking.iloc[0]["模型"] if not ranking.empty else "資料不足"
+    best_mape = ranking.iloc[0]["平均MAPE"] if not ranking.empty else np.nan
+    avg_conf = v100_confidence_df(df)["DNA有效度"].mean()
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("目前最佳模型", best_model)
+    c2.metric("最佳模型MAPE", v971_pct(best_mape))
+    c3.metric("平均DNA有效度", f"{avg_conf:.1f}" if pd.notna(avg_conf) else "N/A")
+
+    tabs = st.tabs(["模型排行", "逐股可信度", "Leave-One-Out", "DNA族群驗證", "原始誤差表", "方法說明"])
+
+    with tabs[0]:
+        st.dataframe(v100_show(ranking), use_container_width=True, hide_index=True)
+        st.caption("穩定度分數 = MAPE越低越高，加上單股勝出次數。")
+
+    with tabs[1]:
+        conf = v100_confidence_df(df)
+        st.dataframe(v100_show(conf), use_container_width=True, hide_index=True)
+        st.caption("A級可直接使用；B級可參考；C級需人工判讀；D級不建議單獨使用。")
+
+    with tabs[2]:
+        loo = v100_leave_one_out(df)
+        st.dataframe(v100_show(loo), use_container_width=True, hide_index=True)
+        st.caption("逐檔剔除後重新比較模型MAPE，用來檢查模型是否被單一股票影響。")
+
+    with tabs[3]:
+        grp = v100_group_validation(df)
+        st.dataframe(v100_show(grp), use_container_width=True, hide_index=True)
+        st.caption("每個DNA族群分別計算最佳模型；樣本數太少的族群只能做初步參考。")
+
+    with tabs[4]:
+        st.dataframe(v100_show(df), use_container_width=True, hide_index=True)
+
+    with tabs[5]:
+        st.markdown("""
+        **V100 DNA Validation Center 核心目的**
+
+        V97、V99、V99.1 都是估值模型；V100 是驗證模型。
+
+        驗證內容：
+        1. **模型排行**：比較三套模型平均MAPE與穩定度。
+        2. **逐股可信度**：每檔股票計算DNA有效度。
+        3. **Leave-One-Out**：逐檔剔除，確認模型不是被單一股票影響。
+        4. **DNA族群驗證**：不同DNA族群各自找最佳模型。
+
+        目前樣本仍只有10檔，因此V100結果是「初步驗證」，未來擴大到30~50檔後，才能正式定版。
+        """)
+# ===== V100.0 DNA VALIDATION CENTER END =====
+
+
 def v971_dna_tab_page():
-    st.markdown("### ⑮ V99.1 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V99.1 已新增現價驗證、DNA權重校準、自動最佳權重、歷史回測、個股DNA引擎與DNA族群引擎，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.markdown("### ⑮ V100.0 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V100.0 已新增現價驗證、DNA權重校準、自動最佳權重、歷史回測、個股DNA引擎、DNA族群引擎與V100驗證中心，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
-    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "個股說明", "方法說明"])
+    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "V100驗證中心", "個股說明", "方法說明"])
     with tabs[0]:
         st.dataframe(df[["代碼","公司","次產業","DNA定位","主要業務","CAP等級","DNA分數","全球競爭"]], use_container_width=True, hide_index=True)
     with tabs[1]:
@@ -13515,6 +13772,9 @@ def v971_dna_tab_page():
         v991_group_engine_page()
 
     with tabs[9]:
+        v100_validation_center_page()
+
+    with tabs[10]:
         company = st.selectbox("選擇公司", df["公司"].tolist(), key="v971_dna_company")
         row = df[df["公司"] == company].iloc[0]
         st.write(f"**{row['公司']} / {row['代碼']}**")
