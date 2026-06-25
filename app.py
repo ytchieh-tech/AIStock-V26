@@ -18,7 +18,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V96.8 Wrap Final Dispatch"
+APP_VERSION="V96.9 No Magic Final Call"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -12826,6 +12826,6 @@ def v968_main_dispatch():
             st.subheader("⚙設定")
             st.info("設定頁載入中。")
 
-v968_main_dispatch()
-# ================= V96.8 WRAPPED FINAL DISPATCH END =================
+exec("v968_main_dispatch()")
+# ================= V96.9 NO MAGIC FINAL CALL END =================
 
