@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V98.2 DNA Historical Backtest Trial"
+APP_VERSION="V99.0 Individual DNA Engine Trial"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -13020,11 +13020,231 @@ def v982_weight_stability_page():
 # ===== V98.2 DNA HISTORICAL BACKTEST TRIAL END =====
 
 
+
+# ===== V99.0 INDIVIDUAL DNA ENGINE TRIAL START =====
+# V99.0：個股專屬DNA引擎試作。目的：比較「V98統一權重」與「V99個股權重」是否能降低誤差。
+# 不動首頁、K線、財報、ESG、法人與主估值核心。
+
+V990_INDIVIDUAL_DNA_PROFILE = {
+    "2330.TW": {
+        "公司": "台積電", "DNA名稱": "AI先進製程DNA", "產業定位": "晶圓代工 / 先進製程",
+        "核心驅動": "AI GPU、HPC、CoWoS、3nm/2nm", "估值模式": "高成長護城河型",
+        "投資解讀": "市場主要看技術領先、AI/HPC需求與全球市占率。"
+    },
+    "2303.TW": {
+        "公司": "聯電", "DNA名稱": "成熟製程現金流DNA", "產業定位": "成熟製程晶圓代工",
+        "核心驅動": "車用、工控、電源管理、產能利用率", "估值模式": "現金流防禦型",
+        "投資解讀": "市場主要看成熟製程循環、現金流品質與股東回饋。"
+    },
+    "5347.TWO": {
+        "公司": "世界先進", "DNA名稱": "特殊製程利基DNA", "產業定位": "特殊製程 / PMIC / DDIC",
+        "核心驅動": "PMIC、DDIC、車用與工控特殊製程", "估值模式": "利基循環型",
+        "投資解讀": "市場主要看特殊製程需求、產能利用率與利基客戶黏著。"
+    },
+    "6770.TW": {
+        "公司": "力積電", "DNA名稱": "記憶體循環DNA", "產業定位": "記憶體 / 成熟製程代工",
+        "核心驅動": "DRAM、NAND相關、成熟製程價格循環", "估值模式": "景氣循環型",
+        "投資解讀": "市場主要看記憶體景氣、價格循環與產能利用率。"
+    },
+    "2383.TW": {
+        "公司": "台光電", "DNA名稱": "AI高速材料DNA", "產業定位": "CCL / 高速材料",
+        "核心驅動": "AI伺服器、高速傳輸、高階CCL", "估值模式": "AI材料成長型",
+        "投資解讀": "市場主要看AI伺服器材料滲透率、產品組合與毛利率。"
+    },
+    "3037.TW": {
+        "公司": "欣興", "DNA名稱": "ABF載板DNA", "產業定位": "IC載板 / ABF",
+        "核心驅動": "ABF、HPC載板、高階PCB", "估值模式": "載板循環成長型",
+        "投資解讀": "市場主要看ABF景氣、AI/HPC需求與產能利用率。"
+    },
+    "8046.TW": {
+        "公司": "南電", "DNA名稱": "AI載板循環DNA", "產業定位": "ABF / BT載板",
+        "核心驅動": "ABF、BT、HPC載板", "估值模式": "載板景氣循環型",
+        "投資解讀": "市場主要看載板報價、產能利用與AI需求回升。"
+    },
+    "3711.TW": {
+        "公司": "日月光投控", "DNA名稱": "全球封測龍頭DNA", "產業定位": "封裝測試 / SiP",
+        "核心驅動": "先進封裝、SiP、半導體景氣", "估值模式": "封測龍頭現金流型",
+        "投資解讀": "市場主要看封測景氣、先進封裝與全球市占。"
+    },
+    "2449.TW": {
+        "公司": "京元電子", "DNA名稱": "AI測試受惠DNA", "產業定位": "IC測試",
+        "核心驅動": "AI/HPC測試、車用測試、測試產能", "估值模式": "AI測試成長型",
+        "投資解讀": "市場主要看AI晶片測試需求、產能與客戶組合。"
+    },
+    "6215.TWO": {
+        "公司": "和椿", "DNA名稱": "AI Robot自動化DNA", "產業定位": "自動化 / 機器人 / 智慧工廠",
+        "核心驅動": "AI Robot、自動化元件、智慧工廠、題材想像", "估值模式": "題材成長型",
+        "投資解讀": "市場主要看AI機器人題材、接單能見度與成長想像，不適合用半導體統一權重。"
+    },
+}
+
+V990_INDIVIDUAL_WEIGHTS = {
+    "2330.TW": {"技術領先": 0.35, "市場地位": 0.20, "AI受惠度": 0.25, "現金流品質": 0.05, "獲利成長": 0.10, "景氣循環": 0.03, "財務風險": 0.02},
+    "2303.TW": {"技術領先": 0.10, "市場地位": 0.20, "AI受惠度": 0.05, "現金流品質": 0.25, "獲利成長": 0.10, "景氣循環": 0.20, "財務風險": 0.10},
+    "5347.TWO": {"技術領先": 0.14, "市場地位": 0.18, "AI受惠度": 0.05, "現金流品質": 0.18, "獲利成長": 0.12, "景氣循環": 0.23, "財務風險": 0.10},
+    "6770.TW": {"技術領先": 0.08, "市場地位": 0.12, "AI受惠度": 0.04, "現金流品質": 0.12, "獲利成長": 0.10, "景氣循環": 0.40, "財務風險": 0.14},
+    "2383.TW": {"技術領先": 0.22, "市場地位": 0.14, "AI受惠度": 0.32, "現金流品質": 0.08, "獲利成長": 0.18, "景氣循環": 0.04, "財務風險": 0.02},
+    "3037.TW": {"技術領先": 0.18, "市場地位": 0.17, "AI受惠度": 0.20, "現金流品質": 0.10, "獲利成長": 0.15, "景氣循環": 0.15, "財務風險": 0.05},
+    "8046.TW": {"技術領先": 0.16, "市場地位": 0.15, "AI受惠度": 0.19, "現金流品質": 0.10, "獲利成長": 0.14, "景氣循環": 0.19, "財務風險": 0.07},
+    "3711.TW": {"技術領先": 0.18, "市場地位": 0.25, "AI受惠度": 0.10, "現金流品質": 0.20, "獲利成長": 0.10, "景氣循環": 0.10, "財務風險": 0.07},
+    "2449.TW": {"技術領先": 0.18, "市場地位": 0.16, "AI受惠度": 0.28, "現金流品質": 0.12, "獲利成長": 0.18, "景氣循環": 0.05, "財務風險": 0.03},
+    "6215.TWO": {"技術領先": 0.10, "市場地位": 0.15, "AI受惠度": 0.35, "現金流品質": 0.03, "獲利成長": 0.25, "景氣循環": 0.10, "財務風險": 0.02},
+}
+
+def v990_individual_score(symbol):
+    weights = V990_INDIVIDUAL_WEIGHTS.get(symbol, V980_FACTOR_BASE)
+    scores = V980_FACTOR_SCORE.get(symbol, {})
+    weights = v980_normalize_weights(weights)
+    return sum(scores.get(k, 60) * weights.get(k, 0) for k in weights.keys())
+
+def v990_individual_value_factor(score):
+    try:
+        s = float(score)
+    except Exception:
+        return 1.00
+    # V99較V98更保守，避免個股權重過度放大；但高DNA仍給適度溢價。
+    factor = 0.88 + (s - 60) * 0.009
+    return max(0.80, min(1.24, factor))
+
+def v990_individual_dna_df():
+    base_df = v971_dna_df()
+    rows = []
+    for _, r in base_df.iterrows():
+        sym = r["代碼"]
+        profile = V990_INDIVIDUAL_DNA_PROFILE.get(sym, {})
+        score = v990_individual_score(sym)
+        factor = v990_individual_value_factor(score)
+        price = float(r["現價"]) if pd.notna(r["現價"]) else np.nan
+        base = float(r["原AIVM價值"]) if pd.notna(r["原AIVM價值"]) else np.nan
+        v97 = float(r["DNA估值"]) if pd.notna(r["DNA估值"]) else np.nan
+        v99 = base * factor if pd.notna(base) else np.nan
+        err97 = abs(price - v97) / price * 100 if pd.notna(price) and pd.notna(v97) and price else np.nan
+        err99 = abs(price - v99) / price * 100 if pd.notna(price) and pd.notna(v99) and price else np.nan
+        rows.append({
+            "代碼": sym,
+            "公司": r["公司"],
+            "DNA名稱": profile.get("DNA名稱", "待建立"),
+            "產業定位": profile.get("產業定位", r.get("次產業", "")),
+            "核心驅動": profile.get("核心驅動", ""),
+            "估值模式": profile.get("估值模式", ""),
+            "現價": price,
+            "原AIVM價值": base,
+            "V97 DNA估值": v97,
+            "V99個股DNA估值": v99,
+            "V99 DNA分數": score,
+            "V99估值係數": factor,
+            "V97誤差": err97,
+            "V99誤差": err99,
+            "誤差改善": err97 - err99 if pd.notna(err97) and pd.notna(err99) else np.nan,
+            "V99位階": v971_stage(price, v99),
+            "投資解讀": profile.get("投資解讀", ""),
+        })
+    return pd.DataFrame(rows)
+
+def v990_metrics(df, value_col="V99個股DNA估值"):
+    try:
+        y = pd.to_numeric(df["現價"], errors="coerce")
+        yhat = pd.to_numeric(df[value_col], errors="coerce")
+        mask = y.notna() & yhat.notna() & (y != 0)
+        if mask.sum() == 0:
+            return np.nan, np.nan, np.nan
+        mape = ((y[mask] - yhat[mask]).abs() / y[mask] * 100).mean()
+        rmse = np.sqrt(((y[mask] - yhat[mask]) ** 2).mean())
+        ss_res = ((y[mask] - yhat[mask]) ** 2).sum()
+        ss_tot = ((y[mask] - y[mask].mean()) ** 2).sum()
+        r2 = 1 - ss_res / ss_tot if ss_tot else np.nan
+        return mape, rmse, r2
+    except Exception:
+        return np.nan, np.nan, np.nan
+
+def v990_show_df(df):
+    out = df.copy()
+    for c in ["現價", "原AIVM價值", "V97 DNA估值", "V99個股DNA估值"]:
+        out[c] = out[c].apply(v971_fmt)
+    for c in ["V99 DNA分數"]:
+        out[c] = out[c].apply(lambda x: f"{float(x):.1f}" if pd.notna(x) else "N/A")
+    for c in ["V99估值係數"]:
+        out[c] = out[c].apply(lambda x: f"{float(x):.3f}" if pd.notna(x) else "N/A")
+    for c in ["V97誤差", "V99誤差", "誤差改善"]:
+        out[c] = out[c].apply(v971_pct)
+    return out
+
+def v990_weights_df(symbol):
+    w = v980_normalize_weights(V990_INDIVIDUAL_WEIGHTS.get(symbol, V980_FACTOR_BASE))
+    return pd.DataFrame([{"因子": k, "個股權重": f"{v*100:.1f}%"} for k, v in w.items()])
+
+def v990_individual_engine_page():
+    st.markdown("### V99.0 個股DNA引擎")
+    st.info("本頁比較 V97統一DNA 與 V99個股專屬DNA。重點：每家公司依自身經營位置給不同權重，不再全部套同一組產業權重。")
+    df = v990_individual_dna_df()
+    v97_mape, v97_rmse, v97_r2 = v990_metrics(df, "V97 DNA估值")
+    v99_mape, v99_rmse, v99_r2 = v990_metrics(df, "V99個股DNA估值")
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("V97 MAPE", v971_pct(v97_mape))
+    c2.metric("V99 MAPE", v971_pct(v99_mape))
+    c3.metric("V99 RMSE", v971_fmt(v99_rmse))
+    c4.metric("V99 R²", f"{v99_r2:.3f}" if pd.notna(v99_r2) else "N/A")
+
+    tabs = st.tabs(["個股DNA總覽", "DNA Profile", "個股權重", "V97 vs V99", "方法說明"])
+    with tabs[0]:
+        cols = ["代碼", "公司", "DNA名稱", "產業定位", "核心驅動", "估值模式", "現價", "V99個股DNA估值", "V99 DNA分數", "V99估值係數", "V99位階"]
+        st.dataframe(v990_show_df(df)[cols], use_container_width=True, hide_index=True)
+
+    with tabs[1]:
+        st.dataframe(df[["代碼", "公司", "DNA名稱", "產業定位", "核心驅動", "估值模式", "投資解讀"]], use_container_width=True, hide_index=True)
+
+    with tabs[2]:
+        selected = st.selectbox("選擇個股", df["公司"].tolist(), key="v990_selected_company")
+        sym = df[df["公司"] == selected]["代碼"].iloc[0]
+        c1, c2 = st.columns([1, 2])
+        with c1:
+            st.markdown(f"#### {selected} 個股權重")
+            st.dataframe(v990_weights_df(sym), use_container_width=True, hide_index=True)
+        with c2:
+            row = df[df["代碼"] == sym].iloc[0]
+            st.markdown(f"#### {row['DNA名稱']}")
+            st.write(f"**產業定位：** {row['產業定位']}")
+            st.write(f"**核心驅動：** {row['核心驅動']}")
+            st.write(f"**估值模式：** {row['估值模式']}")
+            st.info(row["投資解讀"])
+
+    with tabs[3]:
+        cols = ["代碼", "公司", "現價", "V97 DNA估值", "V99個股DNA估值", "V97誤差", "V99誤差", "誤差改善", "V99位階"]
+        st.dataframe(v990_show_df(df)[cols], use_container_width=True, hide_index=True)
+        if pd.notna(v99_mape) and pd.notna(v97_mape) and v99_mape < v97_mape:
+            st.success("初步結果：V99個股DNA MAPE 低於 V97統一DNA，代表個股專屬權重方向較合理。")
+        else:
+            st.warning("初步結果：V99尚未明顯優於V97，需要校準個股權重或擴大樣本。")
+
+    with tabs[4]:
+        st.markdown("""
+        **V99.0 核心概念**
+
+        V98 是「同一組DNA權重」套用到所有股票。
+
+        V99 改為：
+
+        ```
+        個股目前所處位置
+        → 個股DNA Profile
+        → 個股專屬權重
+        → 個股DNA分數
+        → 個股DNA估值
+        ```
+
+        因此台積電、聯電、世界先進、和椿即使同在AI供應鏈，也不再使用同一組權重。
+
+        本版仍是試作，不覆蓋主系統；若V99 MAPE持續低於V97/V98，即可進入V100正式個股DNA估值引擎。
+        """)
+# ===== V99.0 INDIVIDUAL DNA ENGINE TRIAL END =====
+
+
 def v971_dna_tab_page():
-    st.markdown("### ⑮ V98.2 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V98.2 已新增現價驗證、DNA權重校準、自動最佳權重與歷史回測，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.markdown("### ⑮ V99.0 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V99.0 已新增現價驗證、DNA權重校準、自動最佳權重、歷史回測與個股DNA引擎，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
-    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股說明", "方法說明"])
+    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "個股說明", "方法說明"])
     with tabs[0]:
         st.dataframe(df[["代碼","公司","次產業","DNA定位","主要業務","CAP等級","DNA分數","全球競爭"]], use_container_width=True, hide_index=True)
     with tabs[1]:
@@ -13069,6 +13289,9 @@ def v971_dna_tab_page():
         v982_weight_stability_page()
 
     with tabs[7]:
+        v990_individual_engine_page()
+
+    with tabs[8]:
         company = st.selectbox("選擇公司", df["公司"].tolist(), key="v971_dna_company")
         row = df[df["公司"] == company].iloc[0]
         st.write(f"**{row['公司']} / {row['代碼']}**")
