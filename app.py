@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V96.4 Fix Financial DeltaGenerator"
+APP_VERSION="V96.5 Fix Financial Stray Display"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -12773,6 +12773,21 @@ except Exception:
 # ===== V96.4 FIX FINANCIAL DELTAGENERATOR END =====
 
 
+
+# ===== V96.5 FIX FINANCIAL STRAY DISPLAY START =====
+# 修正中文財報下方顯示 enterprise_value_institute_page(...) DeltaGenerator 的問題。
+# 原因是舊版 Streamlit magic 會把函式呼叫/賦值的回傳物件顯示出來。
+try:
+    _v965_enterprise_value_institute_page_base = enterprise_value_institute_page
+    def enterprise_value_institute_page(symbol, q=None, df=None):
+        with st.container():
+            _v965_enterprise_value_institute_page_base(symbol, q, df)
+        return None
+except Exception:
+    pass
+# ===== V96.5 FIX FINANCIAL STRAY DISPLAY END =====
+
+
 try:
     if page not in ["🏠首頁","📈K線","🏛企業價值研究院","🧪AIVM研究中心","🧪AIVM Lab","⚙設定"] or "監控" in str(page):
         page = "🏠首頁"
@@ -12804,7 +12819,9 @@ elif page == "📈K線":
 
 elif page == "🏛企業價值研究院":
     try:
-        _ = enterprise_value_institute_page(active, q, df_daily)
+        enterprise_value_institute_page(active, q, df_daily)
+        st.empty()
+        st.empty()
     except Exception:
         try:
             value_institute(active, df_daily, q, {})
