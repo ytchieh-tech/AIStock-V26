@@ -16,7 +16,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V96.2 Restore ESG Institutional Valuation No Monitor"
+APP_VERSION="V96.3 Restore KLine Periods"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -12670,6 +12670,95 @@ def settings_page():
     st.info("後續正式版可整合：預設首頁、K線預設指標、資料來源檢查、DNA Validation Lab。")
     return None
 # ===== V96.2 RESTORE ESG INSTITUTIONAL VALUATION END =====
+
+
+
+# ===== V96.3 RESTORE KLINE PERIODS START =====
+def v963_resample_ohlcv(df, freq):
+    try:
+        if df is None or df.empty:
+            return pd.DataFrame()
+        d = df.copy()
+        if "Date" not in d.columns:
+            d = d.reset_index()
+        if "Date" not in d.columns and "Datetime" in d.columns:
+            d["Date"] = d["Datetime"]
+        d["Date"] = pd.to_datetime(d["Date"], errors="coerce")
+        d = d.dropna(subset=["Date"]).sort_values("Date")
+        if freq == "D":
+            return d
+        d = d.set_index("Date")
+        agg = {"Open":"first", "High":"max", "Low":"min", "Close":"last", "Volume":"sum"}
+        agg = {k:v for k,v in agg.items() if k in d.columns}
+        return d.resample(freq).agg(agg).dropna(subset=["Open","High","Low","Close"]).reset_index()
+    except Exception:
+        return df if isinstance(df, pd.DataFrame) else pd.DataFrame()
+
+def v963_safe_history(symbol, period="3y"):
+    try:
+        d = yf.Ticker(symbol).history(period=period, auto_adjust=False)
+        if d is None or d.empty:
+            d = yf.Ticker(symbol).history(period="5y", auto_adjust=False)
+        d = d.reset_index()
+        if "Date" not in d.columns and "Datetime" in d.columns:
+            d["Date"] = d["Datetime"]
+        return d
+    except Exception:
+        return pd.DataFrame()
+
+def kline_page(symbol, q=None, df=None):
+    st.subheader(f"📈 K線技術分析：{display_name(symbol)}")
+    st.caption("V96.3：恢復日K、週K、月K、季K、年K；K線主功能保留。")
+    period_map = {
+        "日K": ("D", "1y"),
+        "週K": ("W-FRI", "3y"),
+        "月K": ("ME", "5y"),
+        "季K": ("QE", "10y"),
+        "年K": ("YE", "max"),
+    }
+    c0, c1, c2 = st.columns([1, 2, 1])
+    with c0:
+        k_period = st.selectbox("K線週期", list(period_map.keys()), index=0, key="v963_k_period")
+    with c1:
+        overlays = st.multiselect(
+            "主圖均線 / 指標",
+            ["MA5", "MA10", "MA20", "MA60", "MA120", "MA240", "布林通道"],
+            default=["MA5", "MA20", "MA60"],
+            key="v963_kline_overlays"
+        )
+    with c2:
+        panel = st.selectbox(
+            "副圖",
+            ["成交量", "MACD", "KD", "RSI", "BIAS", "OBV", "MFI", "威廉%R", "CCI", "ADX", "ATR", "ROC", "Momentum"],
+            index=0,
+            key="v963_kline_panel"
+        )
+    freq, yperiod = period_map[k_period]
+    raw = df if isinstance(df, pd.DataFrame) and not df.empty and k_period == "日K" else v963_safe_history(symbol, yperiod)
+    d = v963_resample_ohlcv(raw, freq)
+    if d is None or d.empty:
+        st.warning("目前無法取得K線資料，請稍後重試或檢查 yfinance 連線。")
+        return None
+    st.caption(f"目前顯示：{k_period}，資料筆數：{len(d)}")
+    try:
+        kline_chart(d, overlays, panel)
+    except Exception as e:
+        st.error(f"K線圖載入失敗：{e}")
+        st.dataframe(d.tail(120), use_container_width=True)
+    return None
+
+def page_kline(symbol, q=None, df=None):
+    kline_page(symbol, q, df)
+    return None
+
+try:
+    _v963_old_enterprise_value_institute_page = enterprise_value_institute_page
+    def enterprise_value_institute_page(symbol, q=None, df=None):
+        _v963_old_enterprise_value_institute_page(symbol, q, df)
+        return None
+except Exception:
+    pass
+# ===== V96.3 RESTORE KLINE PERIODS END =====
 
 
 try:
