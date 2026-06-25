@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V96.10 Suppress DeltaGenerator Display"
+APP_VERSION="V97.0 DNA Validation Lab"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -12797,6 +12797,297 @@ def page_kline(symbol, q=None, df=None):
 
 
 
+
+
+
+# ===== V97.0 DNA VALIDATION LAB START =====
+# 本版不動首頁、K線、財報、ESG、法人與原估值核心。
+# 只在 AIVM Lab 新增「個股DNA驗證」：先用10檔試驗股驗證 DNA估值 是否比原AIVM更接近現價。
+
+V97_DNA_PROFILES = {
+    "2330.TW": {
+        "公司": "台積電", "產業": "半導體", "次產業": "晶圓代工",
+        "DNA定位": "AI先進製程龍頭", "主要業務": "AI/HPC、先進製程、CoWoS",
+        "全球競爭": "Samsung Foundry / Intel Foundry / SMIC",
+        "CAP等級": "S+", "DNA分數": 95,
+        "說明": "技術領先、先進製程市占率高、AI/HPC與先進封裝帶動長期競爭優勢。"
+    },
+    "2303.TW": {
+        "公司": "聯電", "產業": "半導體", "次產業": "晶圓代工",
+        "DNA定位": "成熟製程現金流型", "主要業務": "成熟製程、車用、工控",
+        "全球競爭": "GlobalFoundries / Tower / SMIC",
+        "CAP等級": "A", "DNA分數": 76,
+        "說明": "成熟製程、長期客戶關係與現金流穩定，成長性低於先進製程但防禦性較佳。"
+    },
+    "5347.TWO": {
+        "公司": "世界先進", "產業": "半導體", "次產業": "特殊製程",
+        "DNA定位": "特殊製程利基型", "主要業務": "PMIC、DDIC、車用/工控特殊製程",
+        "全球競爭": "Tower / DB HiTek / Magnachip",
+        "CAP等級": "A", "DNA分數": 74,
+        "說明": "特殊製程與PMIC/DDIC需求循環相關，估值應兼顧景氣循環與利基製程。"
+    },
+    "6770.TW": {
+        "公司": "力積電", "產業": "半導體", "次產業": "記憶體/晶圓代工",
+        "DNA定位": "記憶體循環型代工", "主要業務": "DRAM、NAND相關與成熟製程代工",
+        "全球競爭": "SMIC / Hua Hong / 記憶體同業",
+        "CAP等級": "B+", "DNA分數": 66,
+        "說明": "受記憶體與成熟製程景氣循環影響較大，估值需提高循環折價。"
+    },
+    "2383.TW": {
+        "公司": "台光電", "產業": "電子材料", "次產業": "CCL",
+        "DNA定位": "AI高速材料龍頭", "主要業務": "AI CCL、高速材料、伺服器材料",
+        "全球競爭": "Panasonic / Isola / Shengyi",
+        "CAP等級": "A+", "DNA分數": 88,
+        "說明": "AI伺服器、高速傳輸與高階CCL帶動成長，估值應反映AI材料溢價。"
+    },
+    "3037.TW": {
+        "公司": "欣興", "產業": "PCB/載板", "次產業": "ABF載板",
+        "DNA定位": "ABF載板龍頭", "主要業務": "ABF、IC載板、高階PCB",
+        "全球競爭": "Ibiden / Shinko / Nan Ya PCB",
+        "CAP等級": "A", "DNA分數": 80,
+        "說明": "受AI/HPC與ABF載板景氣影響，需兼顧產能利用率與循環。"
+    },
+    "8046.TW": {
+        "公司": "南電", "產業": "PCB/載板", "次產業": "ABF載板",
+        "DNA定位": "AI載板景氣循環型", "主要業務": "ABF、BT、HPC載板",
+        "全球競爭": "Ibiden / Shinko / 欣興",
+        "CAP等級": "A", "DNA分數": 78,
+        "說明": "AI/HPC載板有長期題材，但盈餘受載板循環波動影響。"
+    },
+    "3711.TW": {
+        "公司": "日月光投控", "產業": "半導體", "次產業": "封測",
+        "DNA定位": "全球封測龍頭", "主要業務": "封裝、測試、SiP、先進封裝",
+        "全球競爭": "Amkor / JCET / Powertech",
+        "CAP等級": "S", "DNA分數": 84,
+        "說明": "全球封測龍頭，受AI先進封裝與半導體景氣共同影響。"
+    },
+    "2449.TW": {
+        "公司": "京元電子", "產業": "半導體", "次產業": "測試",
+        "DNA定位": "AI測試受惠型", "主要業務": "IC測試、AI/HPC測試、車用測試",
+        "全球競爭": "ASE Test / Amkor / Sigurd",
+        "CAP等級": "A+", "DNA分數": 82,
+        "說明": "AI/HPC與車用測試需求提升，具備測試供應鏈受惠題材。"
+    },
+    "6215.TWO": {
+        "公司": "和椿", "產業": "自動化", "次產業": "自動化/機器人",
+        "DNA定位": "自動化代理與整合型", "主要業務": "自動化元件、機器人、設備整合",
+        "全球競爭": "Keyence / SMC / Omron / 台灣自動化同業",
+        "CAP等級": "B+", "DNA分數": 70,
+        "說明": "受工業自動化與機器人題材帶動，但需確認實際營收與毛利結構。"
+    },
+}
+
+# 原 V96 AIVM 基準價值試驗值；若正式版已有 v901_valuation，會優先使用正式值。
+V97_BASE_AIVM_VALUE = {
+    "2330.TW": 2536.56,
+    "2303.TW": 145.47,
+    "5347.TWO": 169.92,
+    "6770.TW": 81.40,
+    "2383.TW": 5393.20,
+    "3037.TW": 178.00,
+    "8046.TW": 907.25,
+    "3711.TW": 158.40,
+    "2449.TW": 106.40,
+    "6215.TWO": 92.00,
+}
+
+V97_FALLBACK_PRICE = {
+    "2330.TW": 2390.00,
+    "2303.TW": 178.00,
+    "5347.TWO": 200.00,
+    "6770.TW": 85.70,
+    "2383.TW": 2000.00,
+    "3037.TW": 185.00,
+    "8046.TW": 955.00,
+    "3711.TW": 165.00,
+    "2449.TW": 112.00,
+    "6215.TWO": 140.00,
+}
+
+def v97_num(x):
+    try:
+        if x is None or pd.isna(x):
+            return np.nan
+        return float(x)
+    except Exception:
+        return np.nan
+
+def v97_fmt(x):
+    try:
+        if x is None or pd.isna(x):
+            return "N/A"
+        return f"{float(x):,.2f}"
+    except Exception:
+        return "N/A"
+
+def v97_pct(x):
+    try:
+        if x is None or pd.isna(x):
+            return "N/A"
+        return f"{float(x):.1f}%"
+    except Exception:
+        return "N/A"
+
+@st.cache_data(ttl=900, show_spinner=False)
+def v97_live_price(symbol):
+    try:
+        t = yf.Ticker(symbol)
+        try:
+            fi = getattr(t, "fast_info", {}) or {}
+            px = v97_num(fi.get("last_price", fi.get("lastPrice", np.nan)))
+            if pd.notna(px):
+                return px, "Yahoo fast_info"
+        except Exception:
+            pass
+        hist = t.history(period="5d", auto_adjust=False)
+        if hist is not None and not hist.empty:
+            return float(hist["Close"].dropna().iloc[-1]), "Yahoo最近收盤"
+    except Exception:
+        pass
+    return V97_FALLBACK_PRICE.get(symbol, np.nan), "Fallback"
+
+def v97_get_base_aivm(symbol, price=np.nan):
+    try:
+        if "v901_valuation" in globals() and pd.notna(price):
+            val = v901_valuation(symbol, price)
+            if isinstance(val, dict):
+                base = v97_num(val.get("base", np.nan))
+                if pd.notna(base):
+                    return base, "v901_valuation"
+    except Exception:
+        pass
+    return V97_BASE_AIVM_VALUE.get(symbol, np.nan), "V97試驗基準"
+
+def v97_dna_factor(score):
+    try:
+        s = float(score)
+    except Exception:
+        return 1.0
+    if s >= 90:
+        return 1.18
+    if s >= 85:
+        return 1.12
+    if s >= 80:
+        return 1.08
+    if s >= 75:
+        return 1.03
+    if s >= 70:
+        return 1.00
+    if s >= 65:
+        return 0.94
+    return 0.88
+
+def v97_stage(price, fair):
+    if pd.isna(price) or pd.isna(fair) or fair == 0:
+        return "資料不足"
+    low = fair * 0.90
+    high = fair * 1.10
+    if price < low:
+        return "合理偏低"
+    if price > high:
+        return "高估"
+    if price > fair:
+        return "合理偏高"
+    return "合理"
+
+def v97_dna_validation_df():
+    rows = []
+    for sym, p in V97_DNA_PROFILES.items():
+        price, price_src = v97_live_price(sym)
+        base, base_src = v97_get_base_aivm(sym, price)
+        factor = v97_dna_factor(p["DNA分數"])
+        dna_value = base * factor if pd.notna(base) else np.nan
+        base_err = abs(price - base) / price * 100 if pd.notna(price) and pd.notna(base) and price else np.nan
+        dna_err = abs(price - dna_value) / price * 100 if pd.notna(price) and pd.notna(dna_value) and price else np.nan
+        improve = base_err - dna_err if pd.notna(base_err) and pd.notna(dna_err) else np.nan
+        rows.append({
+            "代碼": sym, "公司": p["公司"], "次產業": p["次產業"], "DNA定位": p["DNA定位"],
+            "CAP等級": p["CAP等級"], "DNA分數": p["DNA分數"], "DNA修正係數": factor,
+            "現價": price, "原AIVM價值": base, "DNA估值": dna_value,
+            "原AIVM誤差": base_err, "DNA誤差": dna_err, "誤差改善": improve,
+            "原位階": v97_stage(price, base), "DNA位階": v97_stage(price, dna_value),
+            "現價來源": price_src, "估值來源": base_src,
+            "主要業務": p["主要業務"], "全球競爭": p["全球競爭"], "說明": p["說明"]
+        })
+    return pd.DataFrame(rows)
+
+def v97_display_df(df):
+    out = df.copy()
+    for c in ["現價", "原AIVM價值", "DNA估值"]:
+        if c in out.columns:
+            out[c] = out[c].apply(v97_fmt)
+    for c in ["DNA修正係數", "原AIVM誤差", "DNA誤差", "誤差改善"]:
+        if c == "DNA修正係數" and c in out.columns:
+            out[c] = out[c].apply(lambda x: f"{float(x):.2f}" if pd.notna(x) else "N/A")
+        elif c in out.columns:
+            out[c] = out[c].apply(v97_pct)
+    return out
+
+def v97_dna_validation_lab_page():
+    st.markdown("## 🧬 V97.0 個股DNA驗證中心")
+    st.info("本頁只做試驗：比較「原AIVM估值」與「DNA修正估值」誰更接近現價；不覆蓋首頁、不改財報、不改K線。")
+    df = v97_dna_validation_df()
+
+    tabs = st.tabs(["① DNA資料庫", "② DNA估值比較", "③ 誤差驗證", "④ 個股說明", "⑤ 方法說明"])
+
+    with tabs[0]:
+        cols = ["代碼", "公司", "次產業", "DNA定位", "主要業務", "CAP等級", "DNA分數", "全球競爭"]
+        st.dataframe(df[cols], use_container_width=True, hide_index=True)
+
+    with tabs[1]:
+        cols = ["代碼", "公司", "現價", "原AIVM價值", "DNA估值", "DNA修正係數", "原位階", "DNA位階", "現價來源", "估值來源"]
+        st.dataframe(v97_display_df(df)[cols], use_container_width=True, hide_index=True)
+
+    with tabs[2]:
+        base_mape = df["原AIVM誤差"].mean()
+        dna_mape = df["DNA誤差"].mean()
+        improve = base_mape - dna_mape if pd.notna(base_mape) and pd.notna(dna_mape) else np.nan
+        c1, c2, c3 = st.columns(3)
+        c1.metric("原AIVM MAPE", v97_pct(base_mape))
+        c2.metric("DNA估值 MAPE", v97_pct(dna_mape))
+        c3.metric("平均改善", v97_pct(improve))
+        cols = ["代碼", "公司", "現價", "原AIVM價值", "DNA估值", "原AIVM誤差", "DNA誤差", "誤差改善"]
+        st.dataframe(v97_display_df(df)[cols], use_container_width=True, hide_index=True)
+        if pd.notna(improve) and improve > 0:
+            st.success("初步結果：DNA估值平均誤差低於原AIVM，個股DNA修正方向可繼續驗證。")
+        else:
+            st.warning("初步結果：DNA估值尚未優於原AIVM，需要重新校準DNA分數或修正係數。")
+
+    with tabs[3]:
+        selected = st.selectbox("選擇個股", df["公司"].tolist(), key="v97_dna_selected_company")
+        row = df[df["公司"] == selected].iloc[0]
+        st.markdown(f"### {row['公司']} / {row['代碼']}")
+        st.write(f"**DNA定位：** {row['DNA定位']}")
+        st.write(f"**主要業務：** {row['主要業務']}")
+        st.write(f"**全球競爭：** {row['全球競爭']}")
+        st.write(f"**CAP等級：** {row['CAP等級']}，DNA分數：{row['DNA分數']}")
+        st.info(row["說明"])
+
+    with tabs[4]:
+        st.markdown("""
+        ### V97方法
+
+        先不改原始估值模型，而是在原AIVM基準價值上加入個股DNA修正：
+
+        **DNA估值 = 原AIVM價值 × DNA修正係數**
+
+        修正係數由個股目前主要經營項目、產業位置、全球競爭、CAP等級與AI/景氣循環屬性推導。
+
+        本版只驗證10檔，不覆蓋主系統。若DNA估值MAPE低於原AIVM，下一版再擴大到半導體50檔。
+        """)
+
+# 包裝 AIVM Lab：新增第1頁「個股DNA驗證」，原 AIVM Lab 全部保留在第2頁
+try:
+    _v97_old_aivm_lab_page = aivm_lab_page
+    def aivm_lab_page():
+        outer_tabs = st.tabs(["🧬 V97個股DNA驗證", "🧪 原AIVM Lab"])
+        with outer_tabs[0]:
+            v97_dna_validation_lab_page()
+        with outer_tabs[1]:
+            _v97_old_aivm_lab_page()
+except Exception:
+    pass
+# ===== V97.0 DNA VALIDATION LAB END =====
 
 
 # ================= V96.8 WRAPPED FINAL DISPATCH START =================
