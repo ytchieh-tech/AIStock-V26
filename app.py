@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V97.1 DNA Tab in AIVM Lab"
+APP_VERSION="V97.2 DNA Price Validation"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -4420,7 +4420,7 @@ def v67_ai_research_center(symbol, q, df, scores):
         except Exception:
             st.info("競爭分析資料暫無法計算。")
 
-    with tabs[4]:
+    with tabs[5]:
         st.markdown("### 📈 AI EPS 預測")
         st.dataframe(v67_eps_forecast(symbol, q, scores), use_container_width=True, hide_index=True)
         st.caption("EPS預測為代理模型：以目前EPS、機構分數、技術/財報/法人分數推估，不等於公司財測。")
@@ -12439,9 +12439,9 @@ V971_BASE_AIVM_VALUE = {
     "2449.TW": 106.40, "6215.TWO": 92.00,
 }
 V971_FALLBACK_PRICE = {
-    "2330.TW": 2390.00, "2303.TW": 178.00, "5347.TWO": 200.00, "6770.TW": 85.70,
-    "2383.TW": 2000.00, "3037.TW": 185.00, "8046.TW": 955.00, "3711.TW": 165.00,
-    "2449.TW": 112.00, "6215.TWO": 140.00,
+    "2330.TW": 2390.00, "2303.TW": 178.50, "5347.TWO": 220.00, "6770.TW": 83.20,
+    "2383.TW": 5640.00, "3037.TW": 1020.00, "8046.TW": 1045.00, "3711.TW": 641.00,
+    "2449.TW": 334.50, "6215.TWO": 105.50,
 }
 
 def v971_dna_factor(score):
@@ -12465,24 +12465,62 @@ def v971_stage(price, fair):
     except Exception:
         return "資料不足"
 
-@st.cache_data(ttl=900, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def v971_live_price(symbol):
+    """
+    V97.2 強化現價取得：
+    1) Yahoo fast_info
+    2) yfinance history 1d / 5d / 1mo
+    3) Yahoo chart API
+    4) fallback 最近人工校對價
+    """
+    symbol = str(symbol).strip()
+
+    # 1. Yahoo fast_info
     try:
         t = yf.Ticker(symbol)
         try:
             fi = getattr(t, "fast_info", {}) or {}
-            px = fi.get("last_price", fi.get("lastPrice", np.nan))
-            px = float(px)
-            if np.isfinite(px):
-                return px, "Yahoo fast_info"
+            for key in ["last_price", "lastPrice", "regularMarketPrice"]:
+                px = fi.get(key, np.nan)
+                px = float(px)
+                if np.isfinite(px) and px > 0:
+                    return px, "Yahoo fast_info"
         except Exception:
             pass
-        h = t.history(period="5d", auto_adjust=False)
-        if h is not None and not h.empty:
-            return float(h["Close"].dropna().iloc[-1]), "Yahoo最近收盤"
+
+        # 2. yfinance history
+        for p in ["1d", "5d", "1mo"]:
+            try:
+                h = t.history(period=p, interval="1d", auto_adjust=False)
+                if h is not None and not h.empty and "Close" in h.columns:
+                    px = pd.to_numeric(h["Close"], errors="coerce").dropna()
+                    if len(px) and float(px.iloc[-1]) > 0:
+                        return float(px.iloc[-1]), f"Yahoo history {p}"
+            except Exception:
+                pass
     except Exception:
         pass
-    return V971_FALLBACK_PRICE.get(symbol, np.nan), "Fallback"
+
+    # 3. Yahoo chart API；有時 yfinance fast_info 對上櫃股失敗，但 chart API 仍可回資料
+    try:
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+        params = {"range": "5d", "interval": "1d"}
+        headers = {"User-Agent": "Mozilla/5.0"}
+        r = requests.get(url, params=params, headers=headers, timeout=8)
+        js = r.json()
+        result = js.get("chart", {}).get("result", [])
+        if result:
+            quote = result[0].get("indicators", {}).get("quote", [{}])[0]
+            closes = quote.get("close", []) or []
+            closes = [float(x) for x in closes if x is not None and float(x) > 0]
+            if closes:
+                return closes[-1], "Yahoo chart API"
+    except Exception:
+        pass
+
+    # 4. fallback：只作為抓價失敗提示，不當成正式報價
+    return V971_FALLBACK_PRICE.get(symbol, np.nan), "Fallback需校對"
 
 def v971_get_base(symbol, price=np.nan):
     try:
@@ -12537,16 +12575,32 @@ def v971_display(df):
     return out
 
 def v971_dna_tab_page():
-    st.markdown("### ⑮ V97.1 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.markdown("### ⑮ V97.2 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V97.2 已新增現價驗證，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
-    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "誤差驗證", "個股說明", "方法說明"])
+    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "個股說明", "方法說明"])
     with tabs[0]:
         st.dataframe(df[["代碼","公司","次產業","DNA定位","主要業務","CAP等級","DNA分數","全球競爭"]], use_container_width=True, hide_index=True)
     with tabs[1]:
         show = v971_display(df)
         st.dataframe(show[["代碼","公司","現價","原AIVM價值","DNA估值","DNA係數","原位階","DNA位階","現價來源","估值來源"]], use_container_width=True, hide_index=True)
     with tabs[2]:
+        st.markdown("### 現價驗證")
+        st.warning("若資料來源顯示「Fallback需校對」，代表即時報價未成功，該檔暫時不可用來校準DNA權重。")
+        check = df[["代碼", "公司", "現價", "現價來源", "原AIVM價值", "DNA估值", "原位階", "DNA位階"]].copy()
+        check["是否需校對"] = check["現價來源"].apply(lambda x: "是" if "Fallback" in str(x) else "否")
+        check_show = check.copy()
+        for c in ["現價", "原AIVM價值", "DNA估值"]:
+            check_show[c] = check_show[c].apply(v971_fmt)
+        st.dataframe(check_show, use_container_width=True, hide_index=True)
+        bad = check[check["是否需校對"] == "是"]
+        if len(bad):
+            st.error("以下個股使用Fallback價格，請先校對現價：" + "、".join(bad["公司"].tolist()))
+        else:
+            st.success("10檔現價皆由Yahoo資料源取得，暫無Fallback。")
+        st.caption("V97.2 已改善上櫃股抓價流程：fast_info → history → Yahoo chart API → Fallback。")
+
+    with tabs[3]:
         base_mape = df["原AIVM誤差"].mean()
         dna_mape = df["DNA誤差"].mean()
         improve = base_mape - dna_mape
@@ -12559,7 +12613,7 @@ def v971_dna_tab_page():
             st.success("初步結果：DNA估值平均誤差較低，可繼續擴大驗證。")
         else:
             st.warning("初步結果：DNA估值尚未優於原AIVM，後續需校準DNA分數或係數。")
-    with tabs[3]:
+    with tabs[4]:
         company = st.selectbox("選擇公司", df["公司"].tolist(), key="v971_dna_company")
         row = df[df["公司"] == company].iloc[0]
         st.write(f"**{row['公司']} / {row['代碼']}**")
