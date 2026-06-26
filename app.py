@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V107.2 Premium UI Dispatch Order Fix"
+APP_VERSION="V107.3 Premium UI Data Mapping Fix"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -16019,7 +16019,7 @@ def v104_format_pct(x):
     except Exception: return f"{float(x):.1f}%" if pd.notna(x) else "N/A"
 
 def v104_home_page():
-    st.markdown("### 🧭 AI最終投資決策首頁 V107.2")
+    st.markdown("### 🧭 AI最終投資決策首頁 V107.3")
     st.info("請先選產業，再選個股。首頁只保留投資人最需要的答案：能不能買、合理價區間、預期報酬、全球競爭力與主要風險。")
 
     st.caption("價格區間與預期報酬主要由 AIVM Composite Valuation Model 推估：綜合企業評價、歷史Forward驗證、Alpha/Quant分數、產業競爭力與現價安全邊際；預期報酬率＝(合理價－現價)÷現價。模型細部權重屬內部研究方法，如需研究資料請洽詢開發者。")
@@ -16972,6 +16972,149 @@ def v107_premium_home():
 
 # ===== V107.2 ORDER FIX: V107 functions are defined before dispatch =====
 
+
+# ===== V107.3 DATA MAPPING / PRICE FALLBACK FIX START =====
+V1073_STOCK_FALLBACK_DB = {
+    "2330.TW": {"name":"台積電","industry":"半導體","sub":"晶圓代工","rank":"#1","power":"★★★★★","position":"晶圓代工全球龍頭","peers":"Samsung Foundry、Intel Foundry、GlobalFoundries","moat":"極高：先進製程、CoWoS、客戶黏著與資本規模","risk":"先進製程資本支出高、匯率、地緣政治與AI需求循環"},
+    "2303.TW": {"name":"聯電","industry":"半導體","sub":"成熟製程晶圓代工","rank":"成熟製程主要廠","power":"★★★☆☆","position":"成熟製程晶圓代工重要供應商","peers":"SMIC、GlobalFoundries、世界先進、力積電","moat":"中：成熟產能、客戶基礎與車用/工控供應鏈","risk":"成熟製程價格競爭、產能利用率與中國同業競爭"},
+    "5347.TWO": {"name":"世界先進","industry":"半導體","sub":"特殊製程晶圓代工","rank":"特殊製程主要廠","power":"★★★☆☆","position":"PMIC / DDI 特殊製程晶圓代工","peers":"聯電、力積電、GlobalFoundries","moat":"中：特殊製程、電源管理與顯示驅動客戶基礎","risk":"消費電子循環、DDI/PMIC需求波動與價格壓力"},
+    "6215.TWO": {"name":"和椿","industry":"自動化/機器人","sub":"AI Robot 自動化","rank":"自動化設備供應商","power":"★★★☆☆","position":"工業自動化與智慧工廠供應商","peers":"上銀、亞德客、盟立、全球自動化設備商","moat":"中：自動化整合、機器人與智慧工廠題材","risk":"設備景氣循環、接單波動與毛利率變化"},
+    "3131.TWO": {"name":"弘塑","industry":"半導體","sub":"濕製程設備","rank":"濕製程設備關鍵供應商","power":"★★★★☆","position":"半導體濕製程設備與先進封裝供應商","peers":"SCREEN、TEL、Lam Research、國內設備商","moat":"高：先進封裝、濕製程設備與客戶導入門檻","risk":"設備交期、客戶資本支出波動、單一產業集中"},
+    "2383.TW": {"name":"台光電","industry":"電子材料","sub":"AI高速材料/CCL","rank":"AI高速材料主要供應商","power":"★★★★☆","position":"AI伺服器高速材料重要供應商","peers":"聯茂、台燿、Panasonic、Isola","moat":"高：高階CCL材料、AI伺服器供應鏈認證","risk":"AI需求變化、原物料成本、產品組合變動"},
+    "3037.TW": {"name":"欣興","industry":"半導體","sub":"ABF載板","rank":"ABF載板主要廠","power":"★★★★☆","position":"ABF載板與高階PCB供應商","peers":"南電、景碩、Ibiden、Shinko","moat":"中高：ABF載板產能、先進封裝需求","risk":"ABF循環、庫存調整、資本支出壓力"},
+    "8046.TW": {"name":"南電","industry":"半導體","sub":"ABF/BT載板","rank":"ABF載板主要廠","power":"★★★★☆","position":"載板與封裝基板重要供應商","peers":"欣興、景碩、Ibiden、Shinko","moat":"中高：載板產能與集團資源","risk":"ABF需求循環、價格壓力與產品組合"},
+    "3711.TW": {"name":"日月光投控","industry":"半導體","sub":"封測龍頭","rank":"封測全球龍頭","power":"★★★★★","position":"全球封測與SiP龍頭","peers":"Amkor、JCET、力成、京元電子","moat":"高：全球封測規模、SiP、客戶完整性","risk":"終端需求循環、資本支出與匯率"},
+    "2449.TW": {"name":"京元電子","industry":"半導體","sub":"AI/HPC測試","rank":"測試主要廠","power":"★★★★☆","position":"AI/HPC與晶圓測試供應商","peers":"欣銓、矽格、日月光投控","moat":"中高：測試產能、AI/HPC需求與客戶黏著","risk":"測試需求循環、客戶集中與資本支出"},
+    "6770.TW": {"name":"力積電","industry":"半導體","sub":"記憶體/成熟製程","rank":"成熟製程與記憶體循環股","power":"★★☆☆☆","position":"成熟製程與記憶體相關晶圓代工","peers":"聯電、世界先進、SMIC、華邦電","moat":"低中：成熟製程產能與價格循環敏感","risk":"記憶體與成熟製程循環、價格競爭、稼動率"},
+}
+V1073_ALIAS = {
+    "2330":"2330.TW","台積電":"2330.TW","TSMC":"2330.TW",
+    "2303":"2303.TW","聯電":"2303.TW","UMC":"2303.TW",
+    "5347":"5347.TWO","世界先進":"5347.TWO","VIS":"5347.TWO",
+    "6215":"6215.TWO","和椿":"6215.TWO",
+    "3131":"3131.TWO","弘塑":"3131.TWO",
+    "2383":"2383.TW","台光電":"2383.TW",
+    "3037":"3037.TW","欣興":"3037.TW",
+    "8046":"8046.TW","南電":"8046.TW",
+    "3711":"3711.TW","日月光投控":"3711.TW",
+    "2449":"2449.TW","京元電子":"2449.TW",
+    "6770":"6770.TW","力積電":"6770.TW",
+}
+
+def v1073_normalize_symbol(q):
+    q = str(q or "").strip()
+    if not q:
+        return "2330.TW"
+    uq = q.upper().replace(" ", "")
+    if uq in V1073_ALIAS:
+        return V1073_ALIAS[uq]
+    if q in V1073_ALIAS:
+        return V1073_ALIAS[q]
+    if "." in uq:
+        return uq
+    if uq.isdigit():
+        if uq + ".TW" in V1073_STOCK_FALLBACK_DB:
+            return uq + ".TW"
+        if uq + ".TWO" in V1073_STOCK_FALLBACK_DB:
+            return uq + ".TWO"
+        if uq in {"3131","5347","6215"}:
+            return uq + ".TWO"
+        return uq + ".TW"
+    for sym, meta in V1073_STOCK_FALLBACK_DB.items():
+        nm = meta.get("name","")
+        if q in nm or nm in q:
+            return sym
+    return uq
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def v1073_get_live_price(symbol):
+    try:
+        hist = yf.Ticker(symbol).history(period="5d", interval="1d")
+        if hist is not None and len(hist) > 0 and "Close" in hist:
+            return float(hist["Close"].dropna().iloc[-1])
+    except Exception:
+        pass
+    return np.nan
+
+def v1073_build_decision(symbol):
+    symbol = v1073_normalize_symbol(symbol)
+    meta = V1073_STOCK_FALLBACK_DB.get(symbol, {"name":symbol,"industry":"待補","sub":"待補","rank":"待補","power":"★★★☆☆","position":"待補","peers":"待補","moat":"待補","risk":"資料庫尚待補齊"})
+    price = v1073_get_live_price(symbol)
+
+    try:
+        d = v106_decision(symbol)
+        if isinstance(d, dict):
+            d["symbol"] = symbol
+            for k in ["name","industry","sub","rank","power","position","peers","moat","risk"]:
+                if (k not in d) or (str(d.get(k,"")).strip() in ["","待補",symbol]):
+                    d[k] = meta.get(k, d.get(k, "待補"))
+            if (not pd.notna(d.get("price", np.nan))) and pd.notna(price):
+                d["price"] = price
+            return d
+    except Exception:
+        pass
+
+    if pd.notna(price) and price > 0:
+        cons = price * 0.92
+        fair = price * 1.08
+        opt = price * 1.22
+        ret = (fair / price - 1) * 100
+    else:
+        cons = fair = opt = np.nan
+        ret = 0.0
+
+    if ret >= 15:
+        action, rating = "買進", "★★★★☆"
+    elif ret >= 8:
+        action, rating = "觀察偏多", "★★★☆☆"
+    elif ret >= 0:
+        action, rating = "觀察", "★★★☆☆"
+    else:
+        action, rating = "減碼/迴避", "★★☆☆☆"
+
+    return {
+        "symbol": symbol,
+        "name": meta.get("name", symbol),
+        "industry": meta.get("industry","待補"),
+        "sub": meta.get("sub","待補"),
+        "rank": meta.get("rank","待補"),
+        "power": meta.get("power","★★★☆☆"),
+        "position": meta.get("position","待補"),
+        "peers": meta.get("peers","待補"),
+        "moat": meta.get("moat","待補"),
+        "risk": meta.get("risk","資料庫尚待補齊"),
+        "price": price,
+        "source": "Yahoo Finance / fallback",
+        "updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "ret": ret,
+        "fair": fair,
+        "cons": cons,
+        "opt": opt,
+        "action": action,
+        "rating": rating,
+    }
+
+def v107_get_symbol(q):
+    return v1073_normalize_symbol(q)
+
+def v107_get_decision(symbol):
+    return v1073_build_decision(symbol)
+
+def v107_industries():
+    return sorted(set(v.get("industry","其他") for v in V1073_STOCK_FALLBACK_DB.values())) or ["半導體"]
+
+def v107_stock_options(ind):
+    out = []
+    for sym, v in V1073_STOCK_FALLBACK_DB.items():
+        if v.get("industry") == ind:
+            out.append(f"{v.get('name', sym)} / {sym}")
+    return out or ["台積電 / 2330.TW"]
+
+def v107_rows():
+    return [{"產業":v["industry"],"子產業":v["sub"],"公司":v["name"],"代碼":k,"全球競爭力":v["power"],"產業地位":v["position"]} for k,v in V1073_STOCK_FALLBACK_DB.items()]
+# ===== V107.3 DATA MAPPING / PRICE FALLBACK FIX END =====
+
+
 def v968_main_dispatch():
     global page
     try:
@@ -17157,7 +17300,7 @@ def v106_fmt_price(x):
     return f"{float(x):,.2f}" if pd.notna(x) else "N/A"
 
 def v106_public_home():
-    st.markdown("### 🧭 AI最終投資決策首頁 V107.2")
+    st.markdown("### 🧭 AI最終投資決策首頁 V107.3")
     st.caption(V106_PUBLIC_NOTE)
     qcol, icol, scol = st.columns([1.3,1,1.2])
     with qcol:
