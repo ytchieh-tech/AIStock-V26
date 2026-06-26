@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V102.0 Alpha Quant Engine"
+APP_VERSION="V103.0 AI Investment Decision Center"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -15675,11 +15675,210 @@ def v102_alpha_quant_engine_page():
 # ===== V102.0 ALPHA QUANT ENGINE END =====
 
 
+
+# ===== V103.0 AI INVESTMENT DECISION CENTER START =====
+# V103.0：AI投資決策中心。把 Quant / Alpha / DNA 翻譯成投資人可理解的答案。
+
+def v103_get_current_price(symbol):
+    try:
+        q = v861_safe_quote(symbol) if "v861_safe_quote" in globals() else {}
+        p = v85_num(q.get("price")) if "v85_num" in globals() and isinstance(q, dict) else np.nan
+        if pd.notna(p) and p > 0:
+            return float(p), "Yahoo fast_info"
+    except Exception:
+        pass
+    try:
+        h = yf.Ticker(symbol).history(period="5d", auto_adjust=False)
+        if h is not None and not h.empty and "Close" in h.columns:
+            return float(h["Close"].dropna().iloc[-1]), "Yahoo history"
+    except Exception:
+        pass
+    fallback = {
+        "2330.TW":2390.0,"2303.TW":178.5,"5347.TWO":220.0,"6770.TW":83.2,
+        "2383.TW":5640.0,"3037.TW":1020.0,"8046.TW":1045.0,
+        "3711.TW":688.0,"2449.TW":334.5,"6215.TWO":105.5,
+    }
+    return fallback.get(symbol, np.nan), "Fallback"
+
+def v103_decision_source(use_yahoo=False):
+    try:
+        df = v102_quant_source_df(use_yahoo=use_yahoo)
+        stock = v102_stock_quant_summary(df) if isinstance(df, pd.DataFrame) and not df.empty else pd.DataFrame()
+        return df, stock
+    except Exception:
+        return pd.DataFrame(), pd.DataFrame()
+
+def v103_price_range(row):
+    sym = row.get("代碼")
+    price, price_src = v103_get_current_price(sym)
+    composite = float(row.get("Composite Score", 60)) if pd.notna(row.get("Composite Score", np.nan)) else 60
+    alpha = float(row.get("平均Alpha", 0)) if pd.notna(row.get("平均Alpha", np.nan)) else 0
+    momentum = float(row.get("近期Momentum", 0)) if pd.notna(row.get("近期Momentum", np.nan)) else 0
+    dna = float(row.get("DNA Score", 70)) if pd.notna(row.get("DNA Score", np.nan)) else 70
+
+    expected_return = (
+        ((composite - 60) / 100) * 0.45
+        + max(-0.20, min(0.35, alpha / 100)) * 0.30
+        + max(-0.15, min(0.25, momentum / 100)) * 0.15
+        + ((dna - 75) / 250) * 0.10
+    )
+    expected_return = max(-0.30, min(0.45, expected_return))
+
+    fair = price * (1 + expected_return) if pd.notna(price) else np.nan
+    conservative = price * (1 + expected_return * 0.45) if pd.notna(price) else np.nan
+    optimistic = price * (1 + expected_return * 1.45) if pd.notna(price) else np.nan
+
+    if expected_return >= 0.18 and composite >= 75:
+        action, stars, badge = "強烈買進", "★★★★★", "A+"
+    elif expected_return >= 0.10 and composite >= 65:
+        action, stars, badge = "買進", "★★★★☆", "A"
+    elif expected_return >= 0.03:
+        action, stars, badge = "觀察", "★★★☆☆", "B"
+    elif expected_return >= -0.05:
+        action, stars, badge = "中立", "★★☆☆☆", "C"
+    else:
+        action, stars, badge = "減碼/迴避", "★☆☆☆☆", "D"
+
+    return {
+        "現價": price, "現價來源": price_src,
+        "保守價": conservative, "合理價": fair, "樂觀價": optimistic,
+        "預期報酬率": expected_return * 100,
+        "AI評級": stars, "決策等級": badge, "投資建議": action,
+        "分批買進參考": price * 0.97 if pd.notna(price) else np.nan,
+        "風控停損參考": price * 0.90 if pd.notna(price) else np.nan,
+    }
+
+def v103_decision_table(use_yahoo=False):
+    _, stock = v103_decision_source(use_yahoo)
+    if stock is None or stock.empty:
+        return pd.DataFrame()
+    rows = []
+    for _, r in stock.iterrows():
+        px = v103_price_range(r)
+        rows.append({
+            "代碼": r.get("代碼"), "公司": r.get("公司"), "AI評級": px["AI評級"],
+            "投資建議": px["投資建議"], "現價": px["現價"], "保守價": px["保守價"],
+            "合理價": px["合理價"], "樂觀價": px["樂觀價"], "預期報酬率": px["預期報酬率"],
+            "Composite": r.get("Composite Score"), "平均Alpha": r.get("平均Alpha"),
+            "近期Momentum": r.get("近期Momentum"), "DNA族群": r.get("DNA族群"),
+            "風險分數": 100 - float(r.get("Composite Score", 50)) if pd.notna(r.get("Composite Score", np.nan)) else 50,
+            "現價來源": px["現價來源"], "資料來源": r.get("資料來源"),
+            "分批買進參考": px["分批買進參考"], "風控停損參考": px["風控停損參考"],
+        })
+    out = pd.DataFrame(rows)
+    order = {"強烈買進":0, "買進":1, "觀察":2, "中立":3, "減碼/迴避":4}
+    out["排序"] = out["投資建議"].map(order).fillna(9)
+    return out.sort_values(["排序","預期報酬率"], ascending=[True,False]).drop(columns=["排序"])
+
+def v103_risk_text(group):
+    g = str(group)
+    risks = ["股價已反映部分預期，若財報不如預期，估值可能下修。", "大盤或產業景氣轉弱時，短期波動可能放大。"]
+    if "AI高速材料" in g or "ABF" in g:
+        risks += ["AI伺服器需求若降溫，材料與載板評價可能修正。", "客戶庫存調整可能影響短期營收動能。"]
+    elif "先進製程" in g:
+        risks += ["先進製程資本支出高，若客戶需求遞延，獲利成長會放慢。", "地緣政治與匯率波動仍是中長期風險。"]
+    elif "成熟製程" in g or "特殊製程" in g:
+        risks += ["成熟製程價格競爭與產能利用率是主要風險。", "中國產能與庫存循環可能壓抑評價。"]
+    else:
+        risks += ["題材與基本面若無法同步，股價容易修正。"]
+    return risks[:4]
+
+def v103_show(df):
+    out = df.copy()
+    for c in out.columns:
+        if c in ["預期報酬率","平均Alpha","近期Momentum"]:
+            out[c] = out[c].apply(v971_pct)
+        elif c in ["現價","保守價","合理價","樂觀價","分批買進參考","風控停損參考"]:
+            out[c] = out[c].apply(v971_fmt)
+        elif c in ["Composite","風險分數"]:
+            out[c] = out[c].apply(lambda x: f"{float(x):.1f}" if pd.notna(x) else "N/A")
+    return out
+
+def v103_investment_decision_page():
+    st.markdown("### V103.0 AI投資決策中心")
+    st.info("本頁把 Quant、Alpha、DNA 轉成投資人看得懂的答案：能不能買、合理價區間、預期報酬與風險。")
+
+    mode = st.radio("資料模式", ["快速模式：V100.2資料", "Yahoo Forward模式：V100.3真實歷史價"], horizontal=True, key="v103_mode")
+    use_yahoo = mode.startswith("Yahoo")
+    if use_yahoo:
+        st.warning("Yahoo Forward模式較慢，但較接近真實歷史驗證；日常快速瀏覽可用快速模式。")
+        if not st.button("執行 V103 Yahoo 決策分析", key="v103_run"):
+            st.info("尚未執行 Yahoo Forward。")
+            return
+
+    decision = v103_decision_table(use_yahoo)
+    if decision.empty:
+        st.error("目前沒有可用的投資決策資料。")
+        return
+
+    top = decision.iloc[0]
+    c1, c2, c3 = st.columns(3)
+    c1.metric("首選標的", f"{top['公司']} / {top['投資建議']}")
+    c2.metric("買進名單家數", str(decision["投資建議"].isin(["強烈買進","買進"]).sum()))
+    c3.metric("平均預期報酬", v971_pct(pd.to_numeric(decision["預期報酬率"], errors="coerce").mean()))
+
+    tabs = st.tabs(["投資決策總表", "單檔股票卡", "價格區間", "買進名單", "風險提示", "方法說明"])
+
+    with tabs[0]:
+        cols = ["代碼","公司","AI評級","投資建議","現價","保守價","合理價","樂觀價","預期報酬率","Composite","DNA族群","現價來源"]
+        st.dataframe(v103_show(decision)[cols], use_container_width=True, hide_index=True)
+
+    with tabs[1]:
+        names = [f"{r['公司']} / {r['代碼']}" for _, r in decision.iterrows()]
+        selected = st.selectbox("選擇股票", names, key="v103_stock_card")
+        code = selected.split("/")[-1].strip()
+        r = decision[decision["代碼"] == code].iloc[0]
+        st.markdown(f"## {r['公司']}（{r['代碼']}）")
+        a,b,c,d = st.columns(4)
+        a.metric("AI評級", r["AI評級"]); b.metric("投資建議", r["投資建議"])
+        c.metric("現價", v971_fmt(r["現價"])); d.metric("預期報酬", v971_pct(r["預期報酬率"]))
+        e,f,g = st.columns(3)
+        e.metric("保守價", v971_fmt(r["保守價"])); f.metric("合理價", v971_fmt(r["合理價"])); g.metric("樂觀價", v971_fmt(r["樂觀價"]))
+        st.markdown("#### 操作參考")
+        st.dataframe(v103_show(pd.DataFrame([{
+            "分批買進參考": r["分批買進參考"], "風控停損參考": r["風控停損參考"],
+            "Composite": r["Composite"], "平均Alpha": r["平均Alpha"], "近期Momentum": r["近期Momentum"], "DNA族群": r["DNA族群"],
+        }])), use_container_width=True, hide_index=True)
+        st.markdown("#### 主要風險")
+        for item in v103_risk_text(r["DNA族群"]):
+            st.write(f"- {item}")
+
+    with tabs[2]:
+        st.dataframe(v103_show(decision[["代碼","公司","現價","保守價","合理價","樂觀價","預期報酬率","分批買進參考","風控停損參考"]]), use_container_width=True, hide_index=True)
+
+    with tabs[3]:
+        buy_df = decision[decision["投資建議"].isin(["強烈買進","買進"])]
+        if buy_df.empty:
+            st.warning("目前沒有強烈買進或買進標的。")
+        else:
+            st.dataframe(v103_show(buy_df[["代碼","公司","AI評級","投資建議","現價","合理價","預期報酬率","DNA族群"]]), use_container_width=True, hide_index=True)
+
+    with tabs[4]:
+        risk_df = decision.sort_values("風險分數", ascending=False)
+        st.dataframe(v103_show(risk_df[["代碼","公司","投資建議","風險分數","現價","合理價","預期報酬率","DNA族群"]]), use_container_width=True, hide_index=True)
+
+    with tabs[5]:
+        st.markdown("""
+        **V103 投資決策邏輯**
+
+        V102 是研究員看的量化分數；V103 轉成投資人看的決策語言。
+
+        輸出：
+        - AI評級：★★★★★ 到 ★☆☆☆☆
+        - 投資建議：強烈買進、買進、觀察、中立、減碼/迴避
+        - 價格區間：保守價、合理價、樂觀價
+        - 預期報酬率、分批買進參考、風控停損參考
+
+        這是研究與決策輔助，不是保證獲利，也不是個人化投資建議。
+        """)
+# ===== V103.0 AI INVESTMENT DECISION CENTER END =====
+
+
 def v971_dna_tab_page():
-    st.markdown("### ⑮ V102.0 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V102.0 已新增 Alpha Quant Engine；整合DNA、Alpha、Sharpe、Stability、Momentum形成機構版Composite Score，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.markdown("### ⑮ V103.0 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V103.0 已新增 AI投資決策中心；把Quant研究分數轉成投資建議、合理價區間、預期報酬與風險提示，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
-    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "V100驗證中心", "V100.1可信度", "V100.2預測力", "V100.3 Forward", "V101 Alpha", "V101.3 Alpha2", "V102 Quant", "個股說明", "方法說明"])
+    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "V100驗證中心", "V100.1可信度", "V100.2預測力", "V100.3 Forward", "V101 Alpha", "V101.3 Alpha2", "V102 Quant", "V103決策", "個股說明", "方法說明"])
     with tabs[0]:
         st.dataframe(df[["代碼","公司","次產業","DNA定位","主要業務","CAP等級","DNA分數","全球競爭"]], use_container_width=True, hide_index=True)
     with tabs[1]:
@@ -15751,6 +15950,9 @@ def v971_dna_tab_page():
         v102_alpha_quant_engine_page()
 
     with tabs[16]:
+        v103_investment_decision_page()
+
+    with tabs[17]:
         company = st.selectbox("選擇公司", df["公司"].tolist(), key="v971_dna_company")
         row = df[df["公司"] == company].iloc[0]
         st.write(f"**{row['公司']} / {row['代碼']}**")
