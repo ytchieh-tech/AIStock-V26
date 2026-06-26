@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V101.1 DNA Alpha Engine Hotfix"
+APP_VERSION="V101.2 DNA Alpha Fast Mode"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -14929,9 +14929,227 @@ def v101_alpha_engine_page():
 # ===== V101.1 DNA ALPHA ENGINE HOTFIX END =====
 
 
+
+# ===== V101.2 DNA ALPHA FAST MODE START =====
+# V101.2：效能修正。
+# 問題：V101 Alpha 直接呼叫 V100.3 Yahoo Forward，會反覆下載/計算大量歷史資料，造成 Streamlit 頁面很慢。
+# 修正：
+# 1. 預設使用 V100.2 快速資料，秒開頁面。
+# 2. 需要真實 Yahoo Forward 時，使用按鈕手動執行。
+# 3. Yahoo Forward 結果使用 cache，避免每次切換頁籤重跑。
+# 4. 不動首頁、K線、財報、ESG、法人與主估值核心。
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def v1012_fast_alpha_df():
+    rows = []
+    pred = pd.DataFrame()
+    try:
+        if "v1002_prediction_base_df" in globals():
+            pred = v1002_prediction_base_df()
+    except Exception:
+        pred = pd.DataFrame()
+
+    if isinstance(pred, pd.DataFrame) and not pred.empty:
+        for _, r in pred.iterrows():
+            rows.append({
+                "DNA日期": "V100.2快速模式",
+                "預測期間": r.get("期間"),
+                "驗證日期": "快速驗證",
+                "代碼": r.get("代碼"),
+                "公司": r.get("公司"),
+                "DNA族群": r.get("DNA族群"),
+                "DNA Alpha Score": r.get("DNA可信度", np.nan),
+                "Theme題材分": r.get("題材分", np.nan),
+                "Stability穩定度": r.get("穩定度", np.nan),
+                "實際報酬率": r.get("情境實際報酬率", np.nan),
+                "起始價": r.get("現價基準", np.nan),
+                "未來實際價": r.get("情境實際價", np.nan),
+                "資料來源": "V100.2 快速資料",
+            })
+
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return df
+
+    df["實際報酬率"] = pd.to_numeric(df["實際報酬率"], errors="coerce")
+    df["同池平均報酬"] = df.groupby(["DNA日期", "預測期間"])["實際報酬率"].transform("mean")
+    df["Alpha超額報酬"] = df["實際報酬率"] - df["同池平均報酬"]
+
+    def bucket(s):
+        try:
+            s = float(s)
+        except Exception:
+            return "資料不足"
+        if s >= 90:
+            return "90~100"
+        if s >= 80:
+            return "80~90"
+        if s >= 70:
+            return "70~80"
+        if s >= 60:
+            return "60~70"
+        return "<60"
+
+    df["DNA分數區間"] = df["DNA Alpha Score"].apply(bucket)
+    df["勝負"] = np.where(pd.to_numeric(df["實際報酬率"], errors="coerce") > 0, "勝", "負")
+    df["Alpha勝負"] = np.where(pd.to_numeric(df["Alpha超額報酬"], errors="coerce") > 0, "勝", "負")
+    return df
+
+@st.cache_data(ttl=3600, show_spinner=True)
+def v1012_yahoo_alpha_df():
+    # 真實 Yahoo Forward 模式：只在使用者按按鈕時觸發。
+    try:
+        fwd = v1003_forward_backtest_df() if "v1003_forward_backtest_df" in globals() else pd.DataFrame()
+    except Exception:
+        fwd = pd.DataFrame()
+
+    if not isinstance(fwd, pd.DataFrame) or fwd.empty:
+        return pd.DataFrame()
+
+    try:
+        conf = v1001_confidence_df() if "v1001_confidence_df" in globals() else pd.DataFrame()
+    except Exception:
+        conf = pd.DataFrame()
+
+    rows = []
+    for _, r in fwd.iterrows():
+        sym = r.get("代碼")
+        dna_score = np.nan
+        theme = np.nan
+        stability = np.nan
+        if isinstance(conf, pd.DataFrame) and not conf.empty and "代碼" in conf.columns and sym in conf["代碼"].values:
+            hit = conf[conf["代碼"] == sym].iloc[0]
+            dna_score = float(hit.get("DNA可信度", np.nan)) if pd.notna(hit.get("DNA可信度", np.nan)) else np.nan
+            theme = float(hit.get("Theme題材分", np.nan)) if pd.notna(hit.get("Theme題材分", np.nan)) else np.nan
+            stability = float(hit.get("Stability穩定度", np.nan)) if pd.notna(hit.get("Stability穩定度", np.nan)) else np.nan
+
+        rows.append({
+            "DNA日期": r.get("DNA日期"),
+            "預測期間": r.get("預測期間"),
+            "驗證日期": r.get("驗證日期"),
+            "代碼": sym,
+            "公司": r.get("公司"),
+            "DNA族群": r.get("DNA族群"),
+            "DNA Alpha Score": dna_score,
+            "Theme題材分": theme,
+            "Stability穩定度": stability,
+            "實際報酬率": r.get("實際報酬率", np.nan),
+            "起始價": r.get("起始價", np.nan),
+            "未來實際價": r.get("未來實際價", np.nan),
+            "資料來源": "V100.3 Yahoo Forward",
+        })
+
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return df
+
+    df["實際報酬率"] = pd.to_numeric(df["實際報酬率"], errors="coerce")
+    df["同池平均報酬"] = df.groupby(["DNA日期", "預測期間"])["實際報酬率"].transform("mean")
+    df["Alpha超額報酬"] = df["實際報酬率"] - df["同池平均報酬"]
+
+    def bucket(s):
+        try:
+            s = float(s)
+        except Exception:
+            return "資料不足"
+        if s >= 90:
+            return "90~100"
+        if s >= 80:
+            return "80~90"
+        if s >= 70:
+            return "70~80"
+        if s >= 60:
+            return "60~70"
+        return "<60"
+
+    df["DNA分數區間"] = df["DNA Alpha Score"].apply(bucket)
+    df["勝負"] = np.where(pd.to_numeric(df["實際報酬率"], errors="coerce") > 0, "勝", "負")
+    df["Alpha勝負"] = np.where(pd.to_numeric(df["Alpha超額報酬"], errors="coerce") > 0, "勝", "負")
+    return df
+
+def v101_alpha_engine_page():
+    st.markdown("### V101.2 DNA Alpha Engine")
+    st.info("V101.2 效能版：預設使用快速資料，避免每次進入頁面都下載 Yahoo 歷史資料。需要真實 Forward 回測時，再手動執行 Yahoo 模式。")
+
+    mode = st.radio(
+        "資料模式",
+        ["快速模式：V100.2資料（建議日常使用）", "Yahoo Forward模式：V100.3真實歷史價（較慢）"],
+        horizontal=True,
+        key="v1012_alpha_mode"
+    )
+
+    if mode.startswith("Yahoo"):
+        st.warning("Yahoo Forward模式會抓歷史收盤價，第一次執行可能較慢。完成後一小時內會快取。")
+        run_yahoo = st.button("執行 Yahoo Forward Alpha 回測", key="v1012_run_yahoo_alpha")
+        if not run_yahoo:
+            st.info("尚未執行 Yahoo Forward。若只是查看模型，請切回快速模式。")
+            return
+        df = v1012_yahoo_alpha_df()
+    else:
+        df = v1012_fast_alpha_df()
+
+    if df.empty:
+        st.error("目前沒有可用的 Alpha 資料。")
+        return
+
+    bucket = v1011_bucket_summary(df) if "v1011_bucket_summary" in globals() else v101_bucket_summary(df)
+    stock = v1011_stock_alpha_summary(df) if "v1011_stock_alpha_summary" in globals() else v101_stock_alpha_summary(df)
+    period = v1011_period_summary(df) if "v1011_period_summary" in globals() else v101_period_summary(df)
+    port = v1011_top_portfolio(df, top_n=3) if "v1011_top_portfolio" in globals() else v101_alpha_decile_portfolio(df, top_n=3)
+
+    avg_alpha = pd.to_numeric(df["Alpha超額報酬"], errors="coerce").mean()
+    alpha_win = (pd.to_numeric(df["Alpha超額報酬"], errors="coerce") > 0).mean() * 100
+    source_label = df["資料來源"].iloc[0] if "資料來源" in df.columns else "N/A"
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("整體平均Alpha", v971_pct(avg_alpha))
+    c2.metric("Alpha勝率", v971_pct(alpha_win))
+    c3.metric("資料來源", source_label)
+
+    tabs = st.tabs(["DNA區間績效", "個股Alpha", "Top3投組", "期間檢定", "Alpha明細", "方法說明"])
+
+    with tabs[0]:
+        st.dataframe(v1011_show(bucket), use_container_width=True, hide_index=True)
+
+    with tabs[1]:
+        st.dataframe(v1011_show(stock), use_container_width=True, hide_index=True)
+
+    with tabs[2]:
+        st.dataframe(v1011_show(port), use_container_width=True, hide_index=True)
+
+    with tabs[3]:
+        st.dataframe(v1011_show(period), use_container_width=True, hide_index=True)
+
+    with tabs[4]:
+        period_options = sorted(df["預測期間"].dropna().unique().tolist())
+        if period_options:
+            selected = st.selectbox("選擇期間", period_options, key="v1012_period")
+            show_df = df[df["預測期間"] == selected].sort_values(["DNA日期", "DNA Alpha Score"], ascending=[True, False])
+        else:
+            show_df = df
+        st.dataframe(v1011_show(show_df), use_container_width=True, hide_index=True)
+
+    with tabs[5]:
+        st.markdown("""
+        **V101.2 效能修正**
+
+        原本 V101.1 一進頁面就會嘗試跑 V100.3 Yahoo Forward，
+        會造成：
+        - 反覆下載歷史收盤價
+        - Streamlit Cloud 等待時間過長
+        - 切換頁籤也變慢
+
+        V101.2 改為：
+        1. 預設快速模式：使用 V100.2 已有資料，頁面快速開啟。
+        2. Yahoo Forward模式：需要時按按鈕才執行。
+        3. Yahoo資料快取1小時，避免重複下載。
+        """)
+# ===== V101.2 DNA ALPHA FAST MODE END =====
+
+
 def v971_dna_tab_page():
-    st.markdown("### ⑮ V101.1 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V101.1 修正DNA Alpha Engine空白頁；優先使用V100.3 Forward資料，失敗時改用V100.2備援資料，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.markdown("### ⑮ V101.2 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V101.2 已修正 Alpha 頁面讀取速度；預設快速模式，Yahoo Forward 改為手動執行與快取，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
     tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "V100驗證中心", "V100.1可信度", "V100.2預測力", "V100.3 Forward", "V101 Alpha", "個股說明", "方法說明"])
     with tabs[0]:
