@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V101.3 Alpha 2.0 Engine"
+APP_VERSION="V102.0 Alpha Quant Engine"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -15389,11 +15389,297 @@ def v1013_alpha2_engine_page():
 # ===== V101.3 ALPHA 2.0 ENGINE END =====
 
 
+
+# ===== V102.0 ALPHA QUANT ENGINE START =====
+# V102.0：Alpha Quant Engine 機構版選股系統。
+# 重點：將 DNA、Alpha、Sharpe、Stability、Momentum 合成 Composite Score。
+# Composite Score = 25%DNA + 25%Alpha + 20%Sharpe + 15%Stability + 15%Momentum。
+# 不動首頁、K線、財報、ESG、法人與原估值核心。
+
+def v102_quant_source_df(use_yahoo=False):
+    try:
+        df = v1013_alpha_source_df(use_yahoo=use_yahoo)
+    except Exception:
+        df = pd.DataFrame()
+    if df is None or df.empty:
+        return pd.DataFrame()
+    df = df.copy()
+    df["實際報酬率"] = pd.to_numeric(df.get("實際報酬率"), errors="coerce")
+    df["Alpha超額報酬"] = pd.to_numeric(df.get("Alpha超額報酬"), errors="coerce")
+    return df
+
+def v102_norm_score(value, low, high):
+    try:
+        v = float(value)
+        return max(0, min(100, (v - low) / (high - low) * 100))
+    except Exception:
+        return np.nan
+
+def v102_stock_quant_summary(df):
+    if df.empty:
+        return pd.DataFrame()
+
+    try:
+        conf = v1001_confidence_df() if "v1001_confidence_df" in globals() else pd.DataFrame()
+    except Exception:
+        conf = pd.DataFrame()
+
+    rows = []
+    for (sym, company), g in df.groupby(["代碼", "公司"]):
+        ret = pd.to_numeric(g["實際報酬率"], errors="coerce").dropna()
+        alpha = pd.to_numeric(g["Alpha超額報酬"], errors="coerce").dropna()
+
+        dna_score = np.nan
+        theme = np.nan
+        stability_dna = np.nan
+        if isinstance(conf, pd.DataFrame) and not conf.empty and "代碼" in conf.columns and sym in conf["代碼"].values:
+            hit = conf[conf["代碼"] == sym].iloc[0]
+            dna_score = float(hit.get("DNA可信度", np.nan)) if pd.notna(hit.get("DNA可信度", np.nan)) else np.nan
+            theme = float(hit.get("Theme題材分", np.nan)) if pd.notna(hit.get("Theme題材分", np.nan)) else np.nan
+            stability_dna = float(hit.get("Stability穩定度", np.nan)) if pd.notna(hit.get("Stability穩定度", np.nan)) else np.nan
+
+        avg_ret = ret.mean() if len(ret) else np.nan
+        avg_alpha = alpha.mean() if len(alpha) else np.nan
+        alpha_win = (alpha > 0).mean() * 100 if len(alpha) else np.nan
+        win_rate = (ret > 0).mean() * 100 if len(ret) else np.nan
+
+        alpha_vol = alpha.std(ddof=0) if len(alpha) else np.nan
+        ret_vol = ret.std(ddof=0) if len(ret) else np.nan
+        sharpe = avg_alpha / alpha_vol if pd.notna(alpha_vol) and alpha_vol != 0 and pd.notna(avg_alpha) else np.nan
+
+        # Momentum：最近1/3樣本平均報酬，避免只看長期平均。
+        gg = g.copy()
+        try:
+            gg["__date"] = pd.to_datetime(gg["DNA日期"], errors="coerce")
+            gg = gg.sort_values("__date")
+        except Exception:
+            pass
+        n_tail = max(1, int(len(gg) / 3)) if len(gg) else 1
+        momentum = pd.to_numeric(gg.tail(n_tail)["實際報酬率"], errors="coerce").mean() if len(gg) else np.nan
+
+        # Stability：Alpha波動越低越好。
+        stability = max(0, min(100, 100 - (alpha_vol if pd.notna(alpha_vol) else 50))) if pd.notna(alpha_vol) else np.nan
+
+        alpha_score = (
+            0.50 * v102_norm_score(avg_alpha, -50, 80) +
+            0.30 * (alpha_win if pd.notna(alpha_win) else 0) +
+            0.20 * (win_rate if pd.notna(win_rate) else 0)
+        )
+
+        sharpe_score = v102_norm_score(sharpe, -1, 2.5)
+        momentum_score = v102_norm_score(momentum, -30, 80)
+        dna_component = dna_score if pd.notna(dna_score) else 60
+
+        composite = (
+            0.25 * dna_component +
+            0.25 * alpha_score +
+            0.20 * sharpe_score +
+            0.15 * stability +
+            0.15 * momentum_score
+        )
+
+        if composite >= 85:
+            grade = "A+：核心持股"
+        elif composite >= 75:
+            grade = "A：優先候選"
+        elif composite >= 65:
+            grade = "B：觀察名單"
+        elif composite >= 55:
+            grade = "C：人工判讀"
+        else:
+            grade = "D：暫不建議"
+
+        rows.append({
+            "代碼": sym,
+            "公司": company,
+            "DNA族群": g["DNA族群"].iloc[0],
+            "DNA Score": dna_component,
+            "Alpha Score": alpha_score,
+            "Sharpe Score": sharpe_score,
+            "Stability Score": stability,
+            "Momentum Score": momentum_score,
+            "Composite Score": composite,
+            "Quant等級": grade,
+            "平均報酬率": avg_ret,
+            "平均Alpha": avg_alpha,
+            "Alpha勝率": alpha_win,
+            "勝率": win_rate,
+            "Alpha波動": alpha_vol,
+            "Sharpe近似": sharpe,
+            "近期Momentum": momentum,
+            "樣本數": len(g),
+            "資料來源": g["資料來源"].iloc[0] if "資料來源" in g.columns else "",
+        })
+
+    return pd.DataFrame(rows).sort_values("Composite Score", ascending=False)
+
+def v102_group_summary(stock_df):
+    if stock_df.empty:
+        return pd.DataFrame()
+    rows = []
+    for group, g in stock_df.groupby("DNA族群"):
+        rows.append({
+            "DNA族群": group,
+            "公司數": len(g),
+            "平均Composite": g["Composite Score"].mean(),
+            "平均DNA": g["DNA Score"].mean(),
+            "平均Alpha": g["Alpha Score"].mean(),
+            "平均Sharpe": g["Sharpe Score"].mean(),
+            "平均Momentum": g["Momentum Score"].mean(),
+            "代表公司": "、".join(g.sort_values("Composite Score", ascending=False)["公司"].astype(str).head(5).tolist()),
+        })
+    return pd.DataFrame(rows).sort_values("平均Composite", ascending=False)
+
+def v102_factor_breakdown(stock_df):
+    if stock_df.empty:
+        return pd.DataFrame()
+    factors = [
+        ("DNA Score", 25, "估值DNA可信度，避免只看短期績效"),
+        ("Alpha Score", 25, "平均Alpha、Alpha勝率與勝率"),
+        ("Sharpe Score", 20, "超額報酬相對波動的效率"),
+        ("Stability Score", 15, "Alpha波動越低越高"),
+        ("Momentum Score", 15, "近期Forward報酬動能"),
+    ]
+    rows = []
+    for f, w, desc in factors:
+        rows.append({
+            "因子": f,
+            "權重": w,
+            "全體平均": stock_df[f].mean(),
+            "最高公司": stock_df.sort_values(f, ascending=False)["公司"].iloc[0],
+            "說明": desc,
+        })
+    return pd.DataFrame(rows)
+
+def v102_quant_portfolio(df, stock_df, top_n=5):
+    if df.empty or stock_df.empty:
+        return pd.DataFrame()
+    top_symbols = stock_df.sort_values("Composite Score", ascending=False).head(top_n)["代碼"].tolist()
+    rows = []
+    for (date, period), g in df.groupby(["DNA日期", "預測期間"]):
+        port = g[g["代碼"].isin(top_symbols)]
+        if port.empty:
+            continue
+        port_ret = pd.to_numeric(port["實際報酬率"], errors="coerce").mean()
+        bench_ret = pd.to_numeric(g["實際報酬率"], errors="coerce").mean()
+        rows.append({
+            "DNA日期": date,
+            "預測期間": period,
+            "TopN": top_n,
+            "投組平均報酬": port_ret,
+            "同池平均報酬": bench_ret,
+            "投組Alpha": port_ret - bench_ret if pd.notna(port_ret) and pd.notna(bench_ret) else np.nan,
+            "成員": "、".join(port["公司"].astype(str).drop_duplicates().tolist()),
+        })
+    return pd.DataFrame(rows).sort_values(["預測期間", "DNA日期"])
+
+def v102_show(df):
+    out = df.copy()
+    pct_cols = [
+        "平均報酬率", "平均Alpha", "Alpha勝率", "勝率", "Alpha波動", "近期Momentum",
+        "投組平均報酬", "同池平均報酬", "投組Alpha"
+    ]
+    for c in out.columns:
+        if c in pct_cols:
+            out[c] = out[c].apply(v971_pct)
+        elif c in ["權重"]:
+            out[c] = out[c].apply(lambda x: f"{float(x):.0f}%" if pd.notna(x) else "N/A")
+        elif c in ["DNA Score", "Alpha Score", "Sharpe Score", "Stability Score", "Momentum Score",
+                   "Composite Score", "平均Composite", "平均DNA", "平均Alpha", "平均Sharpe", "平均Momentum",
+                   "全體平均", "Sharpe近似"]:
+            out[c] = out[c].apply(lambda x: f"{float(x):.2f}" if pd.notna(x) else "N/A")
+    return out
+
+def v102_alpha_quant_engine_page():
+    st.markdown("### V102.0 Alpha Quant Engine 機構版")
+    st.info("V102 將 DNA、Alpha、Sharpe、Stability、Momentum 合成 Composite Score，用來形成真正的量化選股排行。")
+
+    mode = st.radio(
+        "資料模式",
+        ["快速模式：V100.2資料", "Yahoo Forward模式：V100.3真實歷史價"],
+        horizontal=True,
+        key="v102_mode"
+    )
+    use_yahoo = mode.startswith("Yahoo")
+
+    if use_yahoo:
+        st.warning("Yahoo Forward模式較慢，會使用快取；若只是日常檢查，建議使用快速模式。")
+        if not st.button("執行 V102 Yahoo Quant 回測", key="v102_run"):
+            st.info("尚未執行 Yahoo Forward。")
+            return
+
+    df = v102_quant_source_df(use_yahoo=use_yahoo)
+    if df.empty:
+        st.error("目前沒有可用資料。")
+        return
+
+    stock = v102_stock_quant_summary(df)
+    group = v102_group_summary(stock)
+    factors = v102_factor_breakdown(stock)
+    port = v102_quant_portfolio(df, stock, top_n=5)
+
+    top = stock.iloc[0] if not stock.empty else {}
+    avg_comp = stock["Composite Score"].mean() if not stock.empty else np.nan
+    core_count = (stock["Composite Score"] >= 75).sum() if not stock.empty else 0
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("平均Composite", f"{avg_comp:.1f}" if pd.notna(avg_comp) else "N/A")
+    c2.metric("最高Quant", f"{top.get('公司','N/A')} / {top.get('Composite Score',np.nan):.1f}" if len(stock) else "N/A")
+    c3.metric("A級以上家數", str(core_count))
+
+    tabs = st.tabs(["Quant排行榜", "五因子拆解", "族群排名", "Top5投組", "Quant明細", "方法說明"])
+
+    with tabs[0]:
+        cols = ["代碼", "公司", "DNA族群", "Composite Score", "Quant等級", "DNA Score", "Alpha Score", "Sharpe Score", "Stability Score", "Momentum Score", "平均Alpha", "近期Momentum", "資料來源"]
+        st.dataframe(v102_show(stock)[cols], use_container_width=True, hide_index=True)
+
+    with tabs[1]:
+        st.dataframe(v102_show(factors), use_container_width=True, hide_index=True)
+
+    with tabs[2]:
+        st.dataframe(v102_show(group), use_container_width=True, hide_index=True)
+
+    with tabs[3]:
+        st.dataframe(v102_show(port), use_container_width=True, hide_index=True)
+
+    with tabs[4]:
+        period_options = sorted(df["預測期間"].dropna().unique().tolist())
+        if period_options:
+            p = st.selectbox("選擇期間", period_options, key="v102_period")
+            st.dataframe(v1011_show(df[df["預測期間"] == p].sort_values(["DNA日期", "Alpha超額報酬"], ascending=[True, False])), use_container_width=True, hide_index=True)
+        else:
+            st.dataframe(v1011_show(df), use_container_width=True, hide_index=True)
+
+    with tabs[5]:
+        st.markdown("""
+        **V102.0 Composite Score**
+
+        ```
+        Composite Score =
+            25% × DNA Score
+          + 25% × Alpha Score
+          + 20% × Sharpe Score
+          + 15% × Stability Score
+          + 15% × Momentum Score
+        ```
+
+        分工：
+        - **DNA Score**：保留基本面與估值DNA。
+        - **Alpha Score**：檢查是否真的有超額報酬。
+        - **Sharpe Score**：檢查報酬效率。
+        - **Stability Score**：避免高報酬但波動過大的標的。
+        - **Momentum Score**：反映近期Forward動能。
+
+        V102 是選股引擎；V99/V100 是估值與驗證引擎。
+        """)
+# ===== V102.0 ALPHA QUANT ENGINE END =====
+
+
 def v971_dna_tab_page():
-    st.markdown("### ⑮ V101.3 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V101.3 已新增 Alpha 2.0 選股引擎；用Forward實績反推方向命中、10%命中與Alpha勝率，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.markdown("### ⑮ V102.0 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V102.0 已新增 Alpha Quant Engine；整合DNA、Alpha、Sharpe、Stability、Momentum形成機構版Composite Score，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
-    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "V100驗證中心", "V100.1可信度", "V100.2預測力", "V100.3 Forward", "V101 Alpha", "V101.3 Alpha2", "個股說明", "方法說明"])
+    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "V100驗證中心", "V100.1可信度", "V100.2預測力", "V100.3 Forward", "V101 Alpha", "V101.3 Alpha2", "V102 Quant", "個股說明", "方法說明"])
     with tabs[0]:
         st.dataframe(df[["代碼","公司","次產業","DNA定位","主要業務","CAP等級","DNA分數","全球競爭"]], use_container_width=True, hide_index=True)
     with tabs[1]:
@@ -15462,6 +15748,9 @@ def v971_dna_tab_page():
         v1013_alpha2_engine_page()
 
     with tabs[15]:
+        v102_alpha_quant_engine_page()
+
+    with tabs[16]:
         company = st.selectbox("選擇公司", df["公司"].tolist(), key="v971_dna_company")
         row = df[df["公司"] == company].iloc[0]
         st.write(f"**{row['公司']} / {row['代碼']}**")
