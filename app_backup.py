@@ -52,63 +52,9 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V107.1 Premium UI DataFrame Fix"
+APP_VERSION="V107.0 Premium Public UI"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
-
-
-
-# ===== V107.1 SAFE DATAFRAME / PYARROW FIX START =====
-# 修正 Streamlit Cloud pyarrow.lib.ArrowInvalid：
-# 當 DataFrame 同欄混有 datetime / string / number 時，統一轉成可顯示格式，避免首頁或表格中斷。
-try:
-    _v1071_original_dataframe = st.dataframe
-    _v1071_original_table = st.table
-
-    def _v1071_safe_cell(x):
-        try:
-            if hasattr(x, "strftime"):
-                return x.strftime("%Y-%m-%d %H:%M:%S")
-            if isinstance(x, (list, dict, tuple, set)):
-                return str(x)
-            try:
-                if pd.isna(x):
-                    return ""
-            except Exception:
-                pass
-            return x
-        except Exception:
-            return str(x)
-
-    def _v1071_clean_df_for_streamlit(data):
-        try:
-            df = data.copy() if isinstance(data, pd.DataFrame) else pd.DataFrame(data)
-            for col in df.columns:
-                try:
-                    if pd.api.types.is_datetime64_any_dtype(df[col]):
-                        df[col] = df[col].dt.strftime("%Y-%m-%d %H:%M:%S").fillna("")
-                    elif df[col].dtype == "object":
-                        df[col] = df[col].map(_v1071_safe_cell)
-                except Exception:
-                    df[col] = df[col].astype(str)
-            return df
-        except Exception:
-            try:
-                return pd.DataFrame(data).astype(str)
-            except Exception:
-                return data
-
-    def _v1071_safe_dataframe(data=None, *args, **kwargs):
-        return _v1071_original_dataframe(_v1071_clean_df_for_streamlit(data), *args, **kwargs)
-
-    def _v1071_safe_table(data=None, *args, **kwargs):
-        return _v1071_original_table(_v1071_clean_df_for_streamlit(data), *args, **kwargs)
-
-    st.dataframe = _v1071_safe_dataframe
-    st.table = _v1071_safe_table
-except Exception:
-    pass
-# ===== V107.1 SAFE DATAFRAME / PYARROW FIX END =====
 
 
 # ================= AI / ESG / 法人完整補齊 =================
@@ -16019,7 +15965,7 @@ def v104_format_pct(x):
     except Exception: return f"{float(x):.1f}%" if pd.notna(x) else "N/A"
 
 def v104_home_page():
-    st.markdown("### 🧭 AI最終投資決策首頁 V107.1")
+    st.markdown("### 🧭 AI最終投資決策首頁 V107.0")
     st.info("請先選產業，再選個股。首頁只保留投資人最需要的答案：能不能買、合理價區間、預期報酬、全球競爭力與主要風險。")
 
     st.caption("價格區間與預期報酬主要由 AIVM Composite Valuation Model 推估：綜合企業評價、歷史Forward驗證、Alpha/Quant分數、產業競爭力與現價安全邊際；預期報酬率＝(合理價－現價)÷現價。模型細部權重屬內部研究方法，如需研究資料請洽詢開發者。")
@@ -17027,7 +16973,7 @@ def v106_fmt_price(x):
     return f"{float(x):,.2f}" if pd.notna(x) else "N/A"
 
 def v106_public_home():
-    st.markdown("### 🧭 AI最終投資決策首頁 V107.1")
+    st.markdown("### 🧭 AI最終投資決策首頁 V107.0")
     st.caption(V106_PUBLIC_NOTE)
     qcol, icol, scol = st.columns([1.3,1,1.2])
     with qcol:
