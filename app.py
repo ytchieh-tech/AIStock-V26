@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V107.4 Core TWSE TPEx Database"
+APP_VERSION="V107.5 Industry Select Fix"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -16019,7 +16019,7 @@ def v104_format_pct(x):
     except Exception: return f"{float(x):.1f}%" if pd.notna(x) else "N/A"
 
 def v104_home_page():
-    st.markdown("### 🧭 AI最終投資決策首頁 V107.4")
+    st.markdown("### 🧭 AI最終投資決策首頁 V107.5")
     st.info("請先選產業，再選個股。首頁只保留投資人最需要的答案：能不能買、合理價區間、預期報酬、全球競爭力與主要風險。")
 
     st.caption("價格區間與預期報酬主要由 AIVM Composite Valuation Model 推估：綜合企業評價、歷史Forward驗證、Alpha/Quant分數、產業競爭力與現價安全邊際；預期報酬率＝(合理價－現價)÷現價。模型細部權重屬內部研究方法，如需研究資料請洽詢開發者。")
@@ -16900,6 +16900,30 @@ def v107_rows():
     except Exception:
         return []
 
+
+# ===== V107.5 QUICK SYMBOL BUTTONS START =====
+def v1075_recent_buttons():
+    try:
+        st.markdown("#### 常用快速查詢")
+        b1,b2,b3,b4,b5,b6 = st.columns(6)
+        quick = [
+            (b1, "台積電", "2330"),
+            (b2, "台達電", "2308"),
+            (b3, "信驊", "5274"),
+            (b4, "國巨", "2327"),
+            (b5, "南亞科", "2408"),
+            (b6, "大立光", "3008"),
+        ]
+        for col, label, qv in quick:
+            with col:
+                if st.button(label, key=f"v1075_quick_{qv}", use_container_width=True):
+                    st.session_state["v107_query"] = qv
+                    st.rerun()
+    except Exception:
+        pass
+# ===== V107.5 QUICK SYMBOL BUTTONS END =====
+
+
 def v107_premium_home():
     v107_css()
     now_show=datetime.now().strftime("%Y/%m/%d %H:%M")
@@ -16916,7 +16940,7 @@ def v107_premium_home():
 
     c1,c2=st.columns([1.25,1])
     with c1:
-        q=st.text_input("搜尋股票代碼或名稱", value=st.session_state.get("v107_query","2330"), placeholder="例如：2330、台積電、3131、弘塑、6215、和椿", key="v107_query")
+        q=st.text_input("搜尋股票代碼或名稱", value=st.session_state.get("v107_query",""), placeholder="例如：2330、台積電、2308、台達電、5274、信驊", key="v107_query")
     with c2:
         st.caption("現價每小時快取更新；重新整理頁面可取得最新資料。")
 
@@ -16928,8 +16952,12 @@ def v107_premium_home():
             pick=st.selectbox("選擇個股", v107_stock_options(ind), key="v107_stock_pick")
         if not q:
             q=pick.split("/")[-1].strip()
-
-    symbol=v107_get_symbol(q)
+    selected_symbol = sel.split("/")[-1].strip()
+    typed_query = str(q or "").strip()
+    if typed_query:
+        symbol = v107_get_symbol(typed_query)
+    else:
+        symbol = v107_get_symbol(selected_symbol)
     d=v107_get_decision(symbol)
 
     st.caption(f"資料更新時間：{d.get('updated','N/A')}｜現價來源：{d.get('source','N/A')}｜價格區間由綜合估值模型推估，預期報酬率＝(合理價－現價)÷現價。")
@@ -17451,7 +17479,7 @@ def v106_fmt_price(x):
     return f"{float(x):,.2f}" if pd.notna(x) else "N/A"
 
 def v106_public_home():
-    st.markdown("### 🧭 AI最終投資決策首頁 V107.4")
+    st.markdown("### 🧭 AI最終投資決策首頁 V107.5")
     st.caption(V106_PUBLIC_NOTE)
     qcol, icol, scol = st.columns([1.3,1,1.2])
     with qcol:
