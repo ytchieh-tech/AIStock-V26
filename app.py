@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V101.2 DNA Alpha Fast Mode"
+APP_VERSION="V101.3 Alpha 2.0 Engine"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -15147,11 +15147,253 @@ def v101_alpha_engine_page():
 # ===== V101.2 DNA ALPHA FAST MODE END =====
 
 
+
+# ===== V101.3 ALPHA 2.0 ENGINE START =====
+# V101.3：Alpha 2.0 選股引擎。
+# 重點：不再用 DNA可信度 直接當 Alpha；改用 Forward實績反推 Alpha2 Score。
+# Alpha2 Score = 40%方向命中率 + 30% 10%內命中率 + 30% Alpha勝率。
+# 不動首頁、K線、財報、ESG、法人與主估值核心。
+
+def v1013_alpha_source_df(use_yahoo=False):
+    # 快速模式：沿用 V100.2，真實模式：使用 V100.3 Yahoo Forward。
+    if use_yahoo:
+        try:
+            df = v1012_yahoo_alpha_df() if "v1012_yahoo_alpha_df" in globals() else pd.DataFrame()
+        except Exception:
+            df = pd.DataFrame()
+    else:
+        try:
+            df = v1012_fast_alpha_df() if "v1012_fast_alpha_df" in globals() else pd.DataFrame()
+        except Exception:
+            df = pd.DataFrame()
+
+    if df is None or df.empty:
+        return pd.DataFrame()
+
+    # 若缺少方向命中，用報酬正負代替方向。
+    df = df.copy()
+    if "實際報酬率" in df.columns:
+        df["實際報酬率"] = pd.to_numeric(df["實際報酬率"], errors="coerce")
+    if "Alpha超額報酬" in df.columns:
+        df["Alpha超額報酬"] = pd.to_numeric(df["Alpha超額報酬"], errors="coerce")
+
+    if "方向命中" not in df.columns:
+        df["方向命中"] = np.where(df["實際報酬率"] > 0, "是", "否")
+
+    return df
+
+def v1013_stock_alpha2_summary(df):
+    rows = []
+    if df.empty:
+        return pd.DataFrame()
+
+    for (sym, company), g in df.groupby(["代碼", "公司"]):
+        ret = pd.to_numeric(g["實際報酬率"], errors="coerce")
+        alpha = pd.to_numeric(g["Alpha超額報酬"], errors="coerce")
+        abs_ret = ret.abs()
+
+        direction_rate = (g["方向命中"] == "是").mean() * 100 if "方向命中" in g.columns else (ret > 0).mean() * 100
+        hit10 = (abs_ret <= 10).mean() * 100
+        alpha_win = (alpha > 0).mean() * 100
+        avg_ret = ret.mean()
+        avg_alpha = alpha.mean()
+        vol = ret.std(ddof=0)
+        sharpe = avg_ret / vol if pd.notna(vol) and vol != 0 else np.nan
+
+        alpha2 = 0.40 * direction_rate + 0.30 * hit10 + 0.30 * alpha_win
+
+        if alpha2 >= 85:
+            grade = "A+：Alpha核心"
+        elif alpha2 >= 75:
+            grade = "A：可列入候選"
+        elif alpha2 >= 65:
+            grade = "B：可觀察"
+        elif alpha2 >= 55:
+            grade = "C：需人工判讀"
+        else:
+            grade = "D：暫不建議"
+
+        rows.append({
+            "代碼": sym,
+            "公司": company,
+            "DNA族群": g["DNA族群"].iloc[0],
+            "方向命中率": direction_rate,
+            "10%內命中率": hit10,
+            "Alpha勝率": alpha_win,
+            "平均報酬率": avg_ret,
+            "平均Alpha": avg_alpha,
+            "Sharpe近似": sharpe,
+            "Alpha2 Score": alpha2,
+            "Alpha2等級": grade,
+            "樣本數": len(g),
+            "資料來源": g["資料來源"].iloc[0] if "資料來源" in g.columns else "",
+        })
+
+    return pd.DataFrame(rows).sort_values("Alpha2 Score", ascending=False)
+
+def v1013_group_alpha2_summary(stock_df):
+    if stock_df.empty:
+        return pd.DataFrame()
+    rows = []
+    for group, g in stock_df.groupby("DNA族群"):
+        rows.append({
+            "DNA族群": group,
+            "公司數": len(g),
+            "平均Alpha2": g["Alpha2 Score"].mean(),
+            "平均方向命中率": g["方向命中率"].mean(),
+            "平均10%內命中率": g["10%內命中率"].mean(),
+            "平均Alpha勝率": g["Alpha勝率"].mean(),
+            "代表公司": "、".join(g.sort_values("Alpha2 Score", ascending=False)["公司"].astype(str).head(5).tolist()),
+        })
+    return pd.DataFrame(rows).sort_values("平均Alpha2", ascending=False)
+
+def v1013_top_portfolio(df, stock_df, top_n=5):
+    if df.empty or stock_df.empty:
+        return pd.DataFrame()
+
+    top_symbols = stock_df.sort_values("Alpha2 Score", ascending=False).head(top_n)["代碼"].tolist()
+    rows = []
+    for (date, period), g in df.groupby(["DNA日期", "預測期間"]):
+        port = g[g["代碼"].isin(top_symbols)]
+        if port.empty:
+            continue
+        port_ret = pd.to_numeric(port["實際報酬率"], errors="coerce").mean()
+        bench_ret = pd.to_numeric(g["實際報酬率"], errors="coerce").mean()
+        rows.append({
+            "DNA日期": date,
+            "預測期間": period,
+            "TopN": top_n,
+            "投組平均報酬": port_ret,
+            "同池平均報酬": bench_ret,
+            "投組Alpha": port_ret - bench_ret if pd.notna(port_ret) and pd.notna(bench_ret) else np.nan,
+            "成員": "、".join(port["公司"].astype(str).drop_duplicates().tolist()),
+        })
+    return pd.DataFrame(rows).sort_values(["預測期間", "DNA日期"])
+
+def v1013_factor_table(stock_df):
+    if stock_df.empty:
+        return pd.DataFrame()
+    rows = []
+    factors = [
+        ("方向命中率", 0.40, "預測漲跌方向是否正確"),
+        ("10%內命中率", 0.30, "預測誤差或報酬偏差是否在合理範圍"),
+        ("Alpha勝率", 0.30, "是否能打敗同池平均報酬"),
+    ]
+    for name, weight, desc in factors:
+        rows.append({
+            "Alpha2因子": name,
+            "權重": weight * 100,
+            "全體平均": stock_df[name].mean(),
+            "最高公司": stock_df.sort_values(name, ascending=False)["公司"].iloc[0],
+            "說明": desc,
+        })
+    return pd.DataFrame(rows)
+
+def v1013_show(df):
+    out = df.copy()
+    pct_cols = [
+        "方向命中率", "10%內命中率", "Alpha勝率", "平均報酬率", "平均Alpha",
+        "平均方向命中率", "平均10%內命中率", "平均Alpha勝率",
+        "投組平均報酬", "同池平均報酬", "投組Alpha", "全體平均", "權重"
+    ]
+    for c in out.columns:
+        if c in pct_cols:
+            out[c] = out[c].apply(v971_pct)
+        elif c in ["Alpha2 Score", "平均Alpha2", "Sharpe近似"]:
+            out[c] = out[c].apply(lambda x: f"{float(x):.2f}" if pd.notna(x) else "N/A")
+    return out
+
+def v1013_alpha2_engine_page():
+    st.markdown("### V101.3 Alpha 2.0 選股引擎")
+    st.info("V101.3 不再用 DNA可信度 直接當Alpha，而是用 Forward實績反推：40%方向命中 + 30% 10%內命中 + 30% Alpha勝率。")
+
+    mode = st.radio(
+        "資料模式",
+        ["快速模式：V100.2資料", "Yahoo Forward模式：V100.3真實歷史價"],
+        horizontal=True,
+        key="v1013_mode"
+    )
+    use_yahoo = mode.startswith("Yahoo")
+
+    if use_yahoo:
+        st.warning("Yahoo Forward模式較慢，會使用快取；若只是日常檢查，建議使用快速模式。")
+        if not st.button("執行 Alpha2 Yahoo Forward 回測", key="v1013_run"):
+            st.info("尚未執行 Yahoo Forward。")
+            return
+
+    df = v1013_alpha_source_df(use_yahoo=use_yahoo)
+    if df.empty:
+        st.error("目前沒有可用資料。")
+        return
+
+    stock = v1013_stock_alpha2_summary(df)
+    group = v1013_group_alpha2_summary(stock)
+    port = v1013_top_portfolio(df, stock, top_n=5)
+    factors = v1013_factor_table(stock)
+
+    top = stock.iloc[0] if not stock.empty else {}
+    avg_score = stock["Alpha2 Score"].mean() if not stock.empty else np.nan
+    a_count = (stock["Alpha2 Score"] >= 75).sum() if not stock.empty else 0
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("平均Alpha2", f"{avg_score:.1f}" if pd.notna(avg_score) else "N/A")
+    c2.metric("最高Alpha2", f"{top.get('公司','N/A')} / {top.get('Alpha2 Score',np.nan):.1f}" if len(stock) else "N/A")
+    c3.metric("A級以上家數", str(a_count))
+
+    tabs = st.tabs(["Alpha2排行榜", "Alpha因子拆解", "族群排名", "Top5投組", "Alpha2明細", "方法說明"])
+
+    with tabs[0]:
+        cols = ["代碼", "公司", "DNA族群", "Alpha2 Score", "Alpha2等級", "方向命中率", "10%內命中率", "Alpha勝率", "平均Alpha", "Sharpe近似", "樣本數", "資料來源"]
+        st.dataframe(v1013_show(stock)[cols], use_container_width=True, hide_index=True)
+
+    with tabs[1]:
+        st.dataframe(v1013_show(factors), use_container_width=True, hide_index=True)
+        st.caption("Alpha2不是估值分數，而是歷史Forward實績分數。")
+
+    with tabs[2]:
+        st.dataframe(v1013_show(group), use_container_width=True, hide_index=True)
+
+    with tabs[3]:
+        st.dataframe(v1013_show(port), use_container_width=True, hide_index=True)
+
+    with tabs[4]:
+        period_options = sorted(df["預測期間"].dropna().unique().tolist())
+        if period_options:
+            p = st.selectbox("選擇期間", period_options, key="v1013_period")
+            st.dataframe(v1011_show(df[df["預測期間"] == p].sort_values(["DNA日期", "Alpha超額報酬"], ascending=[True, False])), use_container_width=True, hide_index=True)
+        else:
+            st.dataframe(v1011_show(df), use_container_width=True, hide_index=True)
+
+    with tabs[5]:
+        st.markdown("""
+        **Alpha2 Score 公式**
+
+        ```
+        Alpha2 Score =
+            40% × 方向命中率
+          + 30% × 10%內命中率
+          + 30% × Alpha勝率
+        ```
+
+        V101.2 的問題是：DNA可信度高，不代表未來Alpha高。
+
+        V101.3 改成從 Forward 實績反推 Alpha 選股分數，
+        因此它是「選股引擎」，不是「估值引擎」。
+
+        使用建議：
+        - V97 / V99 / V99.1：估值模型
+        - V100 / V100.1：模型可信度
+        - V100.3：真實Forward回測
+        - V101.3：Alpha選股排行
+        """)
+# ===== V101.3 ALPHA 2.0 ENGINE END =====
+
+
 def v971_dna_tab_page():
-    st.markdown("### ⑮ V101.2 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V101.2 已修正 Alpha 頁面讀取速度；預設快速模式，Yahoo Forward 改為手動執行與快取，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.markdown("### ⑮ V101.3 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V101.3 已新增 Alpha 2.0 選股引擎；用Forward實績反推方向命中、10%命中與Alpha勝率，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
-    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "V100驗證中心", "V100.1可信度", "V100.2預測力", "V100.3 Forward", "V101 Alpha", "個股說明", "方法說明"])
+    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "V100驗證中心", "V100.1可信度", "V100.2預測力", "V100.3 Forward", "V101 Alpha", "V101.3 Alpha2", "個股說明", "方法說明"])
     with tabs[0]:
         st.dataframe(df[["代碼","公司","次產業","DNA定位","主要業務","CAP等級","DNA分數","全球競爭"]], use_container_width=True, hide_index=True)
     with tabs[1]:
@@ -15217,6 +15459,9 @@ def v971_dna_tab_page():
         v101_alpha_engine_page()
 
     with tabs[14]:
+        v1013_alpha2_engine_page()
+
+    with tabs[15]:
         company = st.selectbox("選擇公司", df["公司"].tolist(), key="v971_dna_company")
         row = df[df["公司"] == company].iloc[0]
         st.write(f"**{row['公司']} / {row['代碼']}**")
