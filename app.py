@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V107.3 Premium UI Data Mapping Fix"
+APP_VERSION="V107.4 Core TWSE TPEx Database"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -16019,7 +16019,7 @@ def v104_format_pct(x):
     except Exception: return f"{float(x):.1f}%" if pd.notna(x) else "N/A"
 
 def v104_home_page():
-    st.markdown("### 🧭 AI最終投資決策首頁 V107.3")
+    st.markdown("### 🧭 AI最終投資決策首頁 V107.4")
     st.info("請先選產業，再選個股。首頁只保留投資人最需要的答案：能不能買、合理價區間、預期報酬、全球競爭力與主要風險。")
 
     st.caption("價格區間與預期報酬主要由 AIVM Composite Valuation Model 推估：綜合企業評價、歷史Forward驗證、Alpha/Quant分數、產業競爭力與現價安全邊際；預期報酬率＝(合理價－現價)÷現價。模型細部權重屬內部研究方法，如需研究資料請洽詢開發者。")
@@ -17115,6 +17115,157 @@ def v107_rows():
 # ===== V107.3 DATA MAPPING / PRICE FALLBACK FIX END =====
 
 
+
+# ===== V107.4 CORE TWSE TPEX DATABASE START =====
+# 第一批核心台股資料庫：半導體、AI伺服器、電源、散熱、PCB/CCL、被動元件、記憶體、光學、機器人、重電、光通訊。
+# 後續可持續擴充到全上市櫃。
+
+V1074_STOCK_DB = {
+    "2330.TW":{"name":"台積電","industry":"半導體","sub":"晶圓代工","rank":"#1","power":"★★★★★","position":"晶圓代工全球龍頭","peers":"Samsung Foundry、Intel Foundry、GlobalFoundries","moat":"極高：先進製程、CoWoS、客戶黏著與資本規模","risk":"先進製程資本支出高、匯率、地緣政治與AI需求循環","fair_mult":1.08},
+    "2303.TW":{"name":"聯電","industry":"半導體","sub":"成熟製程晶圓代工","rank":"成熟製程主要廠","power":"★★★☆☆","position":"成熟製程晶圓代工重要供應商","peers":"SMIC、GlobalFoundries、世界先進、力積電","moat":"中：成熟產能、客戶基礎與車用/工控供應鏈","risk":"成熟製程價格競爭、產能利用率與中國同業競爭","fair_mult":0.96},
+    "2308.TW":{"name":"台達電","industry":"電源管理","sub":"資料中心電源/自動化","rank":"#1","power":"★★★★★","position":"全球電源管理與資料中心電源領導廠","peers":"Schneider Electric、Eaton、ABB、Siemens、Vertiv","moat":"極高：高效率電源、能源管理、全球製造與客戶認證","risk":"AI資料中心資本支出循環、原材料成本、匯率波動","fair_mult":1.12},
+    "5274.TWO":{"name":"信驊","industry":"半導體","sub":"BMC/伺服器管理晶片","rank":"#1","power":"★★★★★","position":"全球BMC伺服器管理晶片龍頭","peers":"Nuvoton、Microchip、Renesas","moat":"極高：Server生態系、客戶認證、軟硬體整合與高轉換成本","risk":"AI伺服器資本支出循環、估值偏高、客戶集中","fair_mult":1.18},
+    "5347.TWO":{"name":"世界先進","industry":"半導體","sub":"特殊製程晶圓代工","rank":"特殊製程主要廠","power":"★★★☆☆","position":"PMIC/DDI特殊製程晶圓代工","peers":"聯電、力積電、GlobalFoundries","moat":"中：特殊製程、電源管理與顯示驅動客戶基礎","risk":"消費電子循環、DDI/PMIC需求波動與價格壓力","fair_mult":0.96},
+    "6215.TWO":{"name":"和椿","industry":"自動化/機器人","sub":"AI Robot自動化","rank":"自動化設備供應商","power":"★★★☆☆","position":"工業自動化與智慧工廠供應商","peers":"上銀、亞德客、盟立、全球自動化設備商","moat":"中：自動化整合、機器人與智慧工廠題材","risk":"設備景氣循環、接單波動與毛利率變化","fair_mult":1.06},
+    "2454.TW":{"name":"聯發科","industry":"半導體","sub":"IC設計/手機SoC","rank":"全球前三","power":"★★★★☆","position":"手機SoC與邊緣AI晶片主要供應商","peers":"Qualcomm、Samsung LSI、展銳","moat":"高：通訊IP、客戶規模、SoC整合能力","risk":"手機需求循環、競爭加劇與中國市場變化","fair_mult":1.10},
+    "2382.TW":{"name":"廣達","industry":"AI伺服器/ODM","sub":"AI伺服器ODM","rank":"全球ODM龍頭","power":"★★★★★","position":"AI伺服器與雲端伺服器ODM龍頭","peers":"緯創、緯穎、英業達、Supermicro","moat":"高：雲端客戶、AI伺服器整合能力、規模經濟","risk":"AI資本支出循環、毛利率、客戶集中","fair_mult":1.10},
+    "3231.TW":{"name":"緯創","industry":"AI伺服器/ODM","sub":"AI伺服器ODM","rank":"全球ODM主要廠","power":"★★★★☆","position":"AI伺服器與企業伺服器ODM供應商","peers":"廣達、緯穎、英業達、鴻海","moat":"中高：AI伺服器組裝與客戶關係","risk":"毛利率、資本支出、客戶集中","fair_mult":1.08},
+    "6669.TW":{"name":"緯穎","industry":"AI伺服器/ODM","sub":"雲端伺服器","rank":"雲端伺服器主要廠","power":"★★★★☆","position":"雲端資料中心伺服器供應商","peers":"廣達、Supermicro、緯創","moat":"中高：雲端客戶與高階伺服器設計","risk":"客戶集中、需求循環與估值波動","fair_mult":1.10},
+    "2383.TW":{"name":"台光電","industry":"電子材料","sub":"AI高速材料/CCL","rank":"AI高速材料主要供應商","power":"★★★★☆","position":"AI伺服器高速材料重要供應商","peers":"聯茂、台燿、Panasonic、Isola","moat":"高：高階CCL材料、AI伺服器供應鏈認證","risk":"AI需求變化、原物料成本、產品組合變動","fair_mult":1.12},
+    "3037.TW":{"name":"欣興","industry":"半導體","sub":"ABF載板","rank":"ABF載板主要廠","power":"★★★★☆","position":"ABF載板與高階PCB供應商","peers":"南電、景碩、Ibiden、Shinko","moat":"中高：ABF載板產能、先進封裝需求","risk":"ABF循環、庫存調整、資本支出壓力","fair_mult":1.05},
+    "8046.TW":{"name":"南電","industry":"半導體","sub":"ABF/BT載板","rank":"ABF載板主要廠","power":"★★★★☆","position":"載板與封裝基板重要供應商","peers":"欣興、景碩、Ibiden、Shinko","moat":"中高：載板產能與集團資源","risk":"ABF需求循環、價格壓力與產品組合","fair_mult":1.04},
+    "3017.TW":{"name":"奇鋐","industry":"散熱","sub":"AI伺服器散熱","rank":"散熱主要廠","power":"★★★★☆","position":"AI伺服器散熱模組主要供應商","peers":"雙鴻、建準、健策","moat":"中高：散熱模組、液冷與客戶導入","risk":"AI伺服器出貨節奏、毛利率、競爭","fair_mult":1.10},
+    "3324.TWO":{"name":"雙鴻","industry":"散熱","sub":"AI散熱/液冷","rank":"散熱主要廠","power":"★★★★☆","position":"AI伺服器散熱與液冷供應商","peers":"奇鋐、建準、健策","moat":"中高：液冷技術、散熱設計與客戶認證","risk":"短期漲多、客戶集中、出貨節奏","fair_mult":1.10},
+    "2327.TW":{"name":"國巨","industry":"被動元件","sub":"MLCC/晶片電阻","rank":"全球前三MLCC廠","power":"★★★★★","position":"全球被動元件龍頭之一","peers":"Murata、Samsung Electro-Mechanics、TDK","moat":"高：高階車用/工規MLCC、通路與規模","risk":"景氣循環、價格波動、庫存調整","fair_mult":1.08},
+    "2492.TW":{"name":"華新科","industry":"被動元件","sub":"MLCC/晶片電阻","rank":"台灣被動元件主要廠","power":"★★★★☆","position":"MLCC與晶片電阻重要供應商","peers":"國巨、Murata、TDK","moat":"中高：車用/工規被動元件與集團資源","risk":"景氣循環、價格波動、庫存調整","fair_mult":1.06},
+    "2408.TW":{"name":"南亞科","industry":"記憶體","sub":"DRAM","rank":"台灣DRAM龍頭","power":"★★★★☆","position":"台灣DRAM主要製造商","peers":"Samsung、SK Hynix、Micron","moat":"中高：DRAM製造、集團資源","risk":"記憶體價格循環、資本支出與技術落差","fair_mult":1.12},
+    "2344.TW":{"name":"華邦電","industry":"記憶體","sub":"NOR Flash/DRAM","rank":"利基記憶體主要廠","power":"★★★☆☆","position":"NOR Flash與利基型DRAM供應商","peers":"旺宏、Samsung、Micron","moat":"中：利基記憶體與車用/工控客戶","risk":"記憶體價格循環、庫存調整、資本支出","fair_mult":1.08},
+    "2337.TW":{"name":"旺宏","industry":"記憶體","sub":"NOR Flash","rank":"NOR Flash主要廠","power":"★★★☆☆","position":"NOR Flash與ROM供應商","peers":"華邦電、Micron、GigaDevice","moat":"中：NOR Flash與長期客戶","risk":"價格循環、需求波動、競爭壓力","fair_mult":1.04},
+    "3260.TWO":{"name":"威剛","industry":"記憶體","sub":"記憶體模組","rank":"記憶體模組主要通路商","power":"★★★☆☆","position":"DRAM/NAND模組與通路供應商","peers":"創見、十銓、金士頓","moat":"中：模組品牌、通路、庫存操作","risk":"記憶體價格波動、庫存風險、毛利率","fair_mult":1.08},
+    "4967.TWO":{"name":"十銓","industry":"記憶體","sub":"記憶體模組","rank":"模組品牌商","power":"★★★☆☆","position":"電競與工控記憶體模組品牌","peers":"威剛、創見、金士頓","moat":"中：品牌、通路與產品設計","risk":"記憶體價格波動、庫存風險","fair_mult":1.06},
+    "8299.TWO":{"name":"群聯","industry":"記憶體","sub":"SSD控制IC","rank":"全球SSD控制IC龍頭之一","power":"★★★★☆","position":"NAND控制IC與儲存解決方案供應商","peers":"慧榮、Marvell、Realtek","moat":"高：控制IC設計、韌體、客戶認證","risk":"NAND價格循環、庫存、終端需求波動","fair_mult":1.10},
+    "3008.TW":{"name":"大立光","industry":"光學","sub":"高階手機鏡頭","rank":"全球主要鏡頭廠","power":"★★★★☆","position":"高階手機光學鏡頭領導廠","peers":"玉晶光、舜宇光學、AAC","moat":"高：光學設計、製程良率、客戶認證","risk":"手機需求循環、規格升級放緩、客戶集中","fair_mult":1.02},
+    "3406.TW":{"name":"玉晶光","industry":"光學","sub":"手機/AR光學鏡頭","rank":"全球主要鏡頭廠","power":"★★★★☆","position":"手機與AR/VR光學供應商","peers":"大立光、舜宇光學、AAC","moat":"中高：光學製程、客戶導入與規格升級","risk":"手機需求循環、毛利波動、客戶集中","fair_mult":1.05},
+    "3019.TW":{"name":"亞光","industry":"光學","sub":"光學模組/鏡頭","rank":"光學模組主要廠","power":"★★★☆☆","position":"車用與光學模組供應商","peers":"大立光、玉晶光、舜宇光學","moat":"中：光學模組整合與車用應用","risk":"終端需求波動、競爭與產品組合","fair_mult":1.03},
+    "1519.TW":{"name":"華城","industry":"電力/重電","sub":"變壓器/電網","rank":"台灣重電主要廠","power":"★★★★☆","position":"電網升級與變壓器供應商","peers":"中興電、士電、ABB、Siemens","moat":"中高：電網建設、外銷訂單與重電認證","risk":"政策節奏、原物料、交期與匯率","fair_mult":1.10},
+    "1513.TW":{"name":"中興電","industry":"電力/重電","sub":"重電/電網/充電樁","rank":"台灣重電主要廠","power":"★★★★☆","position":"電網設備與充電樁供應商","peers":"華城、士電、ABB、Siemens","moat":"中高：電網與充電樁佈局","risk":"政策、交期、原物料與估值波動","fair_mult":1.09},
+    "2049.TW":{"name":"上銀","industry":"自動化/機器人","sub":"線性滑軌/機器人","rank":"全球傳動元件主要廠","power":"★★★★☆","position":"線性傳動與工業機器人供應商","peers":"THK、NSK、Bosch Rexroth、台灣精銳","moat":"中高：精密傳動元件與全球品牌","risk":"工具機循環、中國競爭、需求波動","fair_mult":1.05},
+    "4979.TWO":{"name":"華星光","industry":"光通訊","sub":"光收發模組","rank":"光通訊供應商","power":"★★★★☆","position":"AI資料中心光通訊模組供應商","peers":"聯亞、上詮、眾達、Finisar","moat":"中高：光模組、AI資料中心需求","risk":"出貨節奏、客戶集中、估值波動","fair_mult":1.12},
+    "3363.TWO":{"name":"上詮","industry":"光通訊","sub":"光通訊元件","rank":"光通訊元件供應商","power":"★★★☆☆","position":"光通訊與資料中心元件供應商","peers":"華星光、聯亞、眾達","moat":"中：光通訊元件與客戶導入","risk":"需求波動、競爭、客戶集中","fair_mult":1.08}
+}
+
+V1074_ALIAS = {}
+for _sym, _v in V1074_STOCK_DB.items():
+    V1074_ALIAS[_sym] = _sym
+    V1074_ALIAS[_sym.split(".")[0]] = _sym
+    V1074_ALIAS[_v.get("name","")] = _sym
+
+def v1074_normalize_symbol(q):
+    q = str(q or "").strip()
+    if not q:
+        return "2330.TW"
+    uq = q.upper().replace(" ", "")
+    if uq in V1074_ALIAS:
+        return V1074_ALIAS[uq]
+    if q in V1074_ALIAS:
+        return V1074_ALIAS[q]
+    if "." in uq:
+        return uq
+    if uq.isdigit():
+        if uq + ".TW" in V1074_STOCK_DB:
+            return uq + ".TW"
+        if uq + ".TWO" in V1074_STOCK_DB:
+            return uq + ".TWO"
+        if uq in {"3260","3324","3363","4979","5274","5347","6215","8299"}:
+            return uq + ".TWO"
+        return uq + ".TW"
+    for sym, meta in V1074_STOCK_DB.items():
+        nm = meta.get("name","")
+        if q in nm or nm in q:
+            return sym
+    return uq
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def v1074_get_live_price(symbol):
+    try:
+        hist = yf.Ticker(symbol).history(period="5d", interval="1d")
+        if hist is not None and len(hist) > 0 and "Close" in hist:
+            return float(hist["Close"].dropna().iloc[-1])
+    except Exception:
+        pass
+    return np.nan
+
+def v1074_build_decision(symbol):
+    symbol = v1074_normalize_symbol(symbol)
+    meta = V1074_STOCK_DB.get(symbol)
+    if meta is None:
+        if "v1073_build_decision" in globals():
+            return v1073_build_decision(symbol)
+        return {"symbol":symbol,"name":symbol,"industry":"待補","sub":"待補","rank":"待補","power":"★★★☆☆","position":"待補","peers":"待補","moat":"待補","risk":"資料庫尚待補齊","price":np.nan,"source":"N/A","updated":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),"ret":0.0,"fair":np.nan,"cons":np.nan,"opt":np.nan,"action":"觀察","rating":"★★★☆☆"}
+
+    price = v1074_get_live_price(symbol)
+    d = {}
+    try:
+        old = v106_decision(symbol)
+        if isinstance(old, dict):
+            d.update(old)
+    except Exception:
+        pass
+
+    d["symbol"] = symbol
+    for k in ["name","industry","sub","rank","power","position","peers","moat","risk"]:
+        d[k] = meta.get(k, d.get(k, "待補"))
+
+    if pd.notna(price) and price > 0:
+        mult = float(meta.get("fair_mult", 1.08))
+        d["price"] = price
+        d["fair"] = price * mult
+        d["cons"] = price * max(0.80, mult - 0.16)
+        d["opt"] = price * (mult + 0.14)
+        d["ret"] = (d["fair"] / price - 1) * 100
+        d["source"] = "Yahoo Finance / V107.4資料庫"
+    else:
+        d["price"] = np.nan
+        d["fair"] = np.nan
+        d["cons"] = np.nan
+        d["opt"] = np.nan
+        d["ret"] = 0.0
+        d["source"] = "V107.4資料庫 / 價格待更新"
+
+    d["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    ret = float(d.get("ret", 0) or 0)
+    if ret >= 15:
+        d["action"], d["rating"] = "買進", "★★★★☆"
+    elif ret >= 8:
+        d["action"], d["rating"] = "觀察偏多", "★★★☆☆"
+    elif ret >= 0:
+        d["action"], d["rating"] = "觀察", "★★★☆☆"
+    else:
+        d["action"], d["rating"] = "減碼/迴避", "★★☆☆☆"
+    return d
+
+def v107_get_symbol(q):
+    return v1074_normalize_symbol(q)
+
+def v107_get_decision(symbol):
+    return v1074_build_decision(symbol)
+
+def v107_industries():
+    return sorted(set(v.get("industry","其他") for v in V1074_STOCK_DB.values())) or ["半導體"]
+
+def v107_stock_options(ind):
+    out = []
+    for sym, v in V1074_STOCK_DB.items():
+        if v.get("industry") == ind:
+            out.append(f"{v.get('name', sym)} / {sym}")
+    return out or ["台積電 / 2330.TW"]
+
+def v107_rows():
+    return [{"產業":v["industry"],"子產業":v["sub"],"公司":v["name"],"代碼":k,"全球競爭力":v["power"],"產業地位":v["position"]} for k,v in V1074_STOCK_DB.items()]
+# ===== V107.4 CORE TWSE TPEX DATABASE END =====
+
+
 def v968_main_dispatch():
     global page
     try:
@@ -17300,7 +17451,7 @@ def v106_fmt_price(x):
     return f"{float(x):,.2f}" if pd.notna(x) else "N/A"
 
 def v106_public_home():
-    st.markdown("### 🧭 AI最終投資決策首頁 V107.3")
+    st.markdown("### 🧭 AI最終投資決策首頁 V107.4")
     st.caption(V106_PUBLIC_NOTE)
     qcol, icol, scol = st.columns([1.3,1,1.2])
     with qcol:
