@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V101.0 DNA Alpha Engine Trial"
+APP_VERSION="V101.1 DNA Alpha Engine Hotfix"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -14659,9 +14659,279 @@ def v101_alpha_engine_page():
 # ===== V101.0 DNA ALPHA ENGINE TRIAL END =====
 
 
+
+# ===== V101.1 DNA ALPHA ENGINE HOTFIX START =====
+# 修正 V101.0 Alpha 頁面空白：加入保底資料流程與明確錯誤提示。
+# 原因通常是 V100.3 Forward 資料尚未產生、Yahoo歷史資料抓取失敗、或前置函式回傳空表。
+# V101.1 會先嘗試使用 V100.3 Forward 真實資料；若失敗，改用 V100.2 預測力資料作為試作備援。
+
+def v1011_alpha_base_df():
+    # 1) 優先使用 V100.3 真實Forward回測資料
+    fwd = pd.DataFrame()
+    try:
+        if "v1003_forward_backtest_df" in globals():
+            fwd = v1003_forward_backtest_df()
+    except Exception:
+        fwd = pd.DataFrame()
+
+    rows = []
+
+    if isinstance(fwd, pd.DataFrame) and not fwd.empty:
+        try:
+            conf = v1001_confidence_df() if "v1001_confidence_df" in globals() else pd.DataFrame()
+        except Exception:
+            conf = pd.DataFrame()
+
+        for _, r in fwd.iterrows():
+            sym = r.get("代碼")
+            dna_score = np.nan
+            theme = np.nan
+            stability = np.nan
+            if isinstance(conf, pd.DataFrame) and not conf.empty and "代碼" in conf.columns and sym in conf["代碼"].values:
+                hit = conf[conf["代碼"] == sym].iloc[0]
+                dna_score = float(hit.get("DNA可信度", np.nan)) if pd.notna(hit.get("DNA可信度", np.nan)) else np.nan
+                theme = float(hit.get("Theme題材分", np.nan)) if pd.notna(hit.get("Theme題材分", np.nan)) else np.nan
+                stability = float(hit.get("Stability穩定度", np.nan)) if pd.notna(hit.get("Stability穩定度", np.nan)) else np.nan
+
+            actual_ret = float(r.get("實際報酬率", np.nan)) if pd.notna(r.get("實際報酬率", np.nan)) else np.nan
+            rows.append({
+                "DNA日期": r.get("DNA日期"),
+                "預測期間": r.get("預測期間"),
+                "驗證日期": r.get("驗證日期"),
+                "代碼": sym,
+                "公司": r.get("公司"),
+                "DNA族群": r.get("DNA族群"),
+                "DNA Alpha Score": dna_score,
+                "Theme題材分": theme,
+                "Stability穩定度": stability,
+                "實際報酬率": actual_ret,
+                "起始價": r.get("起始價", np.nan),
+                "未來實際價": r.get("未來實際價", np.nan),
+                "資料來源": "V100.3 Forward / Yahoo歷史價",
+            })
+
+    # 2) 若 V100.3 沒資料，使用 V100.2 情境預測資料備援，避免頁面空白
+    if not rows:
+        pred = pd.DataFrame()
+        try:
+            if "v1002_prediction_base_df" in globals():
+                pred = v1002_prediction_base_df()
+        except Exception:
+            pred = pd.DataFrame()
+
+        if isinstance(pred, pd.DataFrame) and not pred.empty:
+            for _, r in pred.iterrows():
+                rows.append({
+                    "DNA日期": "V100.2情境",
+                    "預測期間": r.get("期間"),
+                    "驗證日期": "情境驗證",
+                    "代碼": r.get("代碼"),
+                    "公司": r.get("公司"),
+                    "DNA族群": r.get("DNA族群"),
+                    "DNA Alpha Score": r.get("DNA可信度", np.nan),
+                    "Theme題材分": r.get("題材分", np.nan),
+                    "Stability穩定度": r.get("穩定度", np.nan),
+                    "實際報酬率": r.get("情境實際報酬率", np.nan),
+                    "起始價": r.get("現價基準", np.nan),
+                    "未來實際價": r.get("情境實際價", np.nan),
+                    "資料來源": "V100.2 情境備援",
+                })
+
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return df
+
+    df["實際報酬率"] = pd.to_numeric(df["實際報酬率"], errors="coerce")
+    df["同池平均報酬"] = df.groupby(["DNA日期", "預測期間"])["實際報酬率"].transform("mean")
+    df["Alpha超額報酬"] = df["實際報酬率"] - df["同池平均報酬"]
+
+    def bucket(s):
+        try:
+            s = float(s)
+        except Exception:
+            return "資料不足"
+        if s >= 90:
+            return "90~100"
+        if s >= 80:
+            return "80~90"
+        if s >= 70:
+            return "70~80"
+        if s >= 60:
+            return "60~70"
+        return "<60"
+
+    df["DNA分數區間"] = df["DNA Alpha Score"].apply(bucket)
+    df["勝負"] = np.where(pd.to_numeric(df["實際報酬率"], errors="coerce") > 0, "勝", "負")
+    df["Alpha勝負"] = np.where(pd.to_numeric(df["Alpha超額報酬"], errors="coerce") > 0, "勝", "負")
+    return df
+
+def v1011_bucket_summary(df):
+    rows = []
+    order = {"90~100": 0, "80~90": 1, "70~80": 2, "60~70": 3, "<60": 4, "資料不足": 9}
+    for bucket, g in df.groupby("DNA分數區間"):
+        ret = pd.to_numeric(g["實際報酬率"], errors="coerce").dropna()
+        alpha = pd.to_numeric(g["Alpha超額報酬"], errors="coerce").dropna()
+        avg_ret = ret.mean() if len(ret) else np.nan
+        avg_alpha = alpha.mean() if len(alpha) else np.nan
+        win_rate = (ret > 0).mean() * 100 if len(ret) else np.nan
+        alpha_win = (alpha > 0).mean() * 100 if len(alpha) else np.nan
+        vol = ret.std(ddof=0) if len(ret) else np.nan
+        sharpe = avg_ret / vol if pd.notna(vol) and vol != 0 and pd.notna(avg_ret) else np.nan
+        rows.append({
+            "DNA分數區間": bucket,
+            "樣本數": len(g),
+            "平均報酬率": avg_ret,
+            "平均Alpha": avg_alpha,
+            "勝率": win_rate,
+            "Alpha勝率": alpha_win,
+            "報酬波動": vol,
+            "Sharpe近似": sharpe,
+        })
+    out = pd.DataFrame(rows)
+    if out.empty:
+        return out
+    out["排序"] = out["DNA分數區間"].map(order).fillna(99)
+    return out.sort_values("排序").drop(columns=["排序"])
+
+def v1011_stock_alpha_summary(df):
+    rows = []
+    for (sym, company), g in df.groupby(["代碼", "公司"]):
+        ret = pd.to_numeric(g["實際報酬率"], errors="coerce").dropna()
+        alpha = pd.to_numeric(g["Alpha超額報酬"], errors="coerce").dropna()
+        avg_ret = ret.mean() if len(ret) else np.nan
+        avg_alpha = alpha.mean() if len(alpha) else np.nan
+        win_rate = (ret > 0).mean() * 100 if len(ret) else np.nan
+        alpha_win = (alpha > 0).mean() * 100 if len(alpha) else np.nan
+        vol = ret.std(ddof=0) if len(ret) else np.nan
+        sharpe = avg_ret / vol if pd.notna(vol) and vol != 0 and pd.notna(avg_ret) else np.nan
+        dna = g["DNA Alpha Score"].iloc[0] if "DNA Alpha Score" in g.columns else np.nan
+        rows.append({
+            "代碼": sym,
+            "公司": company,
+            "DNA族群": g["DNA族群"].iloc[0],
+            "DNA Alpha Score": dna,
+            "平均報酬率": avg_ret,
+            "平均Alpha": avg_alpha,
+            "勝率": win_rate,
+            "Alpha勝率": alpha_win,
+            "Sharpe近似": sharpe,
+            "樣本數": len(g),
+            "資料來源": g["資料來源"].iloc[0] if "資料來源" in g.columns else "",
+        })
+    return pd.DataFrame(rows).sort_values("平均Alpha", ascending=False)
+
+def v1011_period_summary(df):
+    rows = []
+    for period, g in df.groupby("預測期間"):
+        ret = pd.to_numeric(g["實際報酬率"], errors="coerce").dropna()
+        alpha = pd.to_numeric(g["Alpha超額報酬"], errors="coerce").dropna()
+        rows.append({
+            "預測期間": period,
+            "樣本數": len(g),
+            "平均報酬率": ret.mean() if len(ret) else np.nan,
+            "平均Alpha": alpha.mean() if len(alpha) else np.nan,
+            "勝率": (ret > 0).mean() * 100 if len(ret) else np.nan,
+            "Alpha勝率": (alpha > 0).mean() * 100 if len(alpha) else np.nan,
+        })
+    return pd.DataFrame(rows)
+
+def v1011_top_portfolio(df, top_n=3):
+    rows = []
+    for (date, period), g in df.groupby(["DNA日期", "預測期間"]):
+        gg = g.sort_values("DNA Alpha Score", ascending=False).head(top_n)
+        if gg.empty:
+            continue
+        port_ret = pd.to_numeric(gg["實際報酬率"], errors="coerce").mean()
+        bench_ret = pd.to_numeric(g["實際報酬率"], errors="coerce").mean()
+        rows.append({
+            "DNA日期": date,
+            "預測期間": period,
+            "TopN": top_n,
+            "投組平均報酬": port_ret,
+            "同池平均報酬": bench_ret,
+            "投組Alpha": port_ret - bench_ret if pd.notna(port_ret) and pd.notna(bench_ret) else np.nan,
+            "成員": "、".join(gg["公司"].astype(str).tolist()),
+        })
+    return pd.DataFrame(rows).sort_values(["預測期間", "DNA日期"])
+
+def v1011_show(df):
+    out = df.copy()
+    pct_cols = ["平均報酬率", "平均Alpha", "勝率", "Alpha勝率", "報酬波動", "實際報酬率", "同池平均報酬", "Alpha超額報酬", "投組平均報酬", "投組Alpha"]
+    for c in out.columns:
+        if c in pct_cols:
+            out[c] = out[c].apply(v971_pct)
+        elif c in ["起始價", "未來實際價"]:
+            out[c] = out[c].apply(v971_fmt)
+        elif c in ["DNA Alpha Score", "Theme題材分", "Stability穩定度", "Sharpe近似"]:
+            out[c] = out[c].apply(lambda x: f"{float(x):.2f}" if pd.notna(x) else "N/A")
+    return out
+
+def v101_alpha_engine_page():
+    st.markdown("### V101.1 DNA Alpha Engine")
+    st.info("V101.1 修正空白頁：優先使用 V100.3 Yahoo Forward 資料；若抓不到，會使用 V100.2 情境資料備援。")
+
+    df = v1011_alpha_base_df()
+    if df.empty:
+        st.error("目前沒有可用的 Alpha 資料。請先確認 V100.3 Forward 或 V100.2 預測力頁面可以正常產生資料。")
+        return
+
+    bucket = v1011_bucket_summary(df)
+    stock = v1011_stock_alpha_summary(df)
+    period = v1011_period_summary(df)
+    port = v1011_top_portfolio(df, top_n=3)
+
+    avg_alpha = pd.to_numeric(df["Alpha超額報酬"], errors="coerce").mean()
+    alpha_win = (pd.to_numeric(df["Alpha超額報酬"], errors="coerce") > 0).mean() * 100
+    source_label = df["資料來源"].iloc[0] if "資料來源" in df.columns else "N/A"
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("整體平均Alpha", v971_pct(avg_alpha))
+    c2.metric("Alpha勝率", v971_pct(alpha_win))
+    c3.metric("資料來源", source_label)
+
+    tabs = st.tabs(["DNA區間績效", "個股Alpha", "Top3投組", "期間檢定", "Alpha明細", "方法說明"])
+
+    with tabs[0]:
+        st.dataframe(v1011_show(bucket), use_container_width=True, hide_index=True)
+
+    with tabs[1]:
+        st.dataframe(v1011_show(stock), use_container_width=True, hide_index=True)
+
+    with tabs[2]:
+        st.dataframe(v1011_show(port), use_container_width=True, hide_index=True)
+
+    with tabs[3]:
+        st.dataframe(v1011_show(period), use_container_width=True, hide_index=True)
+
+    with tabs[4]:
+        period_options = sorted(df["預測期間"].dropna().unique().tolist())
+        if period_options:
+            selected = st.selectbox("選擇期間", period_options, key="v1011_period")
+            show_df = df[df["預測期間"] == selected].sort_values(["DNA日期", "DNA Alpha Score"], ascending=[True, False])
+        else:
+            show_df = df
+        st.dataframe(v1011_show(show_df), use_container_width=True, hide_index=True)
+
+    with tabs[5]:
+        st.markdown("""
+        **V101.1 修正內容**
+
+        V101.0 空白的常見原因：
+        1. V100.3 Forward資料沒有成功產生。
+        2. Yahoo歷史資料暫時抓不到。
+        3. 前置資料表為空，導致Alpha頁面沒有可顯示內容。
+
+        V101.1 修正：
+        - 優先使用 V100.3 Yahoo Forward 資料。
+        - 若 V100.3 為空，自動改用 V100.2 情境資料。
+        - 若仍無資料，顯示明確錯誤訊息，不再空白。
+        """)
+# ===== V101.1 DNA ALPHA ENGINE HOTFIX END =====
+
+
 def v971_dna_tab_page():
-    st.markdown("### ⑮ V101.0 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V101.0 已新增現價驗證、DNA權重校準、自動最佳權重、歷史回測、個股DNA引擎、DNA族群引擎、V100驗證中心、DNA可信度、DNA預測力、Forward回測與DNA Alpha Engine，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.markdown("### ⑮ V101.1 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V101.1 修正DNA Alpha Engine空白頁；優先使用V100.3 Forward資料，失敗時改用V100.2備援資料，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
     tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "V100驗證中心", "V100.1可信度", "V100.2預測力", "V100.3 Forward", "V101 Alpha", "個股說明", "方法說明"])
     with tabs[0]:
