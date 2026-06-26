@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V100.1 DNA Confidence Engine"
+APP_VERSION="V100.2 DNA Prediction Power Trial"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -13931,11 +13931,192 @@ def v1001_confidence_engine_page():
 # ===== V100.1 DNA CONFIDENCE ENGINE END =====
 
 
+
+# ===== V100.2 DNA PREDICTION POWER TRIAL START =====
+# V100.2：DNA預測能力驗證引擎。
+# 目的：從「現在看現在」升級為「過去DNA → 未來股價」的預測能力檢定。
+# 本版為試作，使用情境回測資料；不動首頁、K線、財報、ESG、法人與主估值核心。
+
+V1002_FORWARD_PERIODS = ["6M", "12M", "24M"]
+
+V1002_FORWARD_RETURN = {
+    "2330.TW": {"6M": 0.10, "12M": 0.18, "24M": 0.32},
+    "2303.TW": {"6M": 0.03, "12M": 0.06, "24M": 0.10},
+    "5347.TWO": {"6M": 0.04, "12M": 0.08, "24M": 0.12},
+    "6770.TW": {"6M": -0.02, "12M": 0.04, "24M": 0.18},
+    "2383.TW": {"6M": 0.12, "12M": 0.24, "24M": 0.38},
+    "3037.TW": {"6M": 0.07, "12M": 0.14, "24M": 0.22},
+    "8046.TW": {"6M": 0.06, "12M": 0.12, "24M": 0.20},
+    "3711.TW": {"6M": 0.05, "12M": 0.10, "24M": 0.16},
+    "2449.TW": {"6M": 0.08, "12M": 0.18, "24M": 0.30},
+    "6215.TWO": {"6M": 0.15, "12M": 0.28, "24M": 0.45},
+}
+
+def v1002_prediction_base_df():
+    try:
+        conf = v1001_confidence_df()
+    except Exception:
+        conf = pd.DataFrame()
+    if conf.empty:
+        return pd.DataFrame()
+
+    try:
+        source = v100_model_error_df()
+    except Exception:
+        source = pd.DataFrame()
+
+    rows = []
+    for _, r in conf.iterrows():
+        sym = r["代碼"]
+        try:
+            hit = source[source["代碼"] == sym]
+            price = float(hit["現價"].iloc[0]) if not hit.empty else np.nan
+        except Exception:
+            price = np.nan
+
+        dna_conf = float(r["DNA可信度"]) if pd.notna(r["DNA可信度"]) else np.nan
+        theme = float(r["Theme題材分"]) if pd.notna(r["Theme題材分"]) else 70
+        stability = float(r["Stability穩定度"]) if pd.notna(r["Stability穩定度"]) else 70
+
+        base_signal = (dna_conf * 0.50 + theme * 0.30 + stability * 0.20)
+        expected_12m_return = max(-0.10, min(0.35, (base_signal - 70) / 100))
+        expected_6m_return = expected_12m_return * 0.55
+        expected_24m_return = min(0.60, expected_12m_return * 1.75)
+
+        for period, er in {"6M": expected_6m_return, "12M": expected_12m_return, "24M": expected_24m_return}.items():
+            actual_ret = V1002_FORWARD_RETURN.get(sym, {}).get(period, np.nan)
+            pred_price = price * (1 + er) if pd.notna(price) else np.nan
+            actual_price = price * (1 + actual_ret) if pd.notna(price) and pd.notna(actual_ret) else np.nan
+            pred_err = abs(actual_price - pred_price) / actual_price * 100 if pd.notna(actual_price) and actual_price else np.nan
+
+            rows.append({
+                "期間": period,
+                "代碼": sym,
+                "公司": r["公司"],
+                "DNA族群": r["DNA族群"],
+                "現價基準": price,
+                "DNA可信度": dna_conf,
+                "題材分": theme,
+                "穩定度": stability,
+                "預測報酬率": er * 100,
+                "情境實際報酬率": actual_ret * 100 if pd.notna(actual_ret) else np.nan,
+                "預測目標價": pred_price,
+                "情境實際價": actual_price,
+                "預測誤差": pred_err,
+            })
+    return pd.DataFrame(rows)
+
+def v1002_period_metrics(df):
+    rows = []
+    for period, g in df.groupby("期間"):
+        e = pd.to_numeric(g["預測誤差"], errors="coerce").dropna()
+        if len(e):
+            mape = e.mean()
+            hit = (e <= 10).mean() * 100
+        else:
+            mape = hit = np.nan
+        rows.append({"期間": period, "預測MAPE": mape, "10%內命中率": hit, "樣本數": len(g)})
+    order = {"6M": 0, "12M": 1, "24M": 2}
+    out = pd.DataFrame(rows)
+    out["排序"] = out["期間"].map(order)
+    return out.sort_values("排序").drop(columns=["排序"])
+
+def v1002_stock_metrics(df):
+    rows = []
+    for (sym, company), g in df.groupby(["代碼", "公司"]):
+        e = pd.to_numeric(g["預測誤差"], errors="coerce").dropna()
+        avg_mape = e.mean() if len(e) else np.nan
+        hit = (e <= 10).mean() * 100 if len(e) else np.nan
+        conf = g["DNA可信度"].iloc[0] if "DNA可信度" in g.columns else np.nan
+        score = max(0, min(100, 100 - avg_mape * 3 + hit * 0.2)) if pd.notna(avg_mape) and pd.notna(hit) else np.nan
+        grade = "A：預測能力佳" if pd.notna(score) and score >= 80 else ("B：可參考" if pd.notna(score) and score >= 70 else ("C：需人工判讀" if pd.notna(score) and score >= 60 else "D：暫不建議"))
+        rows.append({
+            "代碼": sym,
+            "公司": company,
+            "DNA族群": g["DNA族群"].iloc[0],
+            "DNA可信度": conf,
+            "預測平均MAPE": avg_mape,
+            "10%內命中率": hit,
+            "Prediction Power": score,
+            "預測等級": grade,
+        })
+    return pd.DataFrame(rows).sort_values("Prediction Power", ascending=False)
+
+def v1002_show(df):
+    out = df.copy()
+    for c in out.columns:
+        if c in ["預測報酬率", "情境實際報酬率", "預測誤差", "預測MAPE", "10%內命中率", "預測平均MAPE"]:
+            out[c] = out[c].apply(v971_pct)
+        elif c in ["現價基準", "預測目標價", "情境實際價"]:
+            out[c] = out[c].apply(v971_fmt)
+        elif c in ["DNA可信度", "題材分", "穩定度", "Prediction Power"]:
+            out[c] = out[c].apply(lambda x: f"{float(x):.1f}" if pd.notna(x) else "N/A")
+    return out
+
+def v1002_prediction_power_page():
+    st.markdown("### V100.2 DNA預測能力驗證")
+    st.info("本頁從『現在看現在』升級為『DNA訊號 → 未來股價』的預測能力檢定。本版先用情境資料試作，正式版可接歷史收盤價與歷史財報。")
+
+    df = v1002_prediction_base_df()
+    if df.empty:
+        st.warning("目前無法產生預測能力驗證資料。")
+        return
+
+    period_summary = v1002_period_metrics(df)
+    stock_summary = v1002_stock_metrics(df)
+
+    avg_mape = period_summary["預測MAPE"].mean()
+    avg_hit = period_summary["10%內命中率"].mean()
+    top = stock_summary.iloc[0]
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("預測平均MAPE", v971_pct(avg_mape))
+    c2.metric("10%內平均命中率", v971_pct(avg_hit))
+    c3.metric("最高預測能力", f"{top['公司']} / {top['Prediction Power']:.1f}")
+
+    tabs = st.tabs(["期間總覽", "個股預測力", "預測明細", "方法說明"])
+
+    with tabs[0]:
+        st.dataframe(v1002_show(period_summary), use_container_width=True, hide_index=True)
+        st.caption("MAPE越低、10%內命中率越高，代表DNA訊號對未來價格越有預測能力。")
+
+    with tabs[1]:
+        st.dataframe(v1002_show(stock_summary), use_container_width=True, hide_index=True)
+
+    with tabs[2]:
+        period = st.selectbox("選擇預測期間", V1002_FORWARD_PERIODS, index=1, key="v1002_period")
+        st.dataframe(v1002_show(df[df["期間"] == period]), use_container_width=True, hide_index=True)
+
+    with tabs[3]:
+        st.markdown("""
+        **V100.2 核心目的**
+
+        V100.1 驗證的是：
+
+        ```
+        現在模型是否可信
+        ```
+
+        V100.2 開始驗證：
+
+        ```
+        DNA訊號是否能預測未來
+        ```
+
+        本版為試作：
+        - 使用DNA可信度、題材分、穩定度推導未來報酬率。
+        - 使用情境未來報酬率作為檢定資料。
+
+        正式版 V100.3 可接歷史季度DNA分數、歷史收盤價與真實 forward return。
+        """)
+# ===== V100.2 DNA PREDICTION POWER TRIAL END =====
+
+
 def v971_dna_tab_page():
-    st.markdown("### ⑮ V100.1 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V100.1 已新增現價驗證、DNA權重校準、自動最佳權重、歷史回測、個股DNA引擎、DNA族群引擎、V100驗證中心與DNA可信度引擎，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.markdown("### ⑮ V100.2 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V100.2 已新增現價驗證、DNA權重校準、自動最佳權重、歷史回測、個股DNA引擎、DNA族群引擎、V100驗證中心、DNA可信度引擎與DNA預測能力驗證，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
-    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "V100驗證中心", "V100.1可信度", "個股說明", "方法說明"])
+    tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "V100驗證中心", "V100.1可信度", "V100.2預測力", "個股說明", "方法說明"])
     with tabs[0]:
         st.dataframe(df[["代碼","公司","次產業","DNA定位","主要業務","CAP等級","DNA分數","全球競爭"]], use_container_width=True, hide_index=True)
     with tabs[1]:
@@ -13992,6 +14173,9 @@ def v971_dna_tab_page():
         v1001_confidence_engine_page()
 
     with tabs[11]:
+        v1002_prediction_power_page()
+
+    with tabs[12]:
         company = st.selectbox("選擇公司", df["公司"].tolist(), key="v971_dna_company")
         row = df[df["公司"] == company].iloc[0]
         st.write(f"**{row['公司']} / {row['代碼']}**")
