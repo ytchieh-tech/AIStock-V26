@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V103.0 AI Investment Decision Center"
+APP_VERSION="V104.0 Final Investment Home"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -15874,9 +15874,138 @@ def v103_investment_decision_page():
 # ===== V103.0 AI INVESTMENT DECISION CENTER END =====
 
 
+
+# ===== V104.0 FINAL INVESTMENT HOME START =====
+V104_INDUSTRY_STOCKS = {
+    "晶圓代工": [("2330.TW","台積電"),("2303.TW","聯電"),("5347.TWO","世界先進"),("6770.TW","力積電")],
+    "AI高速材料 / CCL": [("2383.TW","台光電"),("6274.TW","台燿"),("6213.TW","聯茂")],
+    "ABF載板": [("3037.TW","欣興"),("8046.TW","南電"),("3189.TW","景碩")],
+    "封測 / 半導體服務": [("3711.TW","日月光投控"),("2449.TW","京元電子"),("6239.TW","力成")],
+    "AI伺服器 / 系統": [("2382.TW","廣達"),("3231.TW","緯創"),("6669.TW","緯穎"),("2317.TW","鴻海")],
+    "自動化 / AI Robot": [("6215.TWO","和椿"),("2049.TW","上銀"),("1597.TW","直得"),("2359.TW","所羅門")],
+    "電源 / 工控": [("2308.TW","台達電"),("2395.TW","研華"),("6415.TW","矽力-KY")],
+}
+V104_COMPETITION = {
+    "2330.TW":("★★★★★","#1","晶圓代工全球龍頭","Samsung Foundry、Intel Foundry、GlobalFoundries","極高：先進製程、CoWoS、客戶黏著與資本規模","AI/HPC與先進封裝仍是中長期核心驅動。"),
+    "2303.TW":("★★★☆☆","成熟製程主要廠","成熟製程晶圓代工重要供應商","SMIC、GlobalFoundries、世界先進、力積電","中：成熟產能、客戶基礎與工控/車用供應鏈","關鍵在產能利用率、價格競爭與車用工控復甦。"),
+    "5347.TWO":("★★★☆☆","特殊製程利基廠","PMIC/DDIC特殊製程","聯電、SMIC、華虹、力積電","中：特殊製程利基與客戶黏著","受成熟製程循環與庫存調整影響較大。"),
+    "6770.TW":("★★☆☆☆","記憶體/成熟製程循環股","成熟製程與記憶體相關","成熟製程同業、記憶體循環廠","中低：受景氣循環與價格波動影響","需要搭配景氣循環與產能利用率判讀。"),
+    "2383.TW":("★★★★★","AI高速材料核心廠","AI伺服器高速CCL關鍵供應商","Panasonic、Rogers、Isola、台燿、聯茂","高：AI高速材料認證、客戶黏著與技術門檻","AI伺服器與高速傳輸升級是主要成長動能。"),
+    "3037.TW":("★★★★☆","ABF載板核心廠","ABF / IC載板主要供應商","Ibiden、Shinko、南電、景碩","中高：ABF製程、客戶認證與產能規模","AI/HPC載板需求復甦是重點。"),
+    "8046.TW":("★★★★☆","ABF載板核心廠","ABF/BT載板主要供應商","Ibiden、Shinko、欣興、景碩","中高：載板製程與客戶認證","受ABF價格與AI伺服器需求影響。"),
+    "3711.TW":("★★★★☆","封測龍頭","全球封測龍頭之一","Amkor、JCET、力成","高：先進封裝、規模與客戶基礎","先進封裝與SiP需求是主要成長來源。"),
+    "2449.TW":("★★★☆☆","IC測試利基廠","AI/HPC與車用測試服務","矽格、欣銓、日月光、力成","中：測試產能、客戶黏著與設備投資","AI/HPC測試需求與產能利用率是核心。"),
+    "6215.TWO":("★★★☆☆","台灣自動化整合商","AI Robot與智慧工廠題材股","Fanuc、ABB、KUKA、Yaskawa、所羅門、上銀","中：自動化整合、智慧工廠與題材成長","題材成長性高，但需確認訂單與獲利轉換。"),
+    "2308.TW":("★★★★★","電源管理龍頭","電源、工控、資料中心能源管理核心廠","Schneider、Eaton、台系電源供應鏈","高：電源技術、工控品牌與全球客戶","AI資料中心、電動車與能源管理支撐長期成長。"),
+}
+
+def v104_stock_name(symbol):
+    for _, stocks in V104_INDUSTRY_STOCKS.items():
+        for s, n in stocks:
+            if s == symbol:
+                return n
+    try:
+        return display_name(symbol)
+    except Exception:
+        return symbol
+
+def v104_industry_of(symbol):
+    for industry, stocks in V104_INDUSTRY_STOCKS.items():
+        if any(s == symbol for s, _ in stocks):
+            return industry
+    return "自選股"
+
+def v104_competition(symbol):
+    tpl = V104_COMPETITION.get(symbol)
+    if tpl:
+        return {"全球競爭力":tpl[0],"產業排名":tpl[1],"全球市占/地位":tpl[2],"主要競爭者":tpl[3],"護城河":tpl[4],"產業結論":tpl[5]}
+    return {"全球競爭力":"★★★☆☆","產業排名":"待補產業資料","全球市占/地位":"待建立全球競爭資料","主要競爭者":"待補","護城河":"待補","產業結論":"此公司已納入架構，後續需補齊產業與全球競爭資料。"}
+
+def v104_get_decision_for_symbol(symbol, use_yahoo=False):
+    try:
+        decision = v103_decision_table(use_yahoo=use_yahoo)
+    except Exception:
+        decision = pd.DataFrame()
+    if isinstance(decision, pd.DataFrame) and not decision.empty and "代碼" in decision.columns and symbol in decision["代碼"].values:
+        return decision[decision["代碼"] == symbol].iloc[0].to_dict()
+    try:
+        price, src = v103_get_current_price(symbol)
+    except Exception:
+        price, src = np.nan, "Fallback"
+    fair = price * 1.05 if pd.notna(price) else np.nan
+    return {
+        "代碼":symbol,"公司":v104_stock_name(symbol),"AI評級":"★★★☆☆","投資建議":"觀察",
+        "現價":price,"保守價":price*0.98 if pd.notna(price) else np.nan,"合理價":fair,
+        "樂觀價":price*1.12 if pd.notna(price) else np.nan,"預期報酬率":5.0,
+        "Composite":60.0,"DNA族群":v104_industry_of(symbol),"現價來源":src,"資料來源":"V104 Fallback",
+        "分批買進參考":price*0.97 if pd.notna(price) else np.nan,"風控停損參考":price*0.90 if pd.notna(price) else np.nan,
+        "平均Alpha":np.nan,"近期Momentum":np.nan,
+    }
+
+def v104_format_price(x):
+    try: return v971_fmt(x)
+    except Exception: return f"{float(x):,.2f}" if pd.notna(x) else "N/A"
+def v104_format_pct(x):
+    try: return v971_pct(x)
+    except Exception: return f"{float(x):.1f}%" if pd.notna(x) else "N/A"
+
+def v104_home_page():
+    st.markdown("### 🧭 AI最終投資決策首頁 V104.0")
+    st.info("請先選產業，再選個股。首頁只保留投資人最需要的答案：能不能買、合理價區間、預期報酬、全球競爭力與主要風險。")
+    c0, c1, c2 = st.columns([1.2,1.5,1])
+    with c0:
+        industry = st.selectbox("選擇產業", list(V104_INDUSTRY_STOCKS.keys()), key="v104_industry")
+    stock_options = [f"{name} / {sym}" for sym, name in V104_INDUSTRY_STOCKS[industry]]
+    with c1:
+        selected = st.selectbox("選擇個股", stock_options, key="v104_stock")
+    with c2:
+        mode = st.radio("資料模式", ["快速","Yahoo"], horizontal=True, key="v104_mode")
+    symbol = selected.split("/")[-1].strip()
+    use_yahoo = mode == "Yahoo"
+    if use_yahoo:
+        st.warning("Yahoo模式較接近真實歷史驗證，但會比較慢；正式首頁日常使用建議先用快速模式。")
+        if not st.button("執行 Yahoo 決策分析", key="v104_run_yahoo"):
+            st.info("目前顯示快速/保守資料。按下按鈕後才執行 Yahoo Forward 分析。")
+            use_yahoo = False
+    d = v104_get_decision_for_symbol(symbol, use_yahoo=use_yahoo)
+    comp = v104_competition(symbol)
+    st.markdown("---")
+    st.markdown(f"## {d.get('公司')}（{d.get('代碼')}）")
+    a,b,c,e = st.columns(4)
+    a.metric("AI評級", d.get("AI評級","N/A"))
+    b.metric("投資建議", d.get("投資建議","N/A"))
+    c.metric("現價", v104_format_price(d.get("現價")))
+    e.metric("預期報酬", v104_format_pct(d.get("預期報酬率")))
+    p1,p2,p3 = st.columns(3)
+    p1.metric("保守價", v104_format_price(d.get("保守價")))
+    p2.metric("合理價", v104_format_price(d.get("合理價")))
+    p3.metric("樂觀價", v104_format_price(d.get("樂觀價")))
+    st.markdown("### 🌍 產業全球競爭")
+    g1,g2,g3 = st.columns(3)
+    g1.metric("全球競爭力", comp.get("全球競爭力"))
+    g2.metric("產業排名", comp.get("產業排名"))
+    g3.metric("全球地位", comp.get("全球市占/地位"))
+    st.dataframe(pd.DataFrame([{"產業":industry,"主要競爭者":comp.get("主要競爭者"),"護城河":comp.get("護城河"),"產業結論":comp.get("產業結論")}]), use_container_width=True, hide_index=True)
+    tabs = st.tabs(["投資人摘要","價格區間","風險提示","產業個股清單","進階入口"])
+    with tabs[0]:
+        st.dataframe(pd.DataFrame([{"公司":d.get("公司"),"代碼":d.get("代碼"),"AI評級":d.get("AI評級"),"投資建議":d.get("投資建議"),"現價":v104_format_price(d.get("現價")),"合理價":v104_format_price(d.get("合理價")),"預期報酬率":v104_format_pct(d.get("預期報酬率")),"全球競爭力":comp.get("全球競爭力"),"產業地位":comp.get("全球市占/地位"),"現價來源":d.get("現價來源")}]), use_container_width=True, hide_index=True)
+    with tabs[1]:
+        st.dataframe(pd.DataFrame([{"現價":v104_format_price(d.get("現價")),"保守價":v104_format_price(d.get("保守價")),"合理價":v104_format_price(d.get("合理價")),"樂觀價":v104_format_price(d.get("樂觀價")),"分批買進參考":v104_format_price(d.get("分批買進參考")),"風控停損參考":v104_format_price(d.get("風控停損參考")),"預期報酬率":v104_format_pct(d.get("預期報酬率"))}]), use_container_width=True, hide_index=True)
+    with tabs[2]:
+        try: risks = v103_risk_text(d.get("DNA族群", industry))
+        except Exception: risks = ["若財報不如預期，估值可能下修。","大盤或產業景氣轉弱時，短期波動可能放大。","題材若無法轉成實際獲利，股價可能修正。"]
+        for r in risks: st.write(f"- {r}")
+    with tabs[3]:
+        rows = [{"產業":ind,"公司":name,"代碼":sym} for ind, stocks in V104_INDUSTRY_STOCKS.items() for sym, name in stocks]
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    with tabs[4]:
+        st.markdown("正式首頁只給投資人答案。進階研究仍保留在 K線中心、企業價值研究院、AIVM Lab / 個股DNA。")
+# ===== V104.0 FINAL INVESTMENT HOME END =====
+
+
 def v971_dna_tab_page():
-    st.markdown("### ⑮ V103.0 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V103.0 已新增 AI投資決策中心；把Quant研究分數轉成投資建議、合理價區間、預期報酬與風險提示，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.markdown("### ⑮ V104.0 個股DNA驗證中心")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V104.0 已新增正式首頁：產業下拉、個股下拉、投資建議、價格區間與全球競爭分析，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
     tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "V100驗證中心", "V100.1可信度", "V100.2預測力", "V100.3 Forward", "V101 Alpha", "V101.3 Alpha2", "V102 Quant", "V103決策", "個股說明", "方法說明"])
     with tabs[0]:
