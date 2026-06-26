@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V104.0 Final Investment Home"
+APP_VERSION="V105.0 Final Public Release"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -2025,6 +2025,21 @@ try:
 except Exception:
     MAIN = ["🏠首頁","📈K線","🏛企業價值研究院","🧪AIVM研究中心","⚙設定","🧪AIVM Lab"]
 # ===== V96.2 CLEAN MAIN MENU NO MONITOR END =====
+
+
+# ===== V105.0 PUBLIC MAIN MENU START =====
+# 正式版主選單：隱藏 AIVM研究中心、AIVM Lab、監控。
+# 研究方法與內部模型不對一般使用者公開；如需研究資料請洽詢開發者。
+V105_PUBLIC_PAGES = ["🏠首頁", "📈K線", "🏛企業價值研究院", "⚙設定"]
+try:
+    MAIN = V105_PUBLIC_PAGES
+    menu_items = V105_PUBLIC_PAGES
+    main_tabs = V105_PUBLIC_PAGES
+    if st.session_state.get("page") not in V105_PUBLIC_PAGES:
+        st.session_state.page = "🏠首頁"
+except Exception:
+    MAIN = V105_PUBLIC_PAGES
+# ===== V105.0 PUBLIC MAIN MENU END =====
 
 page=st.radio("主選單",MAIN,index=MAIN.index(st.session_state.page) if st.session_state.page in MAIN else 0,horizontal=True,key="stable_page_menu")
 if page in ["🏦法人","🏢法人","💎評價","🌱ESG永續","📑中文財報"]:
@@ -10370,7 +10385,7 @@ def v902_normalize_main_choice(x):
 APP_VERSION_CLEAN = "V92.2 AIVM Lab Historical PE PB Calibration"
 
 # 強制把舊選單導回可用頁面
-V903_ALLOWED_PAGES = ["🏠首頁","📊監控","📈K線","🏛企業價值研究院","🧪AIVM研究中心","🧪AIVM Lab","⚙設定"]
+V903_ALLOWED_PAGES = ["🏠首頁","📈K線","🏛企業價值研究院","⚙設定"]
 MAIN = V903_ALLOWED_PAGES
 menu_items = V903_ALLOWED_PAGES
 main_tabs = V903_ALLOWED_PAGES
@@ -10967,7 +10982,7 @@ except Exception:
 APP_VERSION_CLEAN = "V92.2 AIVM Lab Historical PE PB Calibration"
 
 # 這版直接覆蓋 page dispatch，避免舊首頁仍呼叫舊 AIVM 表格。
-V906_ALLOWED_PAGES = ["🏠首頁","📊監控","📈K線","🏛企業價值研究院","🧪AIVM研究中心","🧪AIVM Lab","⚙設定"]
+V906_ALLOWED_PAGES = ["🏠首頁","📈K線","🏛企業價值研究院","⚙設定"]
 MAIN = V906_ALLOWED_PAGES
 menu_items = V906_ALLOWED_PAGES
 main_tabs = V906_ALLOWED_PAGES
@@ -15952,6 +15967,8 @@ def v104_format_pct(x):
 def v104_home_page():
     st.markdown("### 🧭 AI最終投資決策首頁 V104.0")
     st.info("請先選產業，再選個股。首頁只保留投資人最需要的答案：能不能買、合理價區間、預期報酬、全球競爭力與主要風險。")
+
+    st.caption("價格區間與預期報酬主要由 AIVM Composite Valuation Model 推估：綜合企業評價、歷史Forward驗證、Alpha/Quant分數、產業競爭力與現價安全邊際；預期報酬率＝(合理價－現價)÷現價。模型細部權重屬內部研究方法，如需研究資料請洽詢開發者。")
     c0, c1, c2 = st.columns([1.2,1.5,1])
     with c0:
         industry = st.selectbox("選擇產業", list(V104_INDUSTRY_STOCKS.keys()), key="v104_industry")
@@ -16005,7 +16022,7 @@ def v104_home_page():
 
 def v971_dna_tab_page():
     st.markdown("### ⑮ V104.0 個股DNA驗證中心")
-    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V104.0 已新增正式首頁：產業下拉、個股下拉、投資建議、價格區間與全球競爭分析，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
+    st.info("本頁新增在舊 AIVM Lab 第15頁籤；V105.0 正式公開版：隱藏內部AIVM/AILM研究頁；首頁保留投資決策、價格區間、產業全球競爭；企業價值研究院保留財報、ESG、法人並可更新，只驗證個股DNA估值，不動首頁、K線、財報、ESG、法人與原估值核心。")
     df = v971_dna_df()
     tabs = st.tabs(["DNA資料庫", "DNA估值比較", "現價驗證", "誤差驗證", "DNA權重校準", "自動最佳權重", "歷史回測", "個股DNA引擎", "DNA族群引擎", "V100驗證中心", "V100.1可信度", "V100.2預測力", "V100.3 Forward", "V101 Alpha", "V101.3 Alpha2", "V102 Quant", "V103決策", "個股說明", "方法說明"])
     with tabs[0]:
@@ -16774,7 +16791,7 @@ def v97_dna_validation_lab_page():
 def v968_main_dispatch():
     global page
     try:
-        if page not in ["🏠首頁","📈K線","🏛企業價值研究院","🧪AIVM研究中心","🧪AIVM Lab","⚙設定"] or "監控" in str(page):
+        if page not in ["🏠首頁","📈K線","🏛企業價值研究院","⚙設定"] or "監控" in str(page):
             page = "🏠首頁"
             st.session_state.page = page
     except Exception:
@@ -16782,15 +16799,18 @@ def v968_main_dispatch():
 
     if page == "🏠首頁":
         try:
-            v906_force_home()
+            v104_home_page()
         except Exception:
             try:
-                v906_home_dashboard()
+                v906_force_home()
             except Exception:
                 try:
-                    v905_sector_dashboard()
-                except Exception as e:
-                    st.error(f"首頁全產業類股估值入口載入失敗：{e}")
+                    v906_home_dashboard()
+                except Exception:
+                    try:
+                        v905_sector_dashboard()
+                    except Exception as e:
+                        st.error(f"首頁投資決策入口載入失敗：{e}")
 
     elif page == "📈K線":
         try:
