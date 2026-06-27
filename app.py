@@ -6,7 +6,7 @@ import numpy as np
 import yfinance as yf
 import streamlit as st
 
-APP_VERSION = "V226.0 Stock Database Expansion II"
+APP_VERSION = "V227.0 Auto Load Multi Theme"
 APP_NAME = "智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -1579,6 +1579,168 @@ def global_competition():
 def industry_analysis():
     industry_page()
 # ===== V226.0 STOCK DATABASE EXPANSION II END =====
+
+
+
+
+
+# ===== V227.0 AUTO LOAD MULTI THEME START =====
+V227_THEME_UPDATES = {'2330.TW': {'theme_text': 'AI伺服器、CoWoS、先進封裝、HPC、機器人、低軌衛星', 'chain_position': '中游核心', 'market_share': '全球晶圓代工龍頭'}, '2313.TW': {'name': '華通', 'industry': 'PCB', 'sub': '高階PCB/衛星PCB', 'rank': 'PCB主要廠', 'power': '★★★★☆', 'position': '高階PCB、網通與低軌衛星PCB供應商', 'peers': '欣興、健鼎、臻鼎、TTM', 'moat': '中高：高階PCB量產、客戶認證、衛星通訊應用', 'risk': '終端需求循環、PCB價格競爭', 'fair_mult': 1.05, 'theme_text': 'AI伺服器、低軌衛星、網通、高速傳輸、軍工通訊', 'chain_position': '上游材料/PCB', 'market_share': '台灣高階PCB主要廠'}, '2383.TW': {'theme_text': 'AI伺服器、高速CCL、800G交換器、資料中心', 'chain_position': '上游材料', 'market_share': 'AI高速材料主要供應商'}, '3017.TW': {'theme_text': 'AI伺服器、液冷散熱、資料中心、機器人', 'chain_position': '中游關鍵零組件', 'market_share': '散熱模組主要廠'}, '3324.TWO': {'theme_text': 'AI伺服器、液冷散熱、資料中心', 'chain_position': '中游關鍵零組件', 'market_share': '液冷散熱主要廠'}, '3491.TWO': {'name': '昇達科', 'industry': '低軌衛星', 'sub': '衛星通訊/射頻元件', 'rank': '台灣LEO供應鏈龍頭之一', 'power': '★★★★☆', 'position': '低軌衛星與微波通訊元件供應商', 'peers': 'Comtech、Viasat、Gilat、啟碁', 'moat': '中高：微波通訊、衛星射頻模組、客戶認證', 'risk': '衛星訂單時程、客戶集中、題材波動', 'fair_mult': 1.08, 'theme_text': '低軌衛星、軍工、射頻、衛星通訊', 'chain_position': '中游射頻元件', 'market_share': '台灣LEO衛星射頻受惠股'}, '6285.TW': {'theme_text': '低軌衛星、網通、車用通訊、衛星終端', 'chain_position': '下游終端設備', 'market_share': '網通與衛星終端設備供應商'}, '5388.TWO': {'theme_text': '低軌衛星、寬頻網通、衛星終端', 'chain_position': '下游終端設備', 'market_share': '網通CPE主要廠'}, '2345.TW': {'theme_text': 'AI資料中心、交換器、網通、低軌衛星', 'chain_position': '中游網通設備', 'market_share': '資料中心交換器主要廠'}, '3596.TW': {'theme_text': '寬頻網通、低軌衛星、家庭網路', 'chain_position': '下游網通設備', 'market_share': '寬頻設備供應商'}, '4908.TWO': {'name': '前鼎', 'industry': '光通訊/CPO', 'sub': '光收發模組', 'rank': '光通訊供應商', 'power': '★★★☆☆', 'position': '光通訊與網通光收發模組供應商', 'peers': '華星光、波若威、上詮、眾達', 'moat': '中：光收發模組與網通客戶', 'risk': '需求波動、價格競爭', 'fair_mult': 1.05, 'theme_text': '光通訊、CPO、低軌衛星、資料中心', 'chain_position': '中游光通訊模組', 'market_share': '台灣光通訊供應商'}, '3163.TWO': {'name': '波若威', 'industry': '光通訊/CPO', 'sub': '光通訊模組/元件', 'rank': '光通訊元件供應商', 'power': '★★★☆☆', 'position': '光通訊元件與資料中心供應商', 'peers': '華星光、上詮、聯亞、眾達', 'moat': '中：光通訊產品與客戶導入', 'risk': '需求波動、競爭', 'fair_mult': 1.06, 'theme_text': '光通訊、CPO、低軌衛星、資料中心', 'chain_position': '中游光通訊元件', 'market_share': '台灣光通訊供應商'}, '3450.TW': {'name': '聯鈞', 'industry': '光通訊/CPO', 'sub': '光通訊元件', 'rank': '光通訊供應商', 'power': '★★★☆☆', 'position': '光通訊與雷射元件供應商', 'peers': '聯亞、華星光、上詮', 'moat': '中：光元件與客戶基礎', 'risk': '光通訊需求循環、毛利率', 'fair_mult': 1.05, 'theme_text': '光通訊、CPO、低軌衛星', 'chain_position': '中游光元件', 'market_share': '台灣光通訊元件供應商'}, '2634.TW': {'name': '漢翔', 'industry': '國防軍工', 'sub': '軍機/航太', 'rank': '台灣航太軍工龍頭', 'power': '★★★★☆', 'position': '軍機、航太結構與國防供應鏈核心公司', 'peers': 'Boeing、Lockheed Martin供應鏈、長榮航太', 'moat': '中高：航太認證、軍方訂單、製造能力', 'risk': '政策預算、交期、成本', 'fair_mult': 1.06, 'theme_text': '國防軍工、無人機、航太、軍機', 'chain_position': '下游系統/整機', 'market_share': '台灣航太軍工龍頭'}, '8033.TWO': {'name': '雷虎', 'industry': '無人機', 'sub': '無人機/軍工', 'rank': '無人機題材股', 'power': '★★★☆☆', 'position': '無人機、模型與軍工題材供應商', 'peers': '經緯航太、漢翔、國際無人機廠', 'moat': '中：無人機研發與題材認知', 'risk': '訂單實現、題材波動、規模', 'fair_mult': 1.06, 'theme_text': '無人機、國防軍工、軍用無人機', 'chain_position': '下游無人機系統', 'market_share': '台灣無人機題材股'}, '2645.TW': {'name': '長榮航太', 'industry': '國防軍工', 'sub': '航太維修/製造', 'rank': '航太維修主要廠', 'power': '★★★☆☆', 'position': '航太維修與航太零組件供應商', 'peers': '漢翔、亞航、國際MRO廠', 'moat': '中：維修認證、航太客戶', 'risk': '航空景氣、政策訂單', 'fair_mult': 1.04, 'theme_text': '國防軍工、航太、無人機', 'chain_position': '中下游航太維修/零組件', 'market_share': '台灣航太維修主要廠'}, '2630.TW': {'name': '亞航', 'industry': '國防軍工', 'sub': '航空維修/軍工', 'rank': '航太維修供應商', 'power': '★★★☆☆', 'position': '航空維修與軍工維修供應商', 'peers': '長榮航太、漢翔、國際MRO廠', 'moat': '中：航空維修認證與軍方業務', 'risk': '航空景氣、政策預算', 'fair_mult': 1.03, 'theme_text': '國防軍工、航太、無人機', 'chain_position': '中下游維修服務', 'market_share': '台灣航太維修供應商'}, '4572.TW': {'name': '駐龍', 'industry': '國防軍工', 'sub': '航太零組件', 'rank': '航太零組件供應商', 'power': '★★★☆☆', 'position': '航太精密零組件供應商', 'peers': '漢翔、千附精密、達航科技', 'moat': '中：航太加工認證與精密製造', 'risk': '訂單波動、匯率', 'fair_mult': 1.03, 'theme_text': '國防軍工、航太', 'chain_position': '中游航太零組件', 'market_share': '台灣航太零組件供應商'}, '6829.TW': {'name': '千附精密', 'industry': '國防軍工', 'sub': '航太/半導體零組件', 'rank': '精密零組件供應商', 'power': '★★★☆☆', 'position': '航太與半導體精密零組件供應商', 'peers': '駐龍、漢翔、達航科技', 'moat': '中：精密加工與航太/半導體客戶', 'risk': '訂單波動、毛利率', 'fair_mult': 1.04, 'theme_text': '國防軍工、航太、半導體設備', 'chain_position': '中游精密零組件', 'market_share': '台灣精密零組件供應商'}, '4576.TW': {'theme_text': '機器人、人形機器人、精密傳動、自動化', 'chain_position': '中游精密傳動', 'market_share': '精密傳動供應商'}, '2049.TW': {'theme_text': '機器人、人形機器人、線性滑軌、自動化', 'chain_position': '中游傳動元件', 'market_share': '全球傳動元件主要廠'}}
+V227_FALLBACK_PRICE = {'2313.TW': 75, '3491.TWO': 430, '4908.TWO': 120, '3163.TWO': 180, '3450.TW': 95, '2634.TW': 65, '8033.TWO': 90, '2645.TW': 120, '2630.TW': 45, '4572.TW': 180, '6829.TW': 110}
+V227_INDUSTRY_META = {'晶圓代工': {'規模': '極大', '成長率': '高', 'AI關聯度': '極高', '說明': '先進製程、成熟製程、AI/HPC晶片製造與全球半導體核心供應鏈'}, '封裝測試': {'規模': '大', '成長率': '中高', 'AI關聯度': '高', '說明': '封測、IC測試、先進封裝與AI/HPC晶片後段製程'}, '低軌衛星': {'規模': '中高', '成長率': '高', 'AI關聯度': '中高', '說明': '衛星終端、衛星通訊、射頻、天線、地面設備與太空網路供應鏈'}, '無人機': {'規模': '中', '成長率': '高', 'AI關聯度': '中高', '說明': '軍用與商用無人機、飛控、影像、通訊、導航與國防應用'}, '國防軍工': {'規模': '中高', '成長率': '中高', 'AI關聯度': '中', '說明': '軍機、飛彈、雷達、軍規電子、航太與國防自主供應鏈'}, 'PCB': {'規模': '大', '成長率': '中高', 'AI關聯度': '高', '說明': '高階PCB、AI伺服器PCB、低軌衛星、網通與軍工通訊基板'}}
+try:
+    for sym, upd in V227_THEME_UPDATES.items():
+        if sym in STOCK_DB:
+            STOCK_DB[sym].update(upd)
+        else:
+            STOCK_DB[sym] = upd
+    ALIASES.clear()
+    for sym, v in STOCK_DB.items():
+        ALIASES[sym.upper()] = sym
+        ALIASES[sym.split('.')[0]] = sym
+        ALIASES[v['name']] = sym
+        ALIASES[v['name'].upper()] = sym
+except Exception:
+    pass
+try:
+    V224_FALLBACK_PRICE.update(V227_FALLBACK_PRICE)
+except Exception:
+    V224_FALLBACK_PRICE = V227_FALLBACK_PRICE
+try:
+    V224_INDUSTRY_META.update(V227_INDUSTRY_META)
+except Exception:
+    V224_INDUSTRY_META = V227_INDUSTRY_META
+
+def v227_theme_list():
+    themes=set()
+    for v in STOCK_DB.values():
+        for t in str(v.get('theme_text','')).replace('，','、').split('、'):
+            t=t.strip()
+            if t: themes.add(t)
+    return sorted(themes)
+
+def v227_ai_score(v):
+    t=str(v.get('theme_text',''))
+    sym=v.get('symbol','')
+    industry=v.get('industry','')
+    if sym in ['2330.TW','5274.TWO','6669.TW'] or any(x in t for x in ['CoWoS','HPC','先進封裝']): return 10
+    if any(x in t for x in ['AI伺服器','CPO','光通訊','液冷散熱','低軌衛星']): return 9
+    if any(x in t for x in ['HBM','資料中心','軍工','無人機','機器人']): return 8
+    if industry in ['金融','航運','食品','營建','水泥','鋼鐵']: return 0
+    return 3
+
+def v227_rows_df():
+    rows=[]
+    for sym,v in STOCK_DB.items():
+        vv={**v,'symbol':sym}
+        ai=v227_ai_score(vv)
+        rows.append({'產業':v.get('industry','待補'),'子產業':v.get('sub','待補'),'公司':v.get('name',sym),'代碼':sym,'產業鏈位置':v.get('chain_position','待補'),'主題標籤':v.get('theme_text','一般產業' if ai>0 else '非AI主題'),'AI受惠度':ai,'全球競爭力':v.get('power','★★★☆☆'),'全球排名':v.get('rank','待補'),'全球市占率':v.get('market_share','待補'),'產業地位':v.get('position','待補'),'主要競爭者':v.get('peers','待補'),'護城河':v.get('moat','待補'),'主要風險':v.get('risk','待補')})
+    return pd.DataFrame(rows)
+
+def v226_rows_df(): return v227_rows_df()
+def v225_rows_df(): return v227_rows_df()
+def v224_rows_df(): return v227_rows_df()
+
+def v227_set_symbol(code):
+    st.session_state['v227_active_symbol']=code
+    st.session_state['v224_active_symbol']=code
+    st.session_state['v223_active_symbol']=code
+
+def v224_price_block(symbol):
+    d = v224_decision(symbol) if 'v224_decision' in globals() else decision(symbol)
+    fmtf = v224_fmt if 'v224_fmt' in globals() else fmt_price
+    st.caption(f"資料更新時間：{d.get('updated','N/A')}｜現價來源：{d.get('source','Yahoo Finance')}｜預期報酬率＝(綜合合理價－現價)÷現價。")
+    st.markdown(f"## {d.get('name', symbol)}（{d.get('symbol', symbol)}）")
+    c1,c2,c3,c4=st.columns(4)
+    c1.metric('投資建議', d.get('action','觀察'))
+    c2.metric('現價', fmtf(d.get('price', float('nan'))))
+    c3.metric('綜合合理價', fmtf(d.get('fair', float('nan'))))
+    try: ret_txt=f"{float(d.get('ret',0)):.1f}%"
+    except Exception: ret_txt='N/A'
+    c4.metric('預期報酬', ret_txt)
+    p1,p2,p3=st.columns(3)
+    p1.metric('安全邊際價', fmtf(d.get('cons', float('nan'))))
+    p2.metric('合理價值', fmtf(d.get('fair', float('nan'))))
+    p3.metric('潛在價值', fmtf(d.get('opt', float('nan'))))
+    with st.expander('展開更多研究資料', expanded=False):
+        df=v227_rows_df(); row=df[df['代碼']==d.get('symbol',symbol)]
+        if not row.empty:
+            st.dataframe(row[['產業','子產業','產業鏈位置','主題標籤','AI受惠度','全球競爭力','全球排名','全球市占率','產業地位','主要競爭者','護城河','主要風險']], use_container_width=True, hide_index=True)
+
+def industry_page():
+    st.header('🏭 產業分析')
+    df=v227_rows_df()
+    c1,c2,c3=st.columns(3)
+    with c1: ind=st.selectbox('主產業', sorted(df['產業'].dropna().unique()), key='v227_industry_ind')
+    dff=df[df['產業']==ind]
+    with c2: sub=st.selectbox('子產業', sorted(dff['子產業'].dropna().unique()), key='v227_industry_sub')
+    dff=dff[dff['子產業']==sub]
+    labels={f"{r['公司']} / {r['代碼']}":r['代碼'] for _,r in dff.iterrows()}
+    with c3: picked=st.selectbox('個股（選到即查詢）', list(labels.keys()), key='v227_industry_stock')
+    code=labels[picked]; v227_set_symbol(code)
+    row=dff[dff['代碼']==code].iloc[0].to_dict()
+    meta=V224_INDUSTRY_META.get(ind, V227_INDUSTRY_META.get(ind, {'規模':'待補','成長率':'待補','AI關聯度':'待補','說明':'待補'}))
+    m1,m2,m3,m4=st.columns(4)
+    m1.metric('產業規模', meta.get('規模','待補')); m2.metric('成長率', meta.get('成長率','待補')); m3.metric('AI關聯度', meta.get('AI關聯度','待補')); m4.metric('主要公司數', len(dff))
+    st.info(meta.get('說明',''))
+    st.markdown('### 公司基本資料')
+    st.dataframe(pd.DataFrame([{'公司名稱':row['公司'],'股票代號':row['代碼'],'主產業':row['產業'],'子產業':row['子產業'],'產業鏈位置':row['產業鏈位置'],'主題標籤':row['主題標籤'],'全球排名':row['全球排名'],'全球市占率':row['全球市占率'],'產業地位':row['產業地位']}]), use_container_width=True, hide_index=True)
+    st.markdown('### 同產業主要公司')
+    st.dataframe(dff[['公司','代碼','子產業','產業鏈位置','主題標籤','AI受惠度','全球競爭力','產業地位']].sort_values(['子產業','代碼']), use_container_width=True, hide_index=True)
+
+def competition_page():
+    st.header('🌏 全球競爭力')
+    df=v227_rows_df(); themes=['全部']+v227_theme_list()
+    c0,c1,c2,c3=st.columns(4)
+    with c0: theme=st.selectbox('主題標籤', themes, key='v227_global_theme')
+    if theme!='全部': df=df[df['主題標籤'].astype(str).str.contains(theme, na=False)]
+    with c1: ind=st.selectbox('主產業', sorted(df['產業'].dropna().unique()), key='v227_global_ind')
+    dff=df[df['產業']==ind]
+    with c2: sub=st.selectbox('子產業', sorted(dff['子產業'].dropna().unique()), key='v227_global_sub')
+    dff=dff[dff['子產業']==sub]
+    labels={f"{r['公司']} / {r['代碼']}":r['代碼'] for _,r in dff.iterrows()}
+    with c3: picked=st.selectbox('個股（選到即查詢）', list(labels.keys()), key='v227_global_stock')
+    code=labels[picked]; v227_set_symbol(code)
+    row=dff[dff['代碼']==code].iloc[0].to_dict()
+    st.markdown(f"## {row['公司']}（{row['代碼']}）")
+    g1,g2,g3,g4=st.columns(4); ai_txt=f"{int(row['AI受惠度'])}/10" if int(row['AI受惠度'])>0 else '非AI主題'
+    g1.metric('全球排名',row['全球排名']); g2.metric('AI受惠度',ai_txt); g3.metric('全球競爭力',row['全球競爭力']); g4.metric('全球市占率',row['全球市占率'])
+    st.dataframe(pd.DataFrame([{'產業地位':row['產業地位'],'競爭者':row['主要競爭者'],'護城河':row['護城河'],'主要風險':row['主要風險'],'主題標籤':row['主題標籤'],'產業鏈位置':row['產業鏈位置']}]), use_container_width=True, hide_index=True)
+    st.markdown('---'); v224_ai_score_explanation()
+
+def global_competition(): competition_page()
+def industry_analysis(): industry_page()
+
+def home():
+    try: v108_css()
+    except Exception:
+        try: v107_css()
+        except Exception: pass
+    if 'v227_active_symbol' not in st.session_state: st.session_state['v227_active_symbol']='2330.TW'
+    now_show=datetime.now().strftime('%Y/%m/%d %H:%M')
+    st.markdown(f"""<div class="v108-hero"><div class="v108-title">智策股市 AI 決策平台</div><div class="v108-sub">產業鏈、全球競爭力與企業價值研究平台</div><span class="v108-badge">最後更新：{now_show}</span><span class="v108-badge">V227 Multi-Theme</span><span class="v108-badge">選股即查詢</span></div>""", unsafe_allow_html=True)
+    q=st.text_input('搜尋股票代碼或公司名稱', placeholder='例如：2330、台積電、2313、華通、3491、昇達科', key='v227_search')
+    if str(q or '').strip():
+        try: v227_set_symbol(normalize_symbol(q))
+        except Exception: pass
+    df=v227_rows_df()
+    with st.expander('產業 → 子產業 → 個股', expanded=False):
+        c1,c2,c3=st.columns(3)
+        with c1: ind=st.selectbox('主產業', sorted(df['產業'].dropna().unique()), key='v227_home_ind')
+        dff=df[df['產業']==ind]
+        with c2: sub=st.selectbox('子產業', sorted(dff['子產業'].dropna().unique()), key='v227_home_sub')
+        dff=dff[dff['子產業']==sub]
+        labels={f"{r['公司']} / {r['代碼']}":r['代碼'] for _,r in dff.iterrows()}
+        with c3: picked=st.selectbox('個股（選到即查詢）', list(labels.keys()), key='v227_home_stock')
+        if picked:
+            code=labels[picked]
+            if st.session_state.get('v227_last_pick')!=picked:
+                st.session_state['v227_last_pick']=picked; v227_set_symbol(code); st.rerun()
+    v224_price_block(st.session_state.get('v227_active_symbol','2330.TW'))
+
+def v108_enterprise_home(): home()
+def v107_premium_home(): home()
+# ===== V227.0 AUTO LOAD MULTI THEME END =====
 
 
 if __name__ == '__main__':
