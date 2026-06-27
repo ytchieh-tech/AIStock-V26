@@ -6,7 +6,7 @@ import numpy as np
 import yfinance as yf
 import streamlit as st
 
-APP_VERSION = "V224.0 Research Pages Stock Expansion"
+APP_VERSION = "V225.0 Stock Database Expansion"
 APP_NAME = "智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -1350,6 +1350,118 @@ def v108_enterprise_home():
 def v107_premium_home():
     home()
 # ===== V224.0 RESEARCH PAGES + STOCK EXPANSION END =====
+
+
+
+
+
+# ===== V225.0 STOCK DATABASE EXPANSION START =====
+V225_EXTRA_STOCKS = {'2356.TW': {'name': '英業達', 'industry': 'AI伺服器/ODM', 'sub': '伺服器ODM', 'rank': '伺服器與筆電ODM供應商', 'power': '★★★★☆', 'position': '伺服器與筆電ODM供應商', 'peers': '廣達、緯創、仁寶、和碩', 'moat': '中：ODM規模、客戶基礎', 'risk': '毛利率、客戶集中、PC循環', 'fair_mult': 1.04}, '2324.TW': {'name': '仁寶', 'industry': 'AI伺服器/ODM', 'sub': 'NB ODM/伺服器', 'rank': '筆電ODM主要廠', 'power': '★★★☆☆', 'position': '筆電ODM與伺服器代工供應商', 'peers': '廣達、緯創、英業達', 'moat': '中：ODM規模與客戶基礎', 'risk': '毛利率、PC需求循環', 'fair_mult': 1.02}, '4938.TW': {'name': '和碩', 'industry': 'AI伺服器/ODM', 'sub': 'EMS/ODM', 'rank': 'EMS/ODM主要廠', 'power': '★★★☆☆', 'position': '電子製造與ODM供應商', 'peers': '鴻海、廣達、緯創', 'moat': '中：製造規模與客戶基礎', 'risk': '毛利率、客戶集中', 'fair_mult': 1.02}, '8210.TW': {'name': '勤誠', 'industry': 'AI伺服器/機殼', 'sub': '伺服器機殼', 'rank': '伺服器機殼主要廠', 'power': '★★★★☆', 'position': 'AI伺服器機殼與機構件供應商', 'peers': '晟銘電、迎廣、Chenbro同業', 'moat': '中高：伺服器機殼設計與客戶導入', 'risk': 'AI伺服器出貨節奏、原料成本', 'fair_mult': 1.08}, '3013.TW': {'name': '晟銘電', 'industry': 'AI伺服器/機殼', 'sub': '伺服器機殼', 'rank': '伺服器機殼供應商', 'power': '★★★☆☆', 'position': '伺服器機殼與金屬機構件供應商', 'peers': '勤誠、迎廣、營邦', 'moat': '中：機構件設計與量產', 'risk': '題材波動、毛利率', 'fair_mult': 1.06}, '6117.TWO': {'name': '迎廣', 'industry': 'AI伺服器/機殼', 'sub': '機殼/伺服器機構', 'rank': '機殼供應商', 'power': '★★★☆☆', 'position': 'PC與伺服器機殼供應商', 'peers': '勤誠、晟銘電、營邦', 'moat': '中：機殼設計與客戶基礎', 'risk': '需求波動、競爭', 'fair_mult': 1.04}, '6412.TW': {'name': '群電', 'industry': '電源/能源管理', 'sub': '電源供應器', 'rank': '電源供應器主要廠', 'power': '★★★★☆', 'position': '電源供應器與伺服器電源供應商', 'peers': '台達電、光寶科、康舒', 'moat': '中高：電源設計與客戶導入', 'risk': '毛利率、原料、終端需求', 'fair_mult': 1.05}, '2301.TW': {'name': '光寶科', 'industry': '電源/能源管理', 'sub': '電源/光電/車用', 'rank': '電子零組件大廠', 'power': '★★★★☆', 'position': '電源、光電與車用電子供應商', 'peers': '台達電、群電、康舒', 'moat': '中高：產品線與客戶基礎', 'risk': '景氣循環、毛利率', 'fair_mult': 1.04}, '3711.TW': {'name': '日月光投控', 'industry': '半導體', 'sub': '封測/SiP', 'rank': '#1', 'power': '★★★★★', 'position': '全球封測與SiP龍頭', 'peers': 'Amkor、JCET、力成、京元電', 'moat': '高：封測規模、SiP能力、客戶基礎', 'risk': '終端需求循環、匯率', 'fair_mult': 1.06}, '6239.TW': {'name': '力成', 'industry': '半導體', 'sub': '記憶體封測', 'rank': '記憶體封測主要廠', 'power': '★★★★☆', 'position': '記憶體封測與儲存封裝供應商', 'peers': '日月光、Amkor、南茂', 'moat': '中高：記憶體封測技術與客戶', 'risk': '記憶體循環、稼動率', 'fair_mult': 1.04}, '6147.TWO': {'name': '頎邦', 'industry': '半導體', 'sub': 'DDI封測', 'rank': 'DDI封測主要廠', 'power': '★★★☆☆', 'position': '顯示驅動IC封測供應商', 'peers': '南茂、日月光、ChipMOS同業', 'moat': '中：DDI封測客戶基礎', 'risk': '面板循環、價格壓力', 'fair_mult': 1.02}, '2449.TW': {'name': '京元電子', 'industry': '半導體', 'sub': '測試/HPC', 'rank': '測試主要廠', 'power': '★★★★☆', 'position': 'AI/HPC與晶圓測試供應商', 'peers': '欣銓、矽格、日月光', 'moat': '中高：測試產能與客戶黏著', 'risk': '客戶集中、資本支出', 'fair_mult': 1.06}, '6510.TWO': {'name': '精測', 'industry': '半導體', 'sub': '測試介面', 'rank': '測試介面主要廠', 'power': '★★★★☆', 'position': '高階測試介面與探針卡供應商', 'peers': '旺矽、穎崴、FormFactor', 'moat': '中高：測試介面技術與客戶認證', 'risk': '先進製程需求波動、客戶集中', 'fair_mult': 1.08}, '6223.TWO': {'name': '旺矽', 'industry': '半導體', 'sub': '探針卡/測試介面', 'rank': '探針卡主要廠', 'power': '★★★★☆', 'position': '半導體探針卡與測試介面供應商', 'peers': '精測、穎崴、FormFactor', 'moat': '中高：探針卡技術與客戶導入', 'risk': '半導體測試需求循環', 'fair_mult': 1.08}, '3583.TW': {'name': '辛耘', 'industry': '半導體設備', 'sub': '設備/再生晶圓', 'rank': '半導體設備供應商', 'power': '★★★☆☆', 'position': '半導體設備、濕製程與再生晶圓供應商', 'peers': '弘塑、家登、帆宣', 'moat': '中：設備代理與製程服務', 'risk': '資本支出循環、客戶集中', 'fair_mult': 1.06}, '3131.TWO': {'name': '弘塑', 'industry': '半導體設備', 'sub': '濕製程設備', 'rank': '濕製程設備主要廠', 'power': '★★★★☆', 'position': '高階濕製程設備供應商', 'peers': 'SCREEN、TEL、辛耘', 'moat': '中高：濕製程設備技術與客戶認證', 'risk': '設備出貨時程、客戶集中', 'fair_mult': 1.1}, '3680.TWO': {'name': '家登', 'industry': '半導體設備', 'sub': 'EUV/晶圓載具', 'rank': 'EUV載具供應商', 'power': '★★★★☆', 'position': 'EUV與晶圓載具供應商', 'peers': 'Entegris、Gudeng同業', 'moat': '中高：EUV載具與客戶認證', 'risk': '先進製程資本支出、良率', 'fair_mult': 1.08}, '2345.TW': {'name': '智邦', 'industry': '網通', 'sub': '交換器/資料中心網通', 'rank': '白牌交換器主要廠', 'power': '★★★★★', 'position': '資料中心交換器與白牌網通龍頭之一', 'peers': 'Arista、Cisco、Celestica', 'moat': '高：資料中心客戶、網通設計能力', 'risk': '客戶集中、AI網通出貨節奏', 'fair_mult': 1.12}, '3596.TW': {'name': '智易', 'industry': '網通', 'sub': '寬頻/CPE', 'rank': '寬頻設備供應商', 'power': '★★★☆☆', 'position': '寬頻與網通CPE供應商', 'peers': '中磊、啟碁、Sercomm', 'moat': '中：CPE產品與電信客戶', 'risk': '電信資本支出、價格競爭', 'fair_mult': 1.03}, '5388.TWO': {'name': '中磊', 'industry': '網通', 'sub': '寬頻/CPE', 'rank': '網通CPE主要廠', 'power': '★★★☆☆', 'position': '寬頻網通與CPE供應商', 'peers': '智易、啟碁、Sercomm', 'moat': '中：電信客戶與產品線', 'risk': '電信需求循環、毛利率', 'fair_mult': 1.03}, '6285.TW': {'name': '啟碁', 'industry': '網通', 'sub': '車用/網通模組', 'rank': '網通模組供應商', 'power': '★★★☆☆', 'position': '網通、車用與衛星通訊模組供應商', 'peers': '中磊、智易、環旭電子', 'moat': '中：模組設計與客戶導入', 'risk': '需求循環、客戶集中', 'fair_mult': 1.04}, '2464.TW': {'name': '盟立', 'industry': '自動化/機器人', 'sub': '自動化系統整合', 'rank': '自動化系統整合商', 'power': '★★★☆☆', 'position': '工業自動化與系統整合供應商', 'peers': '和椿、羅昇、FANUC、Yaskawa', 'moat': '中：自動化整合經驗與客戶基礎', 'risk': '設備景氣循環、接單波動', 'fair_mult': 1.04}, '4540.TWO': {'name': '全球傳動', 'industry': '自動化/機器人', 'sub': '線性傳動', 'rank': '傳動元件供應商', 'power': '★★★☆☆', 'position': '線性傳動與自動化元件供應商', 'peers': '上銀、直得、THK', 'moat': '中：傳動元件製造能力', 'risk': '工具機循環、中國競爭', 'fair_mult': 1.04}, '1597.TWO': {'name': '直得', 'industry': '自動化/機器人', 'sub': '微型線性滑軌', 'rank': '精密傳動供應商', 'power': '★★★☆☆', 'position': '微型線性滑軌與精密傳動供應商', 'peers': '上銀、全球傳動、THK', 'moat': '中：微型傳動與精密加工', 'risk': '需求循環、競爭', 'fair_mult': 1.04}, '1536.TW': {'name': '和大', 'industry': '車用/機器人', 'sub': '齒輪/減速機', 'rank': '精密齒輪供應商', 'power': '★★★☆☆', 'position': '車用齒輪與精密傳動零件供應商', 'peers': '宇隆、日系齒輪廠、台灣精銳', 'moat': '中：精密加工與車用客戶', 'risk': '車市循環、匯率', 'fair_mult': 1.03}, '2002.TW': {'name': '中鋼', 'industry': '鋼鐵', 'sub': '一貫鋼廠', 'rank': '台灣鋼鐵龍頭', 'power': '★★★★☆', 'position': '台灣一貫鋼廠龍頭', 'peers': '寶鋼、浦項、新日鐵', 'moat': '中高：規模、通路、產品線', 'risk': '鋼價循環、原料成本、景氣', 'fair_mult': 0.98}, '1101.TW': {'name': '台泥', 'industry': '水泥', 'sub': '水泥/能源轉型', 'rank': '台灣水泥龍頭', 'power': '★★★★☆', 'position': '水泥與能源轉型公司', 'peers': '亞泥、海螺水泥、國際水泥廠', 'moat': '中高：水泥通路、資產、能源布局', 'risk': '中國需求、碳成本、能源轉型', 'fair_mult': 1.0}, '1102.TW': {'name': '亞泥', 'industry': '水泥', 'sub': '水泥', 'rank': '台灣水泥主要廠', 'power': '★★★☆☆', 'position': '台灣水泥主要供應商', 'peers': '台泥、海螺水泥、國際水泥廠', 'moat': '中：水泥通路與資產', 'risk': '中國需求、成本、景氣', 'fair_mult': 0.98}, '1216.TW': {'name': '統一', 'industry': '食品', 'sub': '食品/通路', 'rank': '台灣食品通路龍頭', 'power': '★★★★★', 'position': '食品、飲料、超商與通路集團', 'peers': '全家、味全、康師傅、食品同業', 'moat': '高：品牌、通路、規模', 'risk': '原物料、消費景氣、匯率', 'fair_mult': 1.04}, '1210.TW': {'name': '大成', 'industry': '食品', 'sub': '飼料/肉品/食品', 'rank': '食品飼料主要廠', 'power': '★★★☆☆', 'position': '飼料、肉品與食品供應商', 'peers': '卜蜂、統一、泰國CP', 'moat': '中：飼料與食品通路', 'risk': '原料價格、消費景氣', 'fair_mult': 1.02}, '2912.TW': {'name': '統一超', 'industry': '零售通路', 'sub': '便利商店', 'rank': '台灣超商龍頭', 'power': '★★★★★', 'position': '台灣便利商店與零售通路龍頭', 'peers': '全家、萊爾富、OK Mart', 'moat': '高：門市密度、品牌、物流', 'risk': '人力成本、消費景氣', 'fair_mult': 1.04}, '2881.TW': {'name': '富邦金', 'industry': '金融', 'sub': '金控/壽險/銀行', 'rank': '台灣大型金控', 'power': '★★★★☆', 'position': '壽險、銀行、證券綜合金控', 'peers': '國泰金、中信金、兆豐金', 'moat': '中高：金融通路與資本規模', 'risk': '利率、股債市、信用風險', 'fair_mult': 1.02}, '2882.TW': {'name': '國泰金', 'industry': '金融', 'sub': '金控/壽險/銀行', 'rank': '台灣大型金控', 'power': '★★★★☆', 'position': '壽險與銀行大型金控', 'peers': '富邦金、中信金、兆豐金', 'moat': '中高：壽險規模、金融通路', 'risk': '利率、匯率、股債市', 'fair_mult': 1.02}, '2891.TW': {'name': '中信金', 'industry': '金融', 'sub': '金控/銀行', 'rank': '銀行型金控', 'power': '★★★★☆', 'position': '銀行與金融服務金控', 'peers': '富邦金、國泰金、玉山金', 'moat': '中高：銀行通路、財管能力', 'risk': '利差、信用風險、景氣', 'fair_mult': 1.02}, '2603.TW': {'name': '長榮', 'industry': '航運', 'sub': '貨櫃航運', 'rank': '全球貨櫃航運主要業者', 'power': '★★★★☆', 'position': '全球貨櫃航運公司', 'peers': 'Maersk、MSC、CMA CGM、陽明', 'moat': '中：船隊規模與航線布局', 'risk': '運價循環、油價、地緣政治', 'fair_mult': 1.0}, '2609.TW': {'name': '陽明', 'industry': '航運', 'sub': '貨櫃航運', 'rank': '全球貨櫃航運業者', 'power': '★★★☆☆', 'position': '貨櫃航運公司', 'peers': '長榮、萬海、Maersk、MSC', 'moat': '中：航線與船隊', 'risk': '運價循環、油價', 'fair_mult': 0.98}, '2615.TW': {'name': '萬海', 'industry': '航運', 'sub': '貨櫃航運', 'rank': '亞洲航線主要業者', 'power': '★★★☆☆', 'position': '區域貨櫃航運公司', 'peers': '長榮、陽明、區域航商', 'moat': '中：區域航線布局', 'risk': '運價循環、油價', 'fair_mult': 0.98}}
+V225_FALLBACK_PRICE = {'2356.TW': 58, '2324.TW': 42, '4938.TW': 95, '8210.TW': 420, '3013.TW': 160, '6117.TWO': 110, '6412.TW': 160, '2301.TW': 120, '3711.TW': 170, '6239.TW': 155, '6147.TWO': 70, '2449.TW': 180, '6510.TWO': 650, '6223.TWO': 850, '3583.TW': 420, '3131.TWO': 1300, '3680.TWO': 420, '2345.TW': 850, '3596.TW': 180, '5388.TWO': 120, '6285.TW': 150, '2464.TW': 95, '4540.TWO': 75, '1597.TWO': 90, '1536.TW': 110, '2002.TW': 24, '1101.TW': 34, '1102.TW': 40, '1216.TW': 86, '1210.TW': 55, '2912.TW': 285, '2881.TW': 90, '2882.TW': 75, '2891.TW': 45, '2603.TW': 220, '2609.TW': 80, '2615.TW': 90}
+V225_INDUSTRY_META = {'AI伺服器/機殼': {'規模': '中', '成長率': '高', 'AI關聯度': '高', '說明': 'AI伺服器機殼、機構件、機櫃與資料中心硬體供應鏈'}, '半導體設備': {'規模': '中大', '成長率': '高循環', 'AI關聯度': '高', '說明': '半導體設備、廠務工程、先進製程與資本支出供應鏈'}, '網通': {'規模': '中大', '成長率': '中高', 'AI關聯度': '高', '說明': 'AI資料中心交換器、寬頻網通、CPE與高速網路設備'}, '鋼鐵': {'規模': '大', '成長率': '循環', 'AI關聯度': '非AI主題', '說明': '鋼價、基建、製造業景氣與原料成本主導'}, '水泥': {'規模': '中大', '成長率': '低中', 'AI關聯度': '非AI主題', '說明': '水泥、建設、碳成本與能源轉型'}, '食品': {'規模': '中大', '成長率': '穩定', 'AI關聯度': '非AI主題', '說明': '品牌、通路、食品安全與原物料成本'}, '零售通路': {'規模': '大', '成長率': '穩定', 'AI關聯度': '非AI主題', '說明': '門市密度、物流、消費景氣與品牌力'}, '車用/機器人': {'規模': '中', '成長率': '中高', 'AI關聯度': '中', '說明': '車用精密零件、減速機、機器人傳動與精密加工'}}
+
+try:
+    STOCK_DB.update(V225_EXTRA_STOCKS)
+    ALIASES.clear()
+    for sym, v in STOCK_DB.items():
+        ALIASES[sym.upper()] = sym
+        ALIASES[sym.split(".")[0]] = sym
+        ALIASES[v["name"]] = sym
+        ALIASES[v["name"].upper()] = sym
+except Exception:
+    pass
+
+try:
+    V224_FALLBACK_PRICE.update(V225_FALLBACK_PRICE)
+except Exception:
+    V224_FALLBACK_PRICE = V225_FALLBACK_PRICE
+
+try:
+    V224_INDUSTRY_META.update(V225_INDUSTRY_META)
+except Exception:
+    V224_INDUSTRY_META = V225_INDUSTRY_META
+
+def v225_rows_df():
+    rows = []
+    for sym, v in STOCK_DB.items():
+        d = {**v, "symbol": sym}
+        try:
+            ai = v224_ai_score(d)
+        except Exception:
+            ai = 0
+        rows.append({
+            "產業": v.get("industry","待補"),
+            "子產業": v.get("sub","待補"),
+            "公司": v.get("name",sym),
+            "代碼": sym,
+            "AI主題": v.get("theme_text", "一般產業" if ai > 0 else "非AI主題"),
+            "AI受惠度": ai,
+            "全球競爭力": v.get("power","★★★☆☆"),
+            "全球排名": v.get("rank","待補"),
+            "產業地位": v.get("position","待補"),
+            "主要競爭者": v.get("peers","待補"),
+            "護城河": v.get("moat","待補"),
+            "主要風險": v.get("risk","待補"),
+        })
+    return pd.DataFrame(rows)
+
+def v224_rows_df():
+    return v225_rows_df()
+
+def industry_page():
+    st.header("🏭 產業分析")
+    df = v225_rows_df()
+    c1,c2 = st.columns(2)
+    with c1:
+        ind = st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v225_industry_ind")
+    dff = df[df["產業"] == ind]
+    with c2:
+        sub = st.selectbox("子產業", ["全部"] + sorted(dff["子產業"].dropna().unique()), key="v225_industry_sub")
+    if sub != "全部":
+        dff = dff[dff["子產業"] == sub]
+    meta = V224_INDUSTRY_META.get(ind, {"規模":"待補","成長率":"待補","AI關聯度":"待補","說明":"待補"})
+    m1,m2,m3,m4 = st.columns(4)
+    m1.metric("產業規模", meta["規模"])
+    m2.metric("成長率", meta["成長率"])
+    m3.metric("AI關聯度", meta["AI關聯度"])
+    m4.metric("主要公司數", len(dff))
+    st.info(meta["說明"])
+    st.markdown("### 主要公司")
+    st.dataframe(dff[["公司","代碼","子產業","AI主題","AI受惠度","全球競爭力","產業地位"]].sort_values(["子產業","代碼"]), use_container_width=True, hide_index=True)
+
+def competition_page():
+    st.header("🌏 全球競爭力")
+    df = v225_rows_df()
+    c1,c2,c3 = st.columns(3)
+    with c1:
+        ind = st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v225_global_ind")
+    dff = df[df["產業"] == ind]
+    with c2:
+        sub = st.selectbox("子產業", sorted(dff["子產業"].dropna().unique()), key="v225_global_sub")
+    dff = dff[dff["子產業"] == sub]
+    labels = {f"{r['公司']} / {r['代碼']}": r["代碼"] for _, r in dff.iterrows()}
+    with c3:
+        picked = st.selectbox("個股", list(labels.keys()), key="v225_global_stock")
+    row = dff[dff["代碼"] == labels[picked]].iloc[0].to_dict()
+    st.markdown(f"## {row['公司']}（{row['代碼']}）")
+    g1,g2,g3,g4 = st.columns(4)
+    ai_txt = f"{row['AI受惠度']}/10" if int(row["AI受惠度"]) > 0 else "非AI主題"
+    g1.metric("全球排名", row["全球排名"])
+    g2.metric("AI受惠度", ai_txt)
+    g3.metric("全球競爭力", row["全球競爭力"])
+    g4.metric("產業地位", row["產業地位"])
+    st.dataframe(pd.DataFrame([{
+        "主產業":row["產業"],"子產業":row["子產業"],"個股":row["公司"],"代碼":row["代碼"],
+        "競爭者":row["主要競爭者"],"護城河":row["護城河"],"主要風險":row["主要風險"],"AI主題":row["AI主題"]
+    }]), use_container_width=True, hide_index=True)
+    st.markdown("---")
+    v224_ai_score_explanation()
+
+def global_competition():
+    competition_page()
+def industry_analysis():
+    industry_page()
+# ===== V225.0 STOCK DATABASE EXPANSION END =====
 
 
 if __name__ == '__main__':
