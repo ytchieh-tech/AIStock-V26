@@ -6,7 +6,7 @@ import numpy as np
 import yfinance as yf
 import streamlit as st
 
-APP_VERSION = "V225.0 Stock Database Expansion"
+APP_VERSION = "V226.0 Stock Database Expansion II"
 APP_NAME = "智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -1462,6 +1462,123 @@ def global_competition():
 def industry_analysis():
     industry_page()
 # ===== V225.0 STOCK DATABASE EXPANSION END =====
+
+
+
+
+
+# ===== V226.0 STOCK DATABASE EXPANSION II START =====
+V226_EXTRA_STOCKS = {'3591.TW': {'name': '艾笛森', 'industry': 'LED/光電', 'sub': 'LED照明/車用光源', 'rank': 'LED光源供應商', 'power': '★★★☆☆', 'position': 'LED照明與車用光源供應商', 'peers': '億光、光磊、隆達、Nichia', 'moat': '中：LED封裝、照明模組與車用應用', 'risk': 'LED價格競爭、需求循環', 'fair_mult': 1.02}, '2393.TW': {'name': '億光', 'industry': 'LED/光電', 'sub': 'LED封裝', 'rank': '台灣LED封裝主要廠', 'power': '★★★☆☆', 'position': 'LED封裝與光電元件供應商', 'peers': 'Nichia、Osram、Lumileds、艾笛森', 'moat': '中：LED封裝技術與客戶基礎', 'risk': '價格競爭、終端需求', 'fair_mult': 1.02}, '2340.TW': {'name': '台亞', 'industry': 'LED/光電', 'sub': 'LED/化合物半導體', 'rank': '光電與化合物半導體供應商', 'power': '★★★☆☆', 'position': 'LED晶粒與化合物半導體供應商', 'peers': '晶電、光磊、三安光電', 'moat': '中：磊晶與化合物半導體經驗', 'risk': 'LED循環、資本支出', 'fair_mult': 1.03}, '2455.TW': {'name': '全新', 'industry': '化合物半導體', 'sub': '砷化鎵磊晶', 'rank': '砷化鎵磊晶供應商', 'power': '★★★★☆', 'position': 'RF與光通訊砷化鎵磊晶供應商', 'peers': 'IQE、VPEC同業、宏捷科', 'moat': '中高：磊晶技術與客戶認證', 'risk': '手機/RF需求循環、客戶集中', 'fair_mult': 1.06}, '8086.TWO': {'name': '宏捷科', 'industry': '化合物半導體', 'sub': '砷化鎵/PA', 'rank': '砷化鎵代工供應商', 'power': '★★★☆☆', 'position': '砷化鎵與射頻元件供應商', 'peers': '穩懋、全新、Skyworks、Qorvo', 'moat': '中：砷化鎵製程與RF客戶', 'risk': '手機需求、價格競爭', 'fair_mult': 1.04}, '3105.TWO': {'name': '穩懋', 'industry': '化合物半導體', 'sub': '砷化鎵晶圓代工', 'rank': '全球砷化鎵代工龍頭之一', 'power': '★★★★☆', 'position': '砷化鎵RF晶圓代工龍頭之一', 'peers': '宏捷科、GlobalFoundries RF、WIN同業', 'moat': '中高：GaAs製程、客戶認證、產能規模', 'risk': '手機/RF循環、產能利用率', 'fair_mult': 1.05}, '2409.TW': {'name': '友達', 'industry': '面板/顯示器', 'sub': '面板/顯示器', 'rank': '面板主要廠', 'power': '★★★☆☆', 'position': '顯示面板與智慧顯示解決方案供應商', 'peers': '群創、BOE、LG Display、Samsung Display', 'moat': '中：面板製程與客戶基礎', 'risk': '面板價格循環、產能競爭', 'fair_mult': 0.98}, '3481.TW': {'name': '群創', 'industry': '面板/顯示器', 'sub': '面板/顯示器', 'rank': '面板主要廠', 'power': '★★★☆☆', 'position': '顯示面板與車用/工控顯示供應商', 'peers': '友達、BOE、LG Display', 'moat': '中：面板產能與應用布局', 'risk': '面板價格循環、稼動率', 'fair_mult': 0.98}, '6116.TW': {'name': '彩晶', 'industry': '面板/顯示器', 'sub': '中小尺寸面板', 'rank': '中小尺寸面板供應商', 'power': '★★☆☆☆', 'position': '中小尺寸面板供應商', 'peers': '友達、群創、中國面板廠', 'moat': '低中：既有產能與客戶', 'risk': '價格競爭、產能利用率', 'fair_mult': 0.96}, '5371.TWO': {'name': '中光電', 'industry': '面板/顯示器', 'sub': '背光模組/投影', 'rank': '背光與投影供應商', 'power': '★★★☆☆', 'position': '背光模組、投影與節能顯示供應商', 'peers': '瑞儀、光寶、日系光學廠', 'moat': '中：光學模組與客戶基礎', 'risk': '顯示需求循環、毛利率', 'fair_mult': 1.02}, '6176.TW': {'name': '瑞儀', 'industry': '面板/顯示器', 'sub': '背光模組', 'rank': '背光模組主要廠', 'power': '★★★☆☆', 'position': '背光模組與顯示應用供應商', 'peers': '中光電、日系背光模組廠', 'moat': '中：背光模組與客戶導入', 'risk': '終端需求循環、客戶集中', 'fair_mult': 1.02}, '2392.TW': {'name': '正崴', 'industry': '連接器/零組件', 'sub': '連接器/線材', 'rank': '連接器與線材供應商', 'power': '★★★☆☆', 'position': '連接器、線材與消費電子零組件供應商', 'peers': '信邦、貿聯-KY、鴻海集團零組件', 'moat': '中：連接器與客戶基礎', 'risk': '消費電子循環、毛利率', 'fair_mult': 1.02}, '3605.TW': {'name': '宏致', 'industry': '連接器/零組件', 'sub': '連接器', 'rank': '連接器供應商', 'power': '★★★☆☆', 'position': '連接器與電子零組件供應商', 'peers': '信邦、正崴、嘉澤、貿聯-KY', 'moat': '中：連接器設計與製造', 'risk': '需求循環、價格競爭', 'fair_mult': 1.03}, '3533.TW': {'name': '嘉澤', 'industry': '連接器/零組件', 'sub': 'CPU Socket/連接器', 'rank': 'CPU Socket主要供應商', 'power': '★★★★☆', 'position': '高階連接器與CPU Socket供應商', 'peers': 'Lotes、Foxconn Interconnect、TE Connectivity', 'moat': '中高：高階連接器認證與製程', 'risk': 'PC/伺服器平台週期、客戶集中', 'fair_mult': 1.06}, '6213.TW': {'name': '聯茂', 'industry': '電子材料', 'sub': 'CCL/銅箔基板', 'rank': 'CCL主要供應商', 'power': '★★★☆☆', 'position': '銅箔基板與電子材料供應商', 'peers': '台光電、台燿、Panasonic、Isola', 'moat': '中：CCL材料與客戶基礎', 'risk': '材料價格、AI需求波動', 'fair_mult': 1.04}, '2457.TW': {'name': '飛宏', 'industry': '電源/能源管理', 'sub': '電源供應器/充電', 'rank': '電源供應器供應商', 'power': '★★★☆☆', 'position': '電源供應器、充電與能源產品供應商', 'peers': '台達電、群電、康舒', 'moat': '中：電源設計與客戶基礎', 'risk': '毛利率、終端需求', 'fair_mult': 1.03}, '6282.TW': {'name': '康舒', 'industry': '電源/能源管理', 'sub': '電源/能源', 'rank': '電源供應器主要廠', 'power': '★★★☆☆', 'position': '電源供應器與能源應用供應商', 'peers': '台達電、群電、光寶科', 'moat': '中：電源產品線與客戶基礎', 'risk': '毛利率、原料、景氣循環', 'fair_mult': 1.03}, '4147.TWO': {'name': '中裕', 'industry': '生技醫療', 'sub': '新藥/抗體', 'rank': '新藥開發公司', 'power': '★★☆☆☆', 'position': '抗體與新藥開發公司', 'peers': '國際新藥公司、台灣生技同業', 'moat': '低中：研發管線與專利', 'risk': '臨床進度、資金需求、法規', 'fair_mult': 1.0}, '4162.TWO': {'name': '智擎', 'industry': '生技醫療', 'sub': '新藥授權', 'rank': '新藥開發與授權公司', 'power': '★★☆☆☆', 'position': '新藥開發與授權公司', 'peers': '中裕、台灣浩鼎、國際新藥公司', 'moat': '低中：授權管線與研發成果', 'risk': '臨床進度、授權收入波動', 'fair_mult': 1.0}, '4105.TWO': {'name': '東洋', 'industry': '生技醫療', 'sub': '學名藥/癌症用藥', 'rank': '台灣藥品主要廠', 'power': '★★★☆☆', 'position': '癌症用藥與特殊學名藥供應商', 'peers': '美時、杏輝、國際學名藥廠', 'moat': '中：產品組合、通路、藥證', 'risk': '藥價、競爭、法規', 'fair_mult': 1.03}, '1795.TWO': {'name': '美時', 'industry': '生技醫療', 'sub': '學名藥/特殊藥', 'rank': '特殊學名藥主要廠', 'power': '★★★☆☆', 'position': '特殊學名藥與國際通路供應商', 'peers': '東洋、國際學名藥廠', 'moat': '中：藥證、通路、產品線', 'risk': '藥價、法規、競爭', 'fair_mult': 1.04}, '4743.TWO': {'name': '合一', 'industry': '生技醫療', 'sub': '新藥/傷口照護', 'rank': '新藥與傷口照護公司', 'power': '★★☆☆☆', 'position': '新藥與傷口照護應用公司', 'peers': '中裕、智擎、國際生技公司', 'moat': '低中：專利與產品管線', 'risk': '臨床、銷售放量、法規', 'fair_mult': 1.0}, '2618.TW': {'name': '長榮航', 'industry': '航空/觀光', 'sub': '航空運輸', 'rank': '台灣航空主要業者', 'power': '★★★☆☆', 'position': '國際航空與客運貨運公司', 'peers': '華航、星宇、ANA、Cathay Pacific', 'moat': '中：航線、品牌、機隊', 'risk': '油價、匯率、旅運需求', 'fair_mult': 1.02}, '2610.TW': {'name': '華航', 'industry': '航空/觀光', 'sub': '航空運輸', 'rank': '台灣航空主要業者', 'power': '★★★☆☆', 'position': '航空客運與貨運公司', 'peers': '長榮航、星宇、Cathay Pacific', 'moat': '中：航線、貨運與品牌', 'risk': '油價、匯率、旅運需求', 'fair_mult': 1.02}, '2727.TW': {'name': '王品', 'industry': '觀光餐飲', 'sub': '連鎖餐飲', 'rank': '台灣連鎖餐飲主要品牌', 'power': '★★★☆☆', 'position': '連鎖餐飲品牌集團', 'peers': '瓦城、漢來美食、國際餐飲品牌', 'moat': '中：品牌、展店能力、營運管理', 'risk': '人力成本、消費景氣、食材成本', 'fair_mult': 1.03}, '2731.TWO': {'name': '雄獅', 'industry': '觀光餐飲', 'sub': '旅行社', 'rank': '台灣旅行社龍頭之一', 'power': '★★★☆☆', 'position': '旅遊服務與旅行社供應商', 'peers': '鳳凰、五福、易飛網', 'moat': '中：品牌、通路、產品組合', 'risk': '景氣、匯率、旅遊政策', 'fair_mult': 1.03}, '2542.TW': {'name': '興富發', 'industry': '營建', 'sub': '住宅建商', 'rank': '台灣大型建商', 'power': '★★★☆☆', 'position': '住宅開發與建設公司', 'peers': '遠雄、華固、國建、長虹', 'moat': '中：土地庫存、銷售能力', 'risk': '利率、房市政策、去化速度', 'fair_mult': 1.0}, '5522.TW': {'name': '遠雄', 'industry': '營建', 'sub': '住宅/商辦建設', 'rank': '大型建設公司', 'power': '★★★☆☆', 'position': '住宅、商辦與開發建設公司', 'peers': '興富發、華固、長虹、國建', 'moat': '中：土地資源與品牌', 'risk': '房市政策、利率、工程成本', 'fair_mult': 1.0}, '2548.TW': {'name': '華固', 'industry': '營建', 'sub': '高端住宅/商辦', 'rank': '高端建商', 'power': '★★★☆☆', 'position': '高端住宅與商辦開發公司', 'peers': '長虹、遠雄、興富發', 'moat': '中：地段選擇、品牌、財務體質', 'risk': '房市政策、利率、推案進度', 'fair_mult': 1.02}, '5534.TW': {'name': '長虹', 'industry': '營建', 'sub': '住宅/商辦', 'rank': '大型建商', 'power': '★★★☆☆', 'position': '住宅與商辦建設公司', 'peers': '華固、遠雄、興富發', 'moat': '中：土地庫存與推案能力', 'risk': '房市政策、利率、銷售速度', 'fair_mult': 1.01}}
+V226_FALLBACK_PRICE = {'3591.TW': 26.45, '2393.TW': 80, '2340.TW': 40, '2455.TW': 180, '8086.TWO': 120, '3105.TWO': 150, '2409.TW': 17, '3481.TW': 15, '6116.TW': 9, '5371.TWO': 90, '6176.TW': 130, '2392.TW': 80, '3605.TW': 55, '3533.TW': 1500, '6213.TW': 110, '2457.TW': 60, '6282.TW': 42, '4147.TWO': 85, '4162.TWO': 100, '4105.TWO': 75, '1795.TWO': 280, '4743.TWO': 140, '2618.TW': 40, '2610.TW': 25, '2727.TW': 220, '2731.TWO': 160, '2542.TW': 45, '5522.TW': 75, '2548.TW': 130, '5534.TW': 90}
+V226_INDUSTRY_META = {'LED/光電': {'規模': '中', '成長率': '低中', 'AI關聯度': '低', '說明': 'LED照明、車用光源、光電元件，受價格競爭與應用需求影響'}, '化合物半導體': {'規模': '中', '成長率': '中高', 'AI關聯度': '中', '說明': '砷化鎵、RF、磊晶與化合物半導體供應鏈'}, '面板/顯示器': {'規模': '大', '成長率': '循環', 'AI關聯度': '低中', '說明': '面板、背光、車用與工控顯示，主要看價格循環與應用轉型'}, '連接器/零組件': {'規模': '中大', '成長率': '中', 'AI關聯度': '中', '說明': '連接器、線材、高速傳輸與電子零組件'}, '生技醫療': {'規模': '中', '成長率': '高不確定', 'AI關聯度': '非AI主題', '說明': '藥證、臨床、授權、醫療通路與法規是核心'}, '航空/觀光': {'規模': '大', '成長率': '循環', 'AI關聯度': '非AI主題', '說明': '旅運需求、油價、匯率與景氣循環主導'}, '觀光餐飲': {'規模': '中', '成長率': '中', 'AI關聯度': '非AI主題', '說明': '消費景氣、展店、品牌與人力成本主導'}, '營建': {'規模': '大', '成長率': '循環', 'AI關聯度': '非AI主題', '說明': '利率、房市政策、土地庫存與推案進度主導'}}
+
+try:
+    STOCK_DB.update(V226_EXTRA_STOCKS)
+    ALIASES.clear()
+    for sym, v in STOCK_DB.items():
+        ALIASES[sym.upper()] = sym
+        ALIASES[sym.split(".")[0]] = sym
+        ALIASES[v["name"]] = sym
+        ALIASES[v["name"].upper()] = sym
+except Exception:
+    pass
+
+try:
+    V224_FALLBACK_PRICE.update(V226_FALLBACK_PRICE)
+except Exception:
+    V224_FALLBACK_PRICE = V226_FALLBACK_PRICE
+
+try:
+    V224_INDUSTRY_META.update(V226_INDUSTRY_META)
+except Exception:
+    V224_INDUSTRY_META = V226_INDUSTRY_META
+
+def v226_rows_df():
+    rows = []
+    for sym, v in STOCK_DB.items():
+        d = {**v, "symbol": sym}
+        try:
+            ai = v224_ai_score(d)
+        except Exception:
+            ai = 0
+        rows.append({
+            "產業": v.get("industry","待補"),
+            "子產業": v.get("sub","待補"),
+            "公司": v.get("name",sym),
+            "代碼": sym,
+            "AI主題": v.get("theme_text", "一般產業" if ai > 0 else "非AI主題"),
+            "AI受惠度": ai,
+            "全球競爭力": v.get("power","★★★☆☆"),
+            "全球排名": v.get("rank","待補"),
+            "產業地位": v.get("position","待補"),
+            "主要競爭者": v.get("peers","待補"),
+            "護城河": v.get("moat","待補"),
+            "主要風險": v.get("risk","待補"),
+        })
+    return pd.DataFrame(rows)
+
+def v225_rows_df():
+    return v226_rows_df()
+def v224_rows_df():
+    return v226_rows_df()
+
+def industry_page():
+    st.header("🏭 產業分析")
+    df = v226_rows_df()
+    c1,c2 = st.columns(2)
+    with c1:
+        ind = st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v226_industry_ind")
+    dff = df[df["產業"] == ind]
+    with c2:
+        sub = st.selectbox("子產業", ["全部"] + sorted(dff["子產業"].dropna().unique()), key="v226_industry_sub")
+    if sub != "全部":
+        dff = dff[dff["子產業"] == sub]
+    meta = V224_INDUSTRY_META.get(ind, {"規模":"待補","成長率":"待補","AI關聯度":"待補","說明":"待補"})
+    m1,m2,m3,m4 = st.columns(4)
+    m1.metric("產業規模", meta["規模"])
+    m2.metric("成長率", meta["成長率"])
+    m3.metric("AI關聯度", meta["AI關聯度"])
+    m4.metric("主要公司數", len(dff))
+    st.info(meta["說明"])
+    st.markdown("### 主要公司")
+    st.dataframe(dff[["公司","代碼","子產業","AI主題","AI受惠度","全球競爭力","產業地位"]].sort_values(["子產業","代碼"]), use_container_width=True, hide_index=True)
+
+def competition_page():
+    st.header("🌏 全球競爭力")
+    df = v226_rows_df()
+    c1,c2,c3 = st.columns(3)
+    with c1:
+        ind = st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v226_global_ind")
+    dff = df[df["產業"] == ind]
+    with c2:
+        sub = st.selectbox("子產業", sorted(dff["子產業"].dropna().unique()), key="v226_global_sub")
+    dff = dff[dff["子產業"] == sub]
+    labels = {f"{r['公司']} / {r['代碼']}": r["代碼"] for _, r in dff.iterrows()}
+    with c3:
+        picked = st.selectbox("個股", list(labels.keys()), key="v226_global_stock")
+    row = dff[dff["代碼"] == labels[picked]].iloc[0].to_dict()
+    st.markdown(f"## {row['公司']}（{row['代碼']}）")
+    g1,g2,g3,g4 = st.columns(4)
+    try:
+        ai_txt = f"{int(row['AI受惠度'])}/10" if int(row["AI受惠度"]) > 0 else "非AI主題"
+    except Exception:
+        ai_txt = "非AI主題"
+    g1.metric("全球排名", row["全球排名"])
+    g2.metric("AI受惠度", ai_txt)
+    g3.metric("全球競爭力", row["全球競爭力"])
+    g4.metric("產業地位", row["產業地位"])
+    st.dataframe(pd.DataFrame([{
+        "主產業":row["產業"],"子產業":row["子產業"],"個股":row["公司"],"代碼":row["代碼"],
+        "競爭者":row["主要競爭者"],"護城河":row["護城河"],"主要風險":row["主要風險"],"AI主題":row["AI主題"]
+    }]), use_container_width=True, hide_index=True)
+    st.markdown("---")
+    v224_ai_score_explanation()
+
+def global_competition():
+    competition_page()
+def industry_analysis():
+    industry_page()
+# ===== V226.0 STOCK DATABASE EXPANSION II END =====
 
 
 if __name__ == '__main__':
