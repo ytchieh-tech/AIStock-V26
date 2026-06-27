@@ -6,7 +6,7 @@ import numpy as np
 import yfinance as yf
 import streamlit as st
 
-APP_VERSION = "V231.0 Ranking Dashboard"
+APP_VERSION = "V232.0 Data Cleanup Expansion III"
 APP_NAME = "智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -2154,6 +2154,48 @@ def home():
 def v108_enterprise_home(): home()
 def v107_premium_home(): home()
 # ===== V231.0 RANKING DASHBOARD END =====
+
+
+
+
+
+# ===== V232.0 DATA CLEANUP EXPANSION III START =====
+V232_UPDATES = {'2408.TW': {'name': '南亞科', 'industry': '記憶體', 'sub': 'DRAM', 'rank': '台灣DRAM主要廠', 'power': '★★★☆☆', 'position': '台灣DRAM製造商，受記憶體循環與AI伺服器記憶體需求影響', 'peers': 'Samsung、SK hynix、Micron、華邦電、力積電', 'moat': '中：DRAM製程與產能，受全球寡占供給影響', 'risk': 'DRAM價格循環、資本支出、技術世代落差', 'fair_mult': 1.05, 'theme_text': '記憶體、DRAM、AI伺服器、HBM供應鏈外溢', 'chain_position': '上游記憶體製造', 'market_share': '台灣DRAM主要供應商'}, '2357.TW': {'name': '華碩', 'industry': 'AI PC/品牌', 'sub': 'PC/伺服器/AI PC', 'rank': '全球PC品牌', 'power': '★★★★☆', 'position': '全球PC、主機板與AI PC品牌', 'peers': 'Lenovo、HP、Dell、Acer、MSI', 'moat': '高：品牌、通路、主機板技術', 'risk': 'PC需求循環、庫存、匯率', 'fair_mult': 1.04, 'theme_text': 'AI PC、主機板、品牌PC、邊緣AI', 'chain_position': '下游品牌/系統', 'market_share': '全球PC與主機板主要品牌'}, '2353.TW': {'name': '宏碁', 'industry': 'AI PC/品牌', 'sub': 'PC品牌', 'rank': '全球PC品牌', 'power': '★★★☆☆', 'position': '全球PC品牌與AI PC受惠股', 'peers': 'Lenovo、HP、Dell、華碩、MSI', 'moat': '中：品牌、通路、教育與商用市場', 'risk': 'PC需求循環、庫存、競爭', 'fair_mult': 1.03, 'theme_text': 'AI PC、品牌PC、邊緣AI', 'chain_position': '下游品牌/系統', 'market_share': '全球PC品牌'}, '2377.TW': {'name': '微星', 'industry': 'AI PC/品牌', 'sub': '電競PC/主機板', 'rank': '電競PC與主機板品牌', 'power': '★★★☆☆', 'position': '電競筆電、主機板與AI PC品牌', 'peers': '華碩、技嘉、宏碁、Lenovo', 'moat': '中：電競品牌、主機板與顯卡通路', 'risk': 'PC需求循環、庫存、GPU供給', 'fair_mult': 1.04, 'theme_text': 'AI PC、電競PC、主機板、邊緣AI', 'chain_position': '下游品牌/系統', 'market_share': '全球電競PC與主機板品牌'}, '2376.TW': {'name': '技嘉', 'industry': 'AI伺服器/ODM', 'sub': '主機板/伺服器', 'rank': '主機板與伺服器供應商', 'power': '★★★★☆', 'position': '主機板、顯卡與AI伺服器供應商', 'peers': '華碩、微星、廣達、緯穎', 'moat': '中高：主機板、伺服器平台與通路', 'risk': 'AI伺服器出貨、PC循環、庫存', 'fair_mult': 1.06, 'theme_text': 'AI伺服器、AI PC、主機板、資料中心', 'chain_position': '中下游伺服器平台', 'market_share': '主機板與AI伺服器平台供應商'}, '3661.TW': {'name': '世芯-KY', 'industry': 'IC設計', 'sub': 'ASIC設計服務', 'rank': 'AI ASIC設計服務供應商', 'power': '★★★★☆', 'position': 'AI ASIC與客製化晶片設計服務供應商', 'peers': '創意、智原、Broadcom ASIC、Marvell', 'moat': '中高：ASIC設計能力、先進製程合作與客戶導入', 'risk': '客戶集中、專案時程、先進製程成本', 'fair_mult': 1.08, 'theme_text': 'AI ASIC、AI伺服器、HPC、客製化晶片', 'chain_position': '上游IC設計服務', 'market_share': 'AI ASIC設計服務主要廠'}, '3037.TW': {'name': '欣興', 'industry': 'PCB', 'sub': 'ABF載板/高階PCB', 'rank': 'ABF載板主要廠', 'power': '★★★★☆', 'position': 'ABF載板與高階PCB供應商', 'peers': '南電、景碩、Ibiden、Shinko', 'moat': '中高：ABF載板技術、客戶認證、產能規模', 'risk': 'ABF循環、AI需求波動、資本支出', 'fair_mult': 1.08, 'theme_text': 'ABF載板、AI伺服器、先進封裝、HPC', 'chain_position': '上游載板/PCB', 'market_share': 'ABF載板全球主要供應商'}, '3189.TW': {'name': '景碩', 'industry': 'PCB', 'sub': 'IC載板/ABF', 'rank': 'IC載板主要廠', 'power': '★★★☆☆', 'position': 'IC載板與ABF載板供應商', 'peers': '欣興、南電、Ibiden、Shinko', 'moat': '中：IC載板製程與客戶基礎', 'risk': 'ABF需求循環、資本支出', 'fair_mult': 1.05, 'theme_text': 'ABF載板、先進封裝、AI伺服器', 'chain_position': '上游載板/PCB', 'market_share': 'IC載板主要供應商'}, '8046.TW': {'name': '南電', 'industry': 'PCB', 'sub': 'ABF載板/IC載板', 'rank': 'ABF載板主要廠', 'power': '★★★★☆', 'position': 'ABF載板與IC載板主要供應商', 'peers': '欣興、景碩、Ibiden、Shinko', 'moat': '中高：ABF載板製程、客戶認證、集團資源', 'risk': 'ABF價格循環、客戶需求波動', 'fair_mult': 1.06, 'theme_text': 'ABF載板、先進封裝、AI伺服器、HPC', 'chain_position': '上游載板/PCB', 'market_share': 'ABF載板全球主要供應商'}, '2327.TW': {'name': '國巨', 'industry': '被動元件', 'sub': 'MLCC/晶片電阻', 'rank': '全球被動元件龍頭之一', 'power': '★★★★★', 'position': '全球MLCC、晶片電阻與被動元件龍頭之一', 'peers': 'Murata、TDK、Samsung Electro-Mechanics、華新科', 'moat': '高：規模、通路、產品組合、併購整合', 'risk': '被動元件循環、價格競爭、庫存', 'fair_mult': 1.05, 'theme_text': '被動元件、AI伺服器、車用電子、工業電子', 'chain_position': '上游零組件', 'market_share': '全球被動元件主要供應商'}, '2492.TW': {'name': '華新科', 'industry': '被動元件', 'sub': 'MLCC/晶片電阻', 'rank': '被動元件主要廠', 'power': '★★★☆☆', 'position': 'MLCC、晶片電阻與被動元件供應商', 'peers': '國巨、禾伸堂、Murata、TDK', 'moat': '中：產品線與集團資源', 'risk': '價格循環、庫存、需求波動', 'fair_mult': 1.03, 'theme_text': '被動元件、車用電子、AI伺服器', 'chain_position': '上游零組件', 'market_share': '台灣被動元件主要廠'}, '3026.TW': {'name': '禾伸堂', 'industry': '被動元件', 'sub': 'MLCC/通路', 'rank': '被動元件供應商', 'power': '★★★☆☆', 'position': 'MLCC與被動元件供應商', 'peers': '國巨、華新科、Murata、TDK', 'moat': '中：通路與產品組合', 'risk': '價格循環、庫存、需求波動', 'fair_mult': 1.03, 'theme_text': '被動元件、車用電子、AI伺服器', 'chain_position': '上游零組件/通路', 'market_share': '台灣被動元件供應商'}, '2344.TW': {'name': '華邦電', 'industry': '記憶體', 'sub': 'NOR Flash/DRAM', 'rank': '利基型記憶體主要廠', 'power': '★★★☆☆', 'position': 'NOR Flash、Specialty DRAM與利基型記憶體供應商', 'peers': '旺宏、南亞科、Micron、ISSI', 'moat': '中：利基型記憶體產品與客戶基礎', 'risk': '記憶體循環、價格競爭、稼動率', 'fair_mult': 1.04, 'theme_text': '記憶體、NOR Flash、DRAM、AI邊緣裝置', 'chain_position': '上游記憶體製造', 'market_share': '利基型記憶體主要供應商'}, '2337.TW': {'name': '旺宏', 'industry': '記憶體', 'sub': 'NOR Flash/ROM', 'rank': 'NOR Flash主要廠', 'power': '★★★☆☆', 'position': 'NOR Flash與ROM記憶體供應商', 'peers': '華邦電、Micron、Infineon', 'moat': '中：NOR Flash產品與客戶基礎', 'risk': '價格循環、消費電子需求', 'fair_mult': 1.03, 'theme_text': '記憶體、NOR Flash、車用電子、工控', 'chain_position': '上游記憶體製造', 'market_share': 'NOR Flash主要供應商'}, '8299.TWO': {'name': '群聯', 'industry': '記憶體', 'sub': 'NAND控制晶片/模組', 'rank': 'NAND控制晶片主要廠', 'power': '★★★★☆', 'position': 'NAND控制晶片與儲存解決方案供應商', 'peers': '慧榮、Marvell、Samsung、Western Digital', 'moat': '中高：控制晶片、韌體與客戶基礎', 'risk': 'NAND循環、庫存、需求波動', 'fair_mult': 1.06, 'theme_text': '記憶體、NAND控制晶片、AI儲存、邊緣AI', 'chain_position': '中游控制晶片/儲存', 'market_share': '全球NAND控制晶片主要廠'}, '3260.TWO': {'name': '威剛', 'industry': '記憶體', 'sub': '記憶體模組/通路', 'rank': '記憶體模組主要廠', 'power': '★★★☆☆', 'position': 'DRAM/NAND模組與儲存品牌供應商', 'peers': '金士頓、創見、十銓、宇瞻', 'moat': '中：品牌、通路與庫存管理', 'risk': '記憶體價格循環、庫存評價', 'fair_mult': 1.05, 'theme_text': '記憶體、DRAM模組、NAND模組、AI儲存', 'chain_position': '下游模組/通路', 'market_share': '記憶體模組主要品牌'}, '2451.TW': {'name': '創見', 'industry': '記憶體', 'sub': '記憶體模組/工控儲存', 'rank': '工控儲存供應商', 'power': '★★★☆☆', 'position': '記憶體模組、工控儲存與嵌入式儲存供應商', 'peers': '威剛、十銓、宇瞻、金士頓', 'moat': '中：工控儲存、品牌與通路', 'risk': '記憶體循環、庫存', 'fair_mult': 1.03, 'theme_text': '記憶體、工控儲存、邊緣AI', 'chain_position': '下游模組/工控儲存', 'market_share': '工控儲存供應商'}, '4967.TWO': {'name': '十銓', 'industry': '記憶體', 'sub': '記憶體模組/電競儲存', 'rank': '記憶體模組品牌', 'power': '★★★☆☆', 'position': '記憶體模組、電競儲存與消費儲存品牌', 'peers': '威剛、創見、宇瞻、金士頓', 'moat': '中：品牌與通路', 'risk': '記憶體價格循環、庫存', 'fair_mult': 1.04, 'theme_text': '記憶體、電競儲存、AI PC', 'chain_position': '下游模組/品牌', 'market_share': '記憶體模組品牌'}, '8271.TW': {'name': '宇瞻', 'industry': '記憶體', 'sub': '工控記憶體/模組', 'rank': '工控記憶體供應商', 'power': '★★★☆☆', 'position': '工控記憶體與嵌入式儲存供應商', 'peers': '創見、威剛、十銓', 'moat': '中：工控客戶與嵌入式產品', 'risk': '記憶體循環、工控需求', 'fair_mult': 1.03, 'theme_text': '記憶體、工控儲存、邊緣AI', 'chain_position': '下游工控模組', 'market_share': '工控記憶體供應商'}}
+V232_FALLBACK_PRICE = {'2408.TW': 72.0, '2357.TW': 701.0, '2353.TW': 48.0, '2377.TW': 170.0, '2376.TW': 260.0, '3661.TW': 4200.0, '3037.TW': 142.0, '3189.TW': 105.0, '8046.TW': 180.0, '2327.TW': 180.0, '2492.TW': 105.0, '3026.TW': 95.0, '2344.TW': 28.0, '2337.TW': 30.0, '8299.TWO': 620.0, '3260.TWO': 120.0, '2451.TW': 95.0, '4967.TWO': 150.0, '8271.TW': 80.0}
+V232_INDUSTRY_META = {'被動元件': {'規模': '中大', '成長率': '循環復甦', 'AI關聯度': '中高', '說明': 'MLCC、晶片電阻、電感與保護元件，受AI伺服器、車用與工業電子需求帶動。'}, '記憶體': {'規模': '大', '成長率': '高循環', 'AI關聯度': '高', '說明': 'DRAM、NAND、NOR Flash、記憶體模組與控制晶片，受AI伺服器、HBM與儲存需求帶動。'}, 'AI PC/品牌': {'規模': '大', '成長率': '中高', 'AI關聯度': '中高', '說明': 'PC品牌、主機板、電競PC與AI PC，受換機週期與邊緣AI推動。'}}
+
+try:
+    for sym, upd in V232_UPDATES.items():
+        if sym in STOCK_DB:
+            STOCK_DB[sym].update(upd)
+        else:
+            STOCK_DB[sym] = upd
+    ALIASES.clear()
+    for sym, v in STOCK_DB.items():
+        ALIASES[sym.upper()] = sym
+        ALIASES[sym.split(".")[0]] = sym
+        ALIASES[v["name"]] = sym
+        ALIASES[v["name"].upper()] = sym
+except Exception:
+    pass
+
+try:
+    V224_FALLBACK_PRICE.update(V232_FALLBACK_PRICE)
+except Exception:
+    V224_FALLBACK_PRICE = V232_FALLBACK_PRICE
+
+try:
+    V224_INDUSTRY_META.update(V232_INDUSTRY_META)
+except Exception:
+    V224_INDUSTRY_META = V232_INDUSTRY_META
+
+# 讓排行資料重新吃到最新價格，避免南亞科等價格失真
+try:
+    def v232_rank_table(df):
+        return v231_rank_table(df)
+except Exception:
+    pass
+# ===== V232.0 DATA CLEANUP EXPANSION III END =====
 
 
 if __name__ == '__main__':
