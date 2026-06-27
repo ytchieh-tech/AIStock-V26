@@ -6,7 +6,7 @@ import numpy as np
 import yfinance as yf
 import streamlit as st
 
-APP_VERSION = "V232.0 Data Cleanup Expansion III"
+APP_VERSION = "V233.0 Live Price Ranking Fix"
 APP_NAME = "智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -2196,6 +2196,215 @@ try:
 except Exception:
     pass
 # ===== V232.0 DATA CLEANUP EXPANSION III END =====
+
+
+
+
+
+# ===== V233.0 LIVE PRICE RANKING FIX START =====
+# 修正低估排行：不再使用錯誤硬寫價格；優先 Yahoo Finance 現價，抓不到則 N/A 並排除低估排行
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def v233_get_live_price(symbol):
+    try:
+        s = str(symbol).strip().upper()
+        if not s:
+            return float("nan")
+        ticker = yf.Ticker(s)
+        fast = getattr(ticker, "fast_info", None)
+        if fast:
+            for key in ["last_price", "lastPrice", "regular_market_price", "previous_close"]:
+                try:
+                    val = fast.get(key) if hasattr(fast, "get") else getattr(fast, key, None)
+                    if val is not None and float(val) > 0:
+                        return float(val)
+                except Exception:
+                    pass
+        hist = ticker.history(period="5d", interval="1d", auto_adjust=False)
+        if hist is not None and not hist.empty and "Close" in hist.columns:
+            val = hist["Close"].dropna().iloc[-1]
+            if float(val) > 0:
+                return float(val)
+    except Exception:
+        pass
+    return float("nan")
+
+def v233_fair_multiplier(symbol):
+    try:
+        info = STOCK_DB.get(symbol, {})
+        return float(info.get("fair_mult", 1.0))
+    except Exception:
+        return 1.0
+
+def v231_rank_table(df):
+    rows = []
+    for _, r in df.iterrows():
+        sym = r.get("代碼", "")
+        px = v233_get_live_price(sym)
+        fair_mult = v233_fair_multiplier(sym)
+        try:
+            fair = float(px) * fair_mult
+            ret = (fair - float(px)) / float(px) * 100 if float(px) > 0 else float("nan")
+        except Exception:
+            fair, ret = float("nan"), float("nan")
+
+        rows.append({
+            "公司": r.get("公司",""),
+            "代碼": sym,
+            "產業": r.get("產業",""),
+            "子產業": r.get("子產業",""),
+            "現價": px,
+            "綜合合理價": fair,
+            "預期報酬%": ret,
+            "AI受惠度": r.get("AI受惠度",0),
+            "全球競爭力": r.get("全球競爭力",""),
+            "主題標籤": r.get("主題標籤",""),
+        })
+    out = pd.DataFrame(rows)
+    if not out.empty:
+        out["現價"] = pd.to_numeric(out["現價"], errors="coerce")
+        out["綜合合理價"] = pd.to_numeric(out["綜合合理價"], errors="coerce")
+        out["預期報酬%"] = pd.to_numeric(out["預期報酬%"], errors="coerce")
+        out["AI受惠度"] = pd.to_numeric(out["AI受惠度"], errors="coerce").fillna(0)
+    return out
+
+def v233_decision(symbol):
+    # 單股頁現價也改優先 Yahoo Finance，避免 fallback 錯價
+    try:
+        d = v230_decision(symbol)
+    except Exception:
+        d = {"symbol":symbol, "name":symbol, "price":float("nan"), "fair":float("nan"), "cons":float("nan"), "opt":float("nan"), "ret":0, "action":"觀察", "source":"N/A", "updated":"N/A"}
+    try:
+        sym = d.get("symbol", symbol)
+        px = v233_get_live_price(sym)
+        if pd.notna(px) and float(px) > 0:
+            mult = v233_fair_multiplier(sym)
+            d["price"] = float(px)
+            d["fair"] = float(px) * mult
+            d["cons"] = float(px) * max(mult * 0.88, 0.70)
+            d["opt"] = float(px) * max(mult * 1.12, 1.05)
+            d["ret"] = (d["fair"] - d["price"]) / d["price"] * 100
+            d["source"] = "Yahoo Finance"
+    except Exception:
+        pass
+    return d
+
+def v230_decision(symbol):
+    return v233_decision(symbol)
+
+def home():
+    v230_css()
+    if "v227_active_symbol" not in st.session_state:
+        st.session_state["v227_active_symbol"] = "2330.TW"
+
+    now_show = datetime.now().strftime("%Y/%m/%d %H:%M")
+    st.markdown(f"""
+    <div class="v230-topbar">
+      <div>
+        <div class="v230-brand">📈 智策股市 AI 決策平台</div>
+        <div class="v230-sub">企業價值研究平台｜產業鏈 × 全球競爭力 × 財務預測 × 合理價推估</div>
+      </div>
+      <div class="v230-version">V233 Live Price Fix<br>{now_show}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    q = st.text_input("搜尋公司名稱 / 代號 / 產業 / 主題標籤", placeholder="例如：2330、台積電、2313、華通、低軌衛星、CoWoS", key="v233_search")
+    if str(q or "").strip():
+        st.session_state["v227_active_symbol"] = v230_symbol(q)
+
+    df = v230_rows_df()
+    if df.empty:
+        st.warning("資料庫尚未載入。")
+        return
+
+    rank = v231_rank_table(df)
+
+    total = len(df)
+    hot_ind = df["產業"].nunique()
+    hot_theme = len(set("、".join(df["主題標籤"].fillna("").astype(str)).split("、"))) if "主題標籤" in df.columns else 0
+    ai9 = int((pd.to_numeric(df["AI受惠度"], errors="coerce").fillna(0) >= 9).sum()) if "AI受惠度" in df.columns else 0
+    valid_price = int(rank["現價"].notna().sum()) if not rank.empty else 0
+    global5 = int(df["全球競爭力"].astype(str).str.contains("★★★★★", regex=False).sum()) if "全球競爭力" in df.columns else 0
+
+    st.markdown(f"""
+    <div class="v230-kpi-grid">
+      <div class="v230-kpi"><div class="v230-kpi-icon">🔥</div><div class="v230-kpi-label">熱門產業</div><div class="v230-kpi-value">{hot_ind}</div><div class="v230-kpi-note">涵蓋主要主產業</div></div>
+      <div class="v230-kpi"><div class="v230-kpi-icon">🏆</div><div class="v230-kpi-label">個股資料庫</div><div class="v230-kpi-value">{total}</div><div class="v230-kpi-note">持續補齊中</div></div>
+      <div class="v230-kpi"><div class="v230-kpi-icon">🏷️</div><div class="v230-kpi-label">主題標籤</div><div class="v230-kpi-value">{hot_theme}</div><div class="v230-kpi-note">可多重歸屬</div></div>
+      <div class="v230-kpi"><div class="v230-kpi-icon">💹</div><div class="v230-kpi-label">有效現價</div><div class="v230-kpi-value">{valid_price}</div><div class="v230-kpi-note">Yahoo Finance</div></div>
+      <div class="v230-kpi"><div class="v230-kpi-icon">🤖</div><div class="v230-kpi-label">AI高受惠</div><div class="v230-kpi-value">{ai9}</div><div class="v230-kpi-note">AI受惠度 ≥ 9</div></div>
+      <div class="v230-kpi"><div class="v230-kpi-icon">🌏</div><div class="v230-kpi-label">全球強勢</div><div class="v230-kpi-value">{global5}</div><div class="v230-kpi-note">★★★★★</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### 核心快速查詢")
+    quick = [("台積電","2330"),("華通","2313"),("昇達科","3491"),("廣達","2382"),("奇鋐","3017"),("聯鈞","3450")]
+    cols = st.columns(len(quick))
+    for col, (name, code_) in zip(cols, quick):
+        with col:
+            if st.button(name, key=f"v233_quick_{code_}", use_container_width=True):
+                st.session_state["v227_active_symbol"] = v230_symbol(code_)
+                st.rerun()
+
+    with st.expander("排行計算標準", expanded=False):
+        st.markdown("""
+        **重要修正：V233 起，低估排行不再使用硬寫價格。**  
+        現價優先抓 Yahoo Finance 最近價格；抓不到現價者不列入低估排行，避免錯誤價格造成排行失真。  
+
+        **低估排行 TOP 10**：`預期報酬 = (綜合合理價 - 現價) ÷ 現價`  
+        目前綜合合理價仍是資料庫倍率模型；等企業評價模型完成後，會改用 DCF / EVA / EBO / FCFF / 財測模型。
+        """)
+
+    tab1, tab2, tab3, tab4 = st.tabs(["熱門個股", "低估排行", "AI受惠排行", "全球競爭力排行"])
+
+    with tab1:
+        show = df.copy()
+        show["_stars"] = show["全球競爭力"].astype(str).str.count("★")
+        show = show.sort_values(["AI受惠度","_stars"], ascending=False).head(10)
+        st.dataframe(show[["公司","代碼","產業","子產業","AI受惠度","全球競爭力","產業地位"]], use_container_width=True, hide_index=True)
+
+    with tab2:
+        low = rank.dropna(subset=["現價","綜合合理價","預期報酬%"])
+        low = low[low["現價"] > 0].sort_values("預期報酬%", ascending=False).head(10)
+        st.dataframe(v231_fmt_rank(low[["公司","代碼","產業","子產業","現價","綜合合理價","預期報酬%","AI受惠度"]]), use_container_width=True, hide_index=True)
+        st.caption("若現價為 N/A，代表 Yahoo Finance 暫時抓不到，系統會自動排除低估排行，避免錯價。")
+
+    with tab3:
+        ai = df.copy()
+        ai["_stars"] = ai["全球競爭力"].astype(str).str.count("★")
+        ai = ai.sort_values(["AI受惠度","_stars"], ascending=False).head(10)
+        st.dataframe(ai[["公司","代碼","產業","子產業","AI受惠度","全球競爭力","主題標籤"]], use_container_width=True, hide_index=True)
+
+    with tab4:
+        gl = df.copy()
+        gl["_stars"] = gl["全球競爭力"].astype(str).str.count("★")
+        gl = gl.sort_values(["_stars","AI受惠度"], ascending=False).head(10)
+        st.dataframe(gl[["公司","代碼","產業","子產業","全球競爭力","全球排名","產業地位"]], use_container_width=True, hide_index=True)
+
+    with st.expander("產業 → 子產業 → 個股（選到即查詢）", expanded=False):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            ind = st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v233_home_ind")
+        dff = df[df["產業"] == ind]
+        with c2:
+            sub = st.selectbox("子產業", sorted(dff["子產業"].dropna().unique()), key="v233_home_sub")
+        dff = dff[dff["子產業"] == sub]
+        labels = {f"{r['公司']} / {r['代碼']}": r["代碼"] for _, r in dff.iterrows()}
+        with c3:
+            picked = st.selectbox("個股", list(labels.keys()), key="v233_home_stock")
+        if picked:
+            code = labels[picked]
+            if st.session_state.get("v233_last_pick") != picked:
+                st.session_state["v233_last_pick"] = picked
+                st.session_state["v227_active_symbol"] = code
+                st.rerun()
+
+    st.markdown("---")
+    v230_price_block(st.session_state.get("v227_active_symbol","2330.TW"))
+
+def v108_enterprise_home(): home()
+def v107_premium_home(): home()
+# ===== V233.0 LIVE PRICE RANKING FIX END =====
 
 
 if __name__ == '__main__':
