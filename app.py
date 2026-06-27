@@ -6,7 +6,7 @@ import numpy as np
 import yfinance as yf
 import streamlit as st
 
-APP_VERSION = "V227.0 Auto Load Multi Theme"
+APP_VERSION = "V228.0 Sector Expansion Theme II"
 APP_NAME = "智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -1741,6 +1741,48 @@ def home():
 def v108_enterprise_home(): home()
 def v107_premium_home(): home()
 # ===== V227.0 AUTO LOAD MULTI THEME END =====
+
+
+
+
+
+# ===== V228.0 SECTOR EXPANSION THEME II START =====
+V228_UPDATES = {'3264.TWO': {'name': '欣銓', 'industry': '封裝測試', 'sub': 'IC測試/車用測試', 'rank': '晶圓測試主要廠', 'power': '★★★★☆', 'position': '車用、HPC與晶圓測試供應商', 'peers': '京元電、矽格、日月光、Teradyne供應鏈', 'moat': '中高：測試產能、車用客戶、認證門檻', 'risk': '客戶集中、測試需求循環', 'fair_mult': 1.06, 'theme_text': '封裝測試、車用電子、HPC、AI伺服器', 'chain_position': '中游測試服務', 'market_share': '台灣晶圓測試主要廠'}, '6257.TW': {'name': '矽格', 'industry': '封裝測試', 'sub': 'IC測試/封裝', 'rank': '封測主要廠', 'power': '★★★☆☆', 'position': 'IC測試與封裝服務供應商', 'peers': '京元電、欣銓、日月光、南茂', 'moat': '中：測試封裝產能與客戶基礎', 'risk': '稼動率、景氣循環', 'fair_mult': 1.04, 'theme_text': '封裝測試、車用電子、AI伺服器', 'chain_position': '中游封測服務', 'market_share': '台灣封測主要廠'}, '8150.TW': {'name': '南茂', 'industry': '封裝測試', 'sub': '記憶體/DDI封測', 'rank': '封測主要廠', 'power': '★★★☆☆', 'position': '記憶體與顯示驅動IC封測供應商', 'peers': '力成、頎邦、日月光', 'moat': '中：封測產能與客戶基礎', 'risk': '記憶體與面板循環', 'fair_mult': 1.02, 'theme_text': '封裝測試、記憶體、DDI', 'chain_position': '中游封測服務', 'market_share': '台灣封測主要廠'}, '3711.TW': {'industry': '封裝測試', 'sub': '封測/SiP/先進封裝', 'theme_text': '封裝測試、先進封裝、SiP、AI伺服器', 'chain_position': '中游封測龍頭', 'market_share': '全球封測龍頭'}, '6239.TW': {'industry': '封裝測試', 'sub': '記憶體封測', 'theme_text': '封裝測試、記憶體、AI伺服器', 'chain_position': '中游封測服務', 'market_share': '記憶體封測主要廠'}, '2449.TW': {'industry': '封裝測試', 'sub': 'IC測試/HPC測試', 'theme_text': '封裝測試、HPC、AI伺服器、晶圓測試', 'chain_position': '中游測試服務', 'market_share': 'AI/HPC測試主要廠'}, '6147.TWO': {'industry': '封裝測試', 'sub': 'DDI封測', 'theme_text': '封裝測試、DDI、面板/顯示器', 'chain_position': '中游封測服務', 'market_share': 'DDI封測主要廠'}, '6285.TW': {'industry': '低軌衛星', 'sub': '衛星終端/網通模組', 'theme_text': '低軌衛星、衛星終端、網通、車用通訊', 'chain_position': '下游終端設備', 'market_share': '衛星終端與網通模組供應商'}, '5388.TWO': {'industry': '低軌衛星', 'sub': '衛星終端/CPE', 'theme_text': '低軌衛星、衛星終端、寬頻網通', 'chain_position': '下游終端設備', 'market_share': '衛星終端與寬頻CPE供應商'}, '3596.TW': {'industry': '低軌衛星', 'sub': '寬頻設備/CPE', 'theme_text': '低軌衛星、寬頻網通、家庭網路', 'chain_position': '下游網通設備', 'market_share': '寬頻設備供應商'}, '2345.TW': {'theme_text': 'AI資料中心、交換器、網通、低軌衛星、高速傳輸', 'chain_position': '中游網通設備', 'market_share': '資料中心交換器主要廠'}, '8499.TWO': {'name': '鼎炫-KY', 'industry': '國防軍工', 'sub': '電磁防護/材料', 'rank': 'EMI材料供應商', 'power': '★★★☆☆', 'position': '電磁干擾防護與材料供應商', 'peers': 'Laird、3M、台灣材料同業', 'moat': '中：EMI材料與客戶導入', 'risk': '需求波動、客戶集中', 'fair_mult': 1.03, 'theme_text': '國防軍工、軍規電子、電磁防護、無人機', 'chain_position': '上游材料', 'market_share': '台灣EMI材料供應商'}, '8044.TWO': {'name': '網家', 'industry': '電商/數位服務', 'sub': '電商平台', 'rank': '台灣電商平台', 'power': '★★☆☆☆', 'position': '台灣電商與數位服務平台', 'peers': 'momo、蝦皮、Yahoo購物', 'moat': '低中：品牌與平台流量', 'risk': '競爭、毛利、營運轉型', 'fair_mult': 0.98, 'theme_text': '電商、數位服務', 'chain_position': '下游平台', 'market_share': '台灣電商平台'}, '2646.TW': {'name': '星宇航空', 'industry': '航空/觀光', 'sub': '航空運輸', 'rank': '台灣航空業者', 'power': '★★★☆☆', 'position': '台灣國際航空公司', 'peers': '長榮航、華航、國際航空業者', 'moat': '中：品牌、服務與航線布局', 'risk': '油價、匯率、機隊擴張', 'fair_mult': 1.03, 'theme_text': '航空、觀光、旅運復甦', 'chain_position': '下游航空服務', 'market_share': '台灣航空公司'}, '2368.TW': {'name': '金像電', 'industry': 'PCB', 'sub': 'AI伺服器PCB', 'rank': 'AI伺服器PCB主要廠', 'power': '★★★★☆', 'position': 'AI伺服器與高速PCB供應商', 'peers': '華通、健鼎、欣興、TTM', 'moat': '中高：AI伺服器PCB製程與客戶認證', 'risk': 'AI出貨節奏、價格競爭', 'fair_mult': 1.08, 'theme_text': 'AI伺服器、高速PCB、資料中心、網通', 'chain_position': '上游PCB', 'market_share': 'AI伺服器PCB主要廠'}, '6274.TWO': {'name': '台燿', 'industry': 'CCL/電子材料', 'sub': '高速CCL', 'rank': '高速材料供應商', 'power': '★★★★☆', 'position': '高速網通與AI伺服器CCL供應商', 'peers': '台光電、聯茂、Panasonic', 'moat': '中高：高速CCL材料與客戶導入', 'risk': '材料需求循環、原料成本', 'fair_mult': 1.08, 'theme_text': 'AI伺服器、高速CCL、800G交換器、資料中心', 'chain_position': '上游材料', 'market_share': '高速CCL主要廠'}, '6213.TW': {'industry': 'CCL/電子材料', 'sub': 'CCL/銅箔基板', 'theme_text': 'AI伺服器、高速CCL、資料中心、網通', 'chain_position': '上游材料', 'market_share': 'CCL主要供應商'}, '2383.TW': {'industry': 'CCL/電子材料', 'sub': 'AI高速材料/CCL', 'theme_text': 'AI伺服器、高速CCL、800G交換器、資料中心', 'chain_position': '上游材料', 'market_share': 'AI高速材料龍頭之一'}, '4979.TWO': {'theme_text': '光通訊、CPO、AI資料中心、800G、低軌衛星', 'chain_position': '中游光模組', 'market_share': 'AI資料中心光通訊供應商'}, '6442.TW': {'theme_text': '光通訊、CPO、AI資料中心、800G', 'chain_position': '中游光通訊元件', 'market_share': '資料中心光通訊零組件供應商'}, '3081.TWO': {'theme_text': '光通訊、CPO、雷射元件、AI資料中心', 'chain_position': '上游磊晶/雷射元件', 'market_share': '光通訊磊晶供應商'}, '3363.TWO': {'theme_text': '光通訊、CPO、低軌衛星、資料中心', 'chain_position': '中游光通訊元件', 'market_share': '光通訊元件供應商'}}
+V228_FALLBACK_PRICE = {'3264.TWO': 95, '6257.TW': 70, '8150.TW': 45, '8499.TWO': 120, '8044.TWO': 38, '2646.TW': 28, '2368.TW': 280, '6274.TWO': 260}
+V228_INDUSTRY_META = {'封裝測試': {'規模': '大', '成長率': '中高', 'AI關聯度': '高', '說明': 'IC封裝、晶圓測試、HPC測試、先進封裝與AI晶片後段製程'}, 'CCL/電子材料': {'規模': '中大', '成長率': '高', 'AI關聯度': '高', '說明': '高速CCL、AI伺服器材料、800G交換器與高頻高速板材'}, '電商/數位服務': {'規模': '中大', '成長率': '中', 'AI關聯度': '低', '說明': '電商平台、物流、數位服務與消費景氣'}}
+
+try:
+    for sym, upd in V228_UPDATES.items():
+        if sym in STOCK_DB:
+            STOCK_DB[sym].update(upd)
+        else:
+            STOCK_DB[sym] = upd
+    ALIASES.clear()
+    for sym, v in STOCK_DB.items():
+        ALIASES[sym.upper()] = sym
+        ALIASES[sym.split(".")[0]] = sym
+        ALIASES[v["name"]] = sym
+        ALIASES[v["name"].upper()] = sym
+except Exception:
+    pass
+
+try:
+    V224_FALLBACK_PRICE.update(V228_FALLBACK_PRICE)
+except Exception:
+    V224_FALLBACK_PRICE = V228_FALLBACK_PRICE
+
+try:
+    V224_INDUSTRY_META.update(V228_INDUSTRY_META)
+except Exception:
+    V224_INDUSTRY_META = V228_INDUSTRY_META
+
+# 讓 V227 頁面吃到新增資料
+try:
+    def v228_rows_df():
+        return v227_rows_df()
+except Exception:
+    pass
+# ===== V228.0 SECTOR EXPANSION THEME II END =====
 
 
 if __name__ == '__main__':
