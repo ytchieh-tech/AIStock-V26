@@ -6,7 +6,7 @@ import numpy as np
 import yfinance as yf
 import streamlit as st
 
-APP_VERSION = "V210.0 Global Competition Database"
+APP_VERSION = "V220.0 AI Industry Chain Map"
 APP_NAME = "智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -166,6 +166,135 @@ def db_rows():
 
 def set_active(x):
     st.session_state['active_symbol'] = normalize_symbol(x)
+
+
+# ===== V220.0 AI INDUSTRY CHAIN MAP START =====
+# 產業鏈主題分類：一家公司可同時屬於多個 AI 主題，不再硬塞單一類股。
+
+THEME_DB = {
+    "AI伺服器": {
+        "desc": "AI伺服器、雲端資料中心、伺服器ODM、電源、散熱、機殼與高速材料。",
+        "symbols": ["2382.TW","3231.TW","6669.TW","2356.TW","2317.TW","2308.TW","3017.TW","3324.TWO","3653.TW","2059.TW","2383.TW","2368.TW","3037.TW","8046.TW","5274.TWO"]
+    },
+    "AI ASIC": {
+        "desc": "AI ASIC設計、NRE、IP與客製化晶片服務。",
+        "symbols": ["3661.TW","3443.TW","3035.TW","6643.TWO","6533.TW","3529.TWO","2330.TW"]
+    },
+    "CoWoS/先進封裝": {
+        "desc": "先進封裝、測試、ABF載板與封測供應鏈。",
+        "symbols": ["2330.TW","3711.TW","2449.TW","3264.TWO","6510.TWO","6223.TWO","3037.TW","8046.TW","3189.TWO"]
+    },
+    "HBM/記憶體": {
+        "desc": "DRAM、NAND、NOR Flash、SSD控制IC與記憶體模組。",
+        "symbols": ["2408.TW","2344.TW","2337.TW","3260.TWO","4967.TWO","2451.TW","8299.TWO","8271.TWO","8088.TWO"]
+    },
+    "CPO/光通訊": {
+        "desc": "光收發模組、光通訊元件、磊晶、資料中心光傳輸。",
+        "symbols": ["4979.TWO","3363.TWO","3163.TWO","3081.TWO","6442.TW","4977.TWO"]
+    },
+    "液冷/散熱": {
+        "desc": "AI伺服器散熱、液冷、均熱片、風扇與導熱材料。",
+        "symbols": ["3017.TW","3324.TWO","3653.TW","2421.TW","2308.TW"]
+    },
+    "電源/能源管理": {
+        "desc": "資料中心電源、UPS、電網、重電、能源管理與工業電源。",
+        "symbols": ["2308.TW","2301.TW","6412.TW","6282.TW","2420.TW","1519.TW","1513.TW","1503.TW","1504.TW","1514.TW"]
+    },
+    "AI PC": {
+        "desc": "AI PC、主機板、品牌PC、處理器平台與周邊IC。",
+        "symbols": ["2357.TW","2376.TW","2377.TW","2353.TW","2324.TW","2379.TW","2454.TW","4966.TW","5269.TW"]
+    },
+    "AI手機/光學": {
+        "desc": "AI手機、AR/VR、手機鏡頭、光學模組與影像感測。",
+        "symbols": ["3008.TW","3406.TW","3019.TW","3362.TWO","3504.TWO","6209.TW","4976.TW","6789.TW","2454.TW"]
+    },
+    "機器人/自動化": {
+        "desc": "人形機器人、工業自動化、線性滑軌、機器視覺與自動化整合。",
+        "symbols": ["6215.TWO","2049.TW","4583.TW","4540.TWO","1597.TWO","4576.TW","8374.TWO","2359.TW","6166.TW","2467.TW","6187.TWO","6438.TW"]
+    },
+    "被動元件": {
+        "desc": "MLCC、晶片電阻、電感、電容與AI伺服器被動元件需求。",
+        "symbols": ["2327.TW","2492.TW","6173.TWO","2375.TW","2472.TW","3026.TW","3068.TWO"]
+    },
+    "車用/電動車": {
+        "desc": "車用電子、EV、連接線、車用零組件與能源系統。",
+        "symbols": ["2308.TW","3665.TW","1536.TW","2379.TW","4919.TW","3044.TW","3715.TW"]
+    }
+}
+
+def v220_apply_themes():
+    try:
+        for sym, meta in STOCK_DB.items():
+            meta["themes"] = []
+        for theme, info in THEME_DB.items():
+            for sym in info.get("symbols", []):
+                if sym in STOCK_DB:
+                    STOCK_DB[sym].setdefault("themes", [])
+                    if theme not in STOCK_DB[sym]["themes"]:
+                        STOCK_DB[sym]["themes"].append(theme)
+        for sym, meta in STOCK_DB.items():
+            meta["theme_text"] = "、".join(meta.get("themes", [])) if meta.get("themes") else "一般產業"
+            # AI受惠度：依主題數與產業關聯粗估，後續可接模型
+            n = len(meta.get("themes", []))
+            if any(t in meta.get("themes", []) for t in ["AI伺服器","AI ASIC","CoWoS/先進封裝","HBM/記憶體","CPO/光通訊"]):
+                meta["ai_score"] = min(10, 7 + n)
+            elif any(t in meta.get("themes", []) for t in ["AI PC","AI手機/光學","機器人/自動化","液冷/散熱","電源/能源管理"]):
+                meta["ai_score"] = min(10, 5 + n)
+            else:
+                meta["ai_score"] = min(10, 2 + n)
+    except Exception:
+        pass
+
+v220_apply_themes()
+
+def v220_theme_rows(theme):
+    rows = []
+    info = THEME_DB.get(theme, {})
+    for sym in info.get("symbols", []):
+        if sym in STOCK_DB:
+            v = STOCK_DB[sym]
+            rows.append({
+                "公司": v.get("name", sym),
+                "代碼": sym,
+                "主產業": v.get("industry", ""),
+                "次產業": v.get("sub", ""),
+                "AI受惠度": v.get("ai_score", ""),
+                "全球競爭力": v.get("power", ""),
+                "全球地位": v.get("position", ""),
+                "主要競爭者": v.get("peers", ""),
+                "主題": v.get("theme_text", "")
+            })
+    return rows
+
+def v220_industry_chain_page():
+    st.header("🧬 AI產業鏈地圖")
+    st.info("一家公司可以同時屬於多個主題，例如台達電同時屬於電源/能源管理、AI伺服器、液冷/散熱與車用/電動車。")
+    theme = st.selectbox("選擇AI產業鏈主題", list(THEME_DB.keys()), key="v220_theme")
+    st.caption(THEME_DB.get(theme, {}).get("desc", ""))
+    rows = v220_theme_rows(theme)
+    if rows:
+        st.dataframe(pd.DataFrame(rows).sort_values(["AI受惠度","全球競爭力"], ascending=[False, False]), use_container_width=True, hide_index=True)
+        st.markdown("### 主題快速分析")
+        top = rows[:8]
+        cols = st.columns(min(4, len(top))) if top else []
+        for i, r in enumerate(top[:4]):
+            with cols[i]:
+                if st.button(r["公司"], key=f"v220_theme_btn_{theme}_{r['代碼']}", use_container_width=True):
+                    set_active(r["代碼"])
+                    st.rerun()
+    else:
+        st.warning("此主題資料尚待補齊。")
+
+# 覆蓋/補強 db_rows，讓產業個股清單顯示主題與AI受惠度
+def db_rows():
+    return [
+        {"產業":v.get("industry",""),"子產業":v.get("sub",""),"公司":v.get("name",sym),"代碼":sym,
+         "AI主題":v.get("theme_text","一般產業"),"AI受惠度":v.get("ai_score",""),
+         "全球競爭力":v.get("power",""),"產業地位":v.get("position","")}
+        for sym, v in STOCK_DB.items()
+    ]
+# ===== V220.0 AI INDUSTRY CHAIN MAP END =====
+
 
 def sidebar_nav():
     st.sidebar.title('智策股市 AI 平台')
