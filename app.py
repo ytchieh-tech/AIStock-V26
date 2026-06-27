@@ -6,7 +6,7 @@ import numpy as np
 import yfinance as yf
 import streamlit as st
 
-APP_VERSION = "V200.0 Enterprise Edition"
+APP_VERSION = "V210.0 Global Competition Database"
 APP_NAME = "智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -17,6 +17,85 @@ for sym, v in STOCK_DB.items():
     ALIASES[sym.split('.')[0]] = sym
     ALIASES[v['name']] = sym
     ALIASES[v['name'].upper()] = sym
+
+# ===== V210.0 GLOBAL COMPETITION DATABASE START =====
+# 追加更多上市櫃股票、全球競爭對手、護城河、競爭優勢與風險資料。
+V210_EXTRA_STOCKS = {
+    '1597.TWO': {'name': '直得', 'industry': '自動化/機器人', 'sub': '微型線性滑軌', 'rank': '精密傳動供應商', 'power': '★★★☆☆', 'position': '微型線性滑軌與精密傳動供應商', 'peers': '上銀、全球傳動、THK', 'moat': '中：微型傳動與精密加工', 'risk': '需求循環、競爭', 'fair_mult': 1.04, 'advantage': '微型滑軌、精密傳動'},
+    '2324.TW': {'name': '仁寶', 'industry': 'AI伺服器/ODM', 'sub': 'NB ODM/伺服器', 'rank': 'ODM主要廠', 'power': '★★★☆☆', 'position': '筆電ODM與伺服器代工供應商', 'peers': '廣達、緯創、英業達', 'moat': '中：ODM規模與客戶基礎', 'risk': '毛利率、PC需求循環', 'fair_mult': 1.02, 'advantage': 'ODM規模、客戶基礎'},
+    '2353.TW': {'name': '宏碁', 'industry': 'AI PC/品牌', 'sub': 'PC品牌', 'rank': '全球PC品牌', 'power': '★★★☆☆', 'position': '全球PC品牌與AI PC受惠股', 'peers': '華碩、Lenovo、HP、Dell', 'moat': '中：品牌通路與PC產品線', 'risk': 'PC需求循環、毛利率', 'fair_mult': 1.02, 'advantage': '品牌通路、AI PC'},
+    '2357.TW': {'name': '華碩', 'industry': 'AI PC/品牌', 'sub': 'PC/伺服器/AI PC', 'rank': '全球PC品牌', 'power': '★★★★☆', 'position': '全球PC、主機板與AI PC品牌', 'peers': 'Lenovo、HP、Dell、Acer、MSI', 'moat': '高：品牌、通路、主機板技術', 'risk': 'PC需求循環、庫存', 'fair_mult': 1.04, 'advantage': '品牌通路、主機板、AI PC'},
+    '2359.TW': {'name': '所羅門', 'industry': '自動化/機器人', 'sub': '機器視覺/AI應用', 'rank': '機器視覺題材股', 'power': '★★★☆☆', 'position': '機器視覺、AI辨識與自動化應用供應商', 'peers': 'Keyence、Cognex、台灣自動化廠', 'moat': '中：機器視覺與AI應用', 'risk': '題材波動、商業化速度', 'fair_mult': 1.06, 'advantage': '機器視覺、AI辨識'},
+    '2363.TW': {'name': '矽統', 'industry': 'IC設計', 'sub': 'SoC/投資題材', 'rank': '轉型IC設計股', 'power': '★★☆☆☆', 'position': '早期晶片組與IC設計公司', 'peers': '聯發科、瑞昱、威盛', 'moat': '低中：品牌歷史與投資題材', 'risk': '轉型成效、獲利波動', 'fair_mult': 0.98, 'advantage': 'IC設計經驗、集團資源'},
+    '2376.TW': {'name': '技嘉', 'industry': 'AI伺服器/品牌', 'sub': '主機板/伺服器', 'rank': '板卡與伺服器品牌', 'power': '★★★★☆', 'position': '主機板、顯卡與AI伺服器供應商', 'peers': '華碩、微星、Supermicro', 'moat': '中高：板卡設計、伺服器整合', 'risk': 'AI訂單波動、顯卡循環', 'fair_mult': 1.06, 'advantage': '主機板、顯卡、AI伺服器'},
+    '2377.TW': {'name': '微星', 'industry': 'AI PC/品牌', 'sub': '電競PC/主機板', 'rank': '電競品牌', 'power': '★★★★☆', 'position': '電競筆電、主機板與AI PC品牌', 'peers': '華碩、技嘉、Lenovo、Dell', 'moat': '中高：電競品牌、板卡設計', 'risk': 'PC循環、通路庫存', 'fair_mult': 1.04, 'advantage': '電競品牌、AI PC、板卡'},
+    '2388.TW': {'name': '威盛', 'industry': 'IC設計', 'sub': '處理器/AI邊緣', 'rank': '利基IC設計', 'power': '★★★☆☆', 'position': '處理器、AI邊緣與嵌入式平台公司', 'peers': 'Intel、AMD、ARM生態系、瑞昱', 'moat': '中：處理器IP與嵌入式平台', 'risk': '產品商業化、競爭壓力', 'fair_mult': 1.03, 'advantage': '處理器IP、邊緣AI、嵌入式'},
+    '2401.TW': {'name': '凌陽', 'industry': 'IC設計', 'sub': '消費/車用IC', 'rank': '消費IC供應商', 'power': '★★★☆☆', 'position': '多媒體、車用與消費IC供應商', 'peers': '瑞昱、聯詠、偉詮電', 'moat': '中：消費IC與車用布局', 'risk': '消費電子波動、毛利壓力', 'fair_mult': 1.02, 'advantage': '消費IC、車用IC、產品組合'},
+    '2420.TW': {'name': '新巨', 'industry': '電源管理', 'sub': '電源供應器', 'rank': '電源供應商', 'power': '★★★☆☆', 'position': '工業與伺服器電源供應器公司', 'peers': '台達電、光寶科、康舒', 'moat': '中：工業電源與客戶基礎', 'risk': '需求波動、競爭', 'fair_mult': 1.03, 'advantage': '工業電源、伺服器電源'},
+    '2457.TW': {'name': '飛宏', 'industry': '電源管理', 'sub': '電源/充電樁', 'rank': '電源供應商', 'power': '★★★☆☆', 'position': '電源供應器與充電樁相關供應商', 'peers': '台達電、光寶科、康舒', 'moat': '中：電源與充電應用', 'risk': '轉型成效、毛利率', 'fair_mult': 1.03, 'advantage': '電源、EV充電'},
+    '2458.TW': {'name': '義隆', 'industry': 'IC設計', 'sub': '觸控/MCU', 'rank': '觸控IC主要廠', 'power': '★★★☆☆', 'position': '觸控與微控制器IC供應商', 'peers': 'Synaptics、Goodix、瑞昱、聯詠', 'moat': '中：觸控IC與客戶基礎', 'risk': 'PC/消費電子需求循環、價格競爭', 'fair_mult': 1.03, 'advantage': '觸控IC、MCU、客戶導入'},
+    '2880.TW': {'name': '華南金', 'industry': '金融', 'sub': '公股銀行金控', 'rank': '公股金控', 'power': '★★★☆☆', 'position': '公股銀行型金控', 'peers': '第一金、合庫金、兆豐金', 'moat': '中：銀行通路與公股資源', 'risk': '利差、信用風險', 'fair_mult': 1.02, 'advantage': '銀行通路、公股資源'},
+    '2884.TW': {'name': '玉山金', 'industry': '金融', 'sub': '金控/銀行', 'rank': '銀行金控', 'power': '★★★☆☆', 'position': '台灣銀行型金控', 'peers': '中信金、兆豐金、第一金', 'moat': '中：銀行通路與財管能力', 'risk': '利差、信用風險', 'fair_mult': 1.02, 'advantage': '銀行通路、財管'},
+    '2885.TW': {'name': '元大金', 'industry': '金融', 'sub': '金控/證券', 'rank': '證券金控', 'power': '★★★☆☆', 'position': '證券與ETF通路領導金控', 'peers': '富邦金、中信金、國泰金', 'moat': '中高：證券通路、ETF、市場份額', 'risk': '股市成交量波動', 'fair_mult': 1.03, 'advantage': '證券通路、ETF'},
+    '2892.TW': {'name': '第一金', 'industry': '金融', 'sub': '公股銀行金控', 'rank': '公股金控', 'power': '★★★☆☆', 'position': '公股銀行型金控', 'peers': '兆豐金、合庫金、華南金', 'moat': '中：公股銀行通路', 'risk': '利差、景氣循環', 'fair_mult': 1.02, 'advantage': '銀行通路、公股資源'},
+    '3026.TW': {'name': '禾伸堂', 'industry': '被動元件', 'sub': 'MLCC/被動元件', 'rank': '被動元件供應商', 'power': '★★★☆☆', 'position': 'MLCC與被動元件供應商', 'peers': '國巨、華新科、Murata', 'moat': '中：MLCC產品與通路', 'risk': '景氣循環、價格波動', 'fair_mult': 1.03, 'advantage': 'MLCC、通路'},
+    '3044.TW': {'name': '健鼎', 'industry': 'PCB/載板', 'sub': 'PCB', 'rank': 'PCB主要廠', 'power': '★★★☆☆', 'position': 'PCB量產與車用/伺服器板供應商', 'peers': '欣興、華通、瀚宇博', 'moat': '中：PCB量產能力與客戶基礎', 'risk': '景氣循環、原料成本', 'fair_mult': 1.03, 'advantage': 'PCB量產、車用/工控'},
+    '3068.TWO': {'name': '美磊', 'industry': '被動元件', 'sub': '電感', 'rank': '電感供應商', 'power': '★★★☆☆', 'position': '電感與磁性元件供應商', 'peers': '奇力新同業、TDK、Murata', 'moat': '中：電感產品線', 'risk': '需求循環、價格競爭', 'fair_mult': 1.03, 'advantage': '電感、磁性元件'},
+    '3081.TWO': {'name': '聯亞', 'industry': '光通訊/CPO', 'sub': '磊晶/光通訊元件', 'rank': '光通訊磊晶供應商', 'power': '★★★★☆', 'position': '光通訊磊晶與雷射元件供應商', 'peers': '華星光、上詮、Lumentum、Coherent', 'moat': '中高：磊晶與光元件技術', 'risk': 'CPO導入時程、客戶集中', 'fair_mult': 1.1, 'advantage': '磊晶、雷射元件、CPO'},
+    '3227.TWO': {'name': '原相', 'industry': 'IC設計', 'sub': '感測IC', 'rank': '滑鼠感測IC主要廠', 'power': '★★★☆☆', 'position': '光學感測與影像感測IC供應商', 'peers': 'PixArt同業、OmniVision、Sony感測供應鏈', 'moat': '中：感測IC與演算法', 'risk': '消費電子需求波動', 'fair_mult': 1.03, 'advantage': '感測IC、演算法、遊戲周邊'},
+    '3362.TWO': {'name': '先進光', 'industry': '光學', 'sub': '光學鏡頭/模組', 'rank': '光學元件供應商', 'power': '★★★☆☆', 'position': '手機、車用與光學模組供應商', 'peers': '大立光、玉晶光、亞光', 'moat': '中：光學製程與客戶導入', 'risk': '需求波動、良率', 'fair_mult': 1.03, 'advantage': '鏡頭模組、車用光學'},
+    '3504.TWO': {'name': '揚明光', 'industry': '光學', 'sub': '投影/光學模組', 'rank': '光學模組供應商', 'power': '★★★☆☆', 'position': '投影與光學模組供應商', 'peers': '亞光、先進光、大立光', 'moat': '中：光學模組設計', 'risk': '終端需求波動', 'fair_mult': 1.02, 'advantage': '投影光學、模組整合'},
+    '3529.TWO': {'name': '力旺', 'industry': 'IC設計', 'sub': '矽智財/IP', 'rank': 'IP授權利基廠', 'power': '★★★★☆', 'position': '嵌入式非揮發性記憶體IP供應商', 'peers': 'Synopsys、ARM、M31、晶心科', 'moat': '高：IP授權、製程導入與高毛利', 'risk': '授權案時程、客戶集中', 'fair_mult': 1.1, 'advantage': 'IP授權、高毛利、先進製程導入'},
+    '3545.TW': {'name': '敦泰', 'industry': 'IC設計', 'sub': '觸控/DDI', 'rank': '觸控IC供應商', 'power': '★★★☆☆', 'position': '觸控與顯示相關IC設計公司', 'peers': '義隆、聯詠、Goodix', 'moat': '中：觸控IC與顯示IC經驗', 'risk': '面板與手機循環', 'fair_mult': 1.02, 'advantage': '觸控IC、面板供應鏈'},
+    '3715.TW': {'name': '定穎投控', 'industry': 'PCB/載板', 'sub': '車用PCB', 'rank': '車用PCB供應商', 'power': '★★★☆☆', 'position': '車用與高頻PCB供應商', 'peers': '健鼎、華通、TTM', 'moat': '中：車用PCB客戶導入', 'risk': '車市循環、產品組合', 'fair_mult': 1.04, 'advantage': '車用PCB、高頻應用'},
+    '4147.TWO': {'name': '中裕', 'industry': '生技醫療', 'sub': '新藥/抗體', 'rank': '新藥公司', 'power': '★★☆☆☆', 'position': '抗體與新藥開發公司', 'peers': '國際新藥公司、台灣生技同業', 'moat': '低中：研發管線', 'risk': '臨床、法規、商業化', 'fair_mult': 1.02, 'advantage': '抗體新藥、研發'},
+    '4162.TWO': {'name': '智擎', 'industry': '生技醫療', 'sub': '新藥授權', 'rank': '新藥授權公司', 'power': '★★☆☆☆', 'position': '新藥開發與授權公司', 'peers': '國際藥廠、台灣新藥公司', 'moat': '低中：新藥授權與研發能力', 'risk': '臨床、授權進度', 'fair_mult': 1.02, 'advantage': '新藥授權、研發'},
+    '4540.TWO': {'name': '全球傳動', 'industry': '自動化/機器人', 'sub': '線性傳動', 'rank': '傳動元件供應商', 'power': '★★★☆☆', 'position': '線性傳動與自動化元件供應商', 'peers': '上銀、直得、THK', 'moat': '中：傳動元件製造能力', 'risk': '工具機循環、中國競爭', 'fair_mult': 1.04, 'advantage': '線性傳動、自動化'},
+    '4576.TW': {'name': '大銀微系統', 'industry': '自動化/機器人', 'sub': '精密傳動/機器人', 'rank': '精密傳動供應商', 'power': '★★★☆☆', 'position': '精密傳動與自動化零組件供應商', 'peers': '上銀、台灣精銳、THK', 'moat': '中：精密傳動與機器人應用', 'risk': '工具機循環、規模', 'fair_mult': 1.04, 'advantage': '精密傳動、機器人'},
+    '4919.TW': {'name': '新唐', 'industry': 'IC設計', 'sub': 'MCU/音訊IC', 'rank': 'MCU主要廠', 'power': '★★★☆☆', 'position': 'MCU、音訊與工控IC供應商', 'peers': 'STMicro、Renesas、Microchip', 'moat': '中：MCU產品線與工控應用', 'risk': '庫存循環、價格競爭', 'fair_mult': 1.03, 'advantage': 'MCU、工控、車用'},
+    '4958.TW': {'name': '臻鼎-KY', 'industry': 'PCB/載板', 'sub': 'PCB/HDI', 'rank': '全球PCB龍頭之一', 'power': '★★★★☆', 'position': '全球PCB與HDI主要供應商', 'peers': '欣興、華通、健鼎、TTM', 'moat': '中高：規模、蘋果供應鏈、製程', 'risk': '客戶集中、消費電子循環', 'fair_mult': 1.04, 'advantage': 'PCB規模、HDI、客戶認證'},
+    '4966.TW': {'name': '譜瑞-KY', 'industry': 'IC設計', 'sub': '高速傳輸IC', 'rank': '高速介面IC主要廠', 'power': '★★★★☆', 'position': '高速傳輸與顯示介面IC供應商', 'peers': 'Parade同業、瑞昱、祥碩、聯詠', 'moat': '中高：高速介面IC技術', 'risk': 'PC/消費電子波動', 'fair_mult': 1.06, 'advantage': '高速介面、USB/Display、客戶認證'},
+    '4976.TW': {'name': '佳凌', 'industry': '光學', 'sub': '光學鏡頭/車用', 'rank': '光學供應商', 'power': '★★★☆☆', 'position': '光學鏡頭與車用光學供應商', 'peers': '大立光、玉晶光、亞光', 'moat': '中：光學製程與車用應用', 'risk': '車用導入時程、需求波動', 'fair_mult': 1.03, 'advantage': '車用光學、鏡頭'},
+    '4977.TWO': {'name': '眾達-KY', 'industry': '光通訊/CPO', 'sub': '光收發模組', 'rank': '光通訊模組供應商', 'power': '★★★☆☆', 'position': '光收發模組與資料中心光通訊供應商', 'peers': '華星光、上詮、光聖', 'moat': '中：光模組設計與客戶基礎', 'risk': '需求波動、客戶集中', 'fair_mult': 1.06, 'advantage': '光模組、資料中心'},
+    '5269.TW': {'name': '祥碩', 'industry': 'IC設計', 'sub': '高速傳輸IC', 'rank': 'USB控制IC主要廠', 'power': '★★★★☆', 'position': '高速傳輸控制IC與USB IC供應商', 'peers': '瑞昱、譜瑞、創惟', 'moat': '中高：高速傳輸IC與客戶導入', 'risk': 'PC平台循環、產品週期', 'fair_mult': 1.06, 'advantage': 'USB高速IC、平台認證'},
+    '5351.TWO': {'name': '鈺創', 'industry': '記憶體', 'sub': 'DRAM/影像IC', 'rank': '利基記憶體IC', 'power': '★★☆☆☆', 'position': '利基記憶體與影像IC供應商', 'peers': '華邦電、旺宏、利基IC同業', 'moat': '低中：利基記憶體設計', 'risk': '獲利波動、競爭', 'fair_mult': 1.02, 'advantage': '利基記憶體、影像IC'},
+    '5469.TW': {'name': '瀚宇博', 'industry': 'PCB/載板', 'sub': 'PCB', 'rank': 'PCB供應商', 'power': '★★★☆☆', 'position': '消費電子與伺服器PCB供應商', 'peers': '華通、健鼎、欣興', 'moat': '中：PCB客戶基礎', 'risk': '景氣循環、毛利波動', 'fair_mult': 1.02, 'advantage': 'PCB量產、客戶基礎'},
+    '5471.TWO': {'name': '松翰', 'industry': 'IC設計', 'sub': 'MCU/消費IC', 'rank': 'MCU供應商', 'power': '★★★☆☆', 'position': 'MCU與消費控制IC供應商', 'peers': '盛群、新唐、凌陽', 'moat': '中：MCU與消費IC產品線', 'risk': '需求循環、價格競爭', 'fair_mult': 1.02, 'advantage': 'MCU、消費控制IC'},
+    '5880.TW': {'name': '合庫金', 'industry': '金融', 'sub': '公股銀行金控', 'rank': '公股金控', 'power': '★★★☆☆', 'position': '大型公股銀行金控', 'peers': '第一金、華南金、兆豐金', 'moat': '中：銀行通路與公股資源', 'risk': '利差、景氣循環', 'fair_mult': 1.02, 'advantage': '銀行通路、公股資源'},
+    '6104.TWO': {'name': '創惟', 'industry': 'IC設計', 'sub': 'USB控制IC', 'rank': 'USB控制IC供應商', 'power': '★★★☆☆', 'position': 'USB與高速傳輸控制IC供應商', 'peers': 'Genesys Logic同業、瑞昱、群聯', 'moat': '中：USB控制IC與韌體能力', 'risk': 'PC/周邊需求循環', 'fair_mult': 1.04, 'advantage': 'USB控制IC、韌體、通路'},
+    '6166.TW': {'name': '凌華', 'industry': '工業電腦', 'sub': '邊緣運算/自動化', 'rank': '工業電腦供應商', 'power': '★★★☆☆', 'position': '工業電腦、邊緣運算與自動化平台供應商', 'peers': '研華、Kontron、Siemens IPC', 'moat': '中：工業電腦與邊緣平台', 'risk': '工業景氣循環、競爭', 'fair_mult': 1.04, 'advantage': '工業電腦、邊緣AI'},
+    '6191.TW': {'name': '精成科', 'industry': 'PCB/載板', 'sub': 'PCB/EMS', 'rank': 'PCB供應商', 'power': '★★★☆☆', 'position': 'PCB與電子製造服務供應商', 'peers': '瀚宇博、華通、健鼎', 'moat': '中：PCB與EMS整合', 'risk': '景氣循環、競爭', 'fair_mult': 1.02, 'advantage': 'PCB、EMS整合'},
+    '6202.TW': {'name': '盛群', 'industry': 'IC設計', 'sub': 'MCU', 'rank': 'MCU供應商', 'power': '★★★☆☆', 'position': '微控制器MCU供應商', 'peers': '新唐、松翰、Microchip', 'moat': '中：MCU產品線與通路', 'risk': '庫存循環、價格競爭', 'fair_mult': 1.02, 'advantage': 'MCU、家電/工控應用'},
+    '6209.TW': {'name': '今國光', 'industry': '光學', 'sub': '光學鏡頭', 'rank': '光學元件供應商', 'power': '★★☆☆☆', 'position': '光學鏡頭與元件供應商', 'peers': '大立光、玉晶光、亞光', 'moat': '低中：光學量產能力', 'risk': '價格競爭、需求循環', 'fair_mult': 1.0, 'advantage': '鏡頭製造、量產'},
+    '6282.TW': {'name': '康舒', 'industry': '電源管理', 'sub': '電源供應器', 'rank': '電源供應主要廠', 'power': '★★★☆☆', 'position': '電源供應器與新能源應用供應商', 'peers': '台達電、光寶科、群電', 'moat': '中：電源設計與客戶基礎', 'risk': '毛利率、需求循環', 'fair_mult': 1.03, 'advantage': '電源供應器、新能源'},
+    '6442.TW': {'name': '光聖', 'industry': '光通訊/CPO', 'sub': '光通訊元件', 'rank': '光通訊元件供應商', 'power': '★★★★☆', 'position': '資料中心光通訊零組件供應商', 'peers': '華星光、上詮、眾達、Finisar', 'moat': '中高：光通訊零組件與客戶導入', 'risk': '出貨時程、競爭', 'fair_mult': 1.1, 'advantage': '光通訊元件、資料中心'},
+    '6446.TW': {'name': '藥華藥', 'industry': '生技醫療', 'sub': '新藥/血液疾病', 'rank': '新藥公司', 'power': '★★★☆☆', 'position': '血液疾病新藥商業化公司', 'peers': '國際新藥公司、台灣生技同業', 'moat': '中：藥證與商業化進展', 'risk': '銷售成長、法規、研發風險', 'fair_mult': 1.06, 'advantage': '新藥商業化、藥證'},
+    '6462.TW': {'name': '神盾', 'industry': 'IC設計', 'sub': '生物辨識/資安', 'rank': '生物辨識IC供應商', 'power': '★★★☆☆', 'position': '指紋辨識與資安IC設計公司', 'peers': 'Goodix、Synaptics、敦泰', 'moat': '中：生物辨識演算法與IC整合', 'risk': '手機需求、客戶集中', 'fair_mult': 1.03, 'advantage': '指紋辨識、資安IC'},
+    '6531.TW': {'name': '愛普', 'industry': 'IC設計', 'sub': '記憶體IP/AI記憶體', 'rank': '記憶體IP供應商', 'power': '★★★☆☆', 'position': '高頻寬記憶體與AI記憶體相關IC供應商', 'peers': 'Samsung、SK Hynix、Micron、力旺', 'moat': '中：記憶體IP與封裝整合', 'risk': '產品導入時程、競爭', 'fair_mult': 1.06, 'advantage': '記憶體IP、AI記憶體、封裝'},
+    '6533.TW': {'name': '晶心科', 'industry': 'IC設計', 'sub': 'RISC-V IP', 'rank': 'RISC-V IP主要廠', 'power': '★★★★☆', 'position': 'RISC-V處理器IP供應商', 'peers': 'ARM、SiFive、MIPS、Synopsys', 'moat': '中高：RISC-V IP與工具鏈', 'risk': 'IP商業化速度、競爭', 'fair_mult': 1.08, 'advantage': 'RISC-V IP、授權模式'},
+    '8088.TWO': {'name': '品安', 'industry': '記憶體', 'sub': '記憶體模組', 'rank': '模組供應商', 'power': '★★☆☆☆', 'position': '記憶體模組與通路供應商', 'peers': '威剛、十銓、創見', 'moat': '低中：模組通路與庫存操作', 'risk': '價格波動、庫存風險', 'fair_mult': 1.04, 'advantage': '記憶體模組、通路'},
+    '8271.TWO': {'name': '宇瞻', 'industry': '記憶體', 'sub': '工控記憶體模組', 'rank': '工控模組品牌', 'power': '★★★☆☆', 'position': '工控與嵌入式記憶體模組供應商', 'peers': '威剛、創見、十銓', 'moat': '中：工控通路、產品穩定性', 'risk': '記憶體價格波動、庫存', 'fair_mult': 1.04, 'advantage': '工控記憶體、嵌入式'},
+    '8374.TWO': {'name': '羅昇', 'industry': '自動化/機器人', 'sub': '自動化代理/整合', 'rank': '自動化整合商', 'power': '★★☆☆☆', 'position': '工業自動化零組件代理與整合商', 'peers': '和椿、盟立、上銀', 'moat': '低中：通路與整合能力', 'risk': '設備景氣循環、毛利率', 'fair_mult': 1.02, 'advantage': '自動化通路、整合'},
+}
+
+try:
+    STOCK_DB.update(V210_EXTRA_STOCKS)
+except Exception:
+    pass
+
+# 重建別名，讓新增股票可用中文名稱或代碼搜尋
+try:
+    ALIASES.clear()
+    for sym, v in STOCK_DB.items():
+        ALIASES[sym.upper()] = sym
+        ALIASES[sym.split(".")[0]] = sym
+        ALIASES[v["name"]] = sym
+        ALIASES[v["name"].upper()] = sym
+except Exception:
+    pass
+# ===== V210.0 GLOBAL COMPETITION DATABASE END =====
+
+
 OTC_CODES = {s.split('.')[0] for s in STOCK_DB if s.endswith('.TWO')}
 
 def tw_now():
