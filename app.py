@@ -6,7 +6,7 @@ import numpy as np
 import yfinance as yf
 import streamlit as st
 
-APP_VERSION = "V228.0 Sector Expansion Theme II"
+APP_VERSION = "V230.0 White Dashboard Investor UI"
 APP_NAME = "智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -1783,6 +1783,200 @@ try:
 except Exception:
     pass
 # ===== V228.0 SECTOR EXPANSION THEME II END =====
+
+
+
+
+
+# ===== V230.0 WHITE DASHBOARD INVESTOR UI START =====
+def v230_css():
+    st.markdown("""
+    <style>
+    .main .block-container{padding-top:1.2rem;max-width:1320px;}
+    section[data-testid="stSidebar"]{background:#f3f6fb;}
+    .v230-topbar{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e6edf7;border-radius:18px;padding:18px 22px;margin:8px 0 18px 0;box-shadow:0 10px 30px rgba(15,23,42,.06);}
+    .v230-brand{font-size:28px;font-weight:900;color:#102033;line-height:1.1;}
+    .v230-sub{font-size:13px;color:#64748b;margin-top:5px;}
+    .v230-version{font-size:13px;color:#2563eb;font-weight:700;}
+    .v230-card{background:#fff;border:1px solid #e6edf7;border-radius:18px;padding:18px;margin:10px 0;box-shadow:0 10px 24px rgba(15,23,42,.05);}
+    .v230-card-title{font-size:18px;font-weight:850;color:#102033;margin-bottom:10px;}
+    .v230-kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin:16px 0 18px 0;}
+    .v230-kpi{background:#fff;border:1px solid #e6edf7;border-radius:18px;padding:16px;min-height:108px;box-shadow:0 8px 22px rgba(15,23,42,.05);}
+    .v230-kpi-icon{font-size:24px;margin-bottom:8px;}
+    .v230-kpi-label{color:#64748b;font-size:13px;font-weight:700;}
+    .v230-kpi-value{font-size:28px;font-weight:900;color:#0f172a;margin-top:4px;}
+    .v230-kpi-note{font-size:12px;color:#64748b;margin-top:4px;}
+    .v230-tag-wrap{display:flex;flex-wrap:wrap;gap:7px;max-width:100%;white-space:normal;line-height:2.2;}
+    .v230-tag{display:inline-flex;align-items:center;border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:9px;padding:3px 8px;font-size:13px;font-weight:750;white-space:nowrap;}
+    .v230-tag:nth-child(2n){background:#faf5ff;color:#7e22ce;border-color:#d8b4fe;}
+    .v230-tag:nth-child(3n){background:#fff7ed;color:#c2410c;border-color:#fed7aa;}
+    .v230-tag:nth-child(4n){background:#ecfdf5;color:#15803d;border-color:#bbf7d0;}
+    .v230-tag:nth-child(5n){background:#fdf2f8;color:#be185d;border-color:#fbcfe8;}
+    .v230-small-muted{color:#64748b;font-size:12px;}
+    div[data-testid="stDataFrame"] div[role="gridcell"]{white-space:normal !important;}
+    .stButton>button{border-radius:12px;border:1px solid #dbe7f5;background:#fff;min-height:42px;font-weight:700;color:#1e293b;}
+    .stButton>button:hover{border-color:#60a5fa;color:#1d4ed8;background:#eff6ff;}
+    @media(max-width:1000px){.v230-kpi-grid{grid-template-columns:repeat(2,1fr);} .v230-topbar{display:block;}}
+    </style>
+    """, unsafe_allow_html=True)
+
+def v230_tag_html(text):
+    parts=[p.strip() for p in str(text or "").replace("，","、").replace(",", "、").split("、") if p.strip()]
+    if not parts: parts=["一般產業"]
+    return '<div class="v230-tag-wrap">' + ''.join([f'<span class="v230-tag">{p}</span>' for p in parts]) + '</div>'
+
+def v230_rows_df():
+    for fn in ["v227_rows_df","v226_rows_df","v225_rows_df","v224_rows_df"]:
+        try:
+            return globals()[fn]()
+        except Exception:
+            pass
+    return pd.DataFrame()
+
+def v230_symbol(q):
+    try:
+        return normalize_symbol(q)
+    except Exception:
+        q=str(q or "").strip().upper()
+        return q+".TW" if q.isdigit() else (q or "2330.TW")
+
+def v230_decision(symbol):
+    try:
+        return v224_decision(symbol)
+    except Exception:
+        try:
+            return decision(symbol)
+        except Exception:
+            return {"symbol":symbol,"name":symbol,"price":float("nan"),"fair":float("nan"),"cons":float("nan"),"opt":float("nan"),"ret":0,"action":"觀察","source":"N/A","updated":"N/A"}
+
+def v230_fmt(x):
+    try:
+        if pd.isna(x): return "N/A"
+        return f"{float(x):,.2f}"
+    except Exception:
+        return "N/A"
+
+def v230_price_block(symbol):
+    d=v230_decision(symbol); sym=d.get("symbol", symbol)
+    st.caption(f"資料更新時間：{d.get('updated','N/A')}｜現價來源：{d.get('source','Yahoo Finance')}｜預期報酬率＝(綜合合理價－現價)÷現價。")
+    st.markdown(f"## {d.get('name', sym)}（{sym}）")
+    c1,c2,c3,c4=st.columns(4)
+    c1.metric("投資建議", d.get("action","觀察"))
+    c2.metric("現價", v230_fmt(d.get("price", float("nan"))))
+    c3.metric("綜合合理價", v230_fmt(d.get("fair", float("nan"))))
+    try: ret_txt=f"{float(d.get('ret',0)):.1f}%"
+    except Exception: ret_txt="N/A"
+    c4.metric("預期報酬", ret_txt)
+    p1,p2,p3=st.columns(3)
+    p1.metric("安全邊際價", v230_fmt(d.get("cons", float("nan"))))
+    p2.metric("合理價值", v230_fmt(d.get("fair", float("nan"))))
+    p3.metric("潛在價值", v230_fmt(d.get("opt", float("nan"))))
+    df=v230_rows_df(); row=df[df["代碼"]==sym] if not df.empty and "代碼" in df.columns else pd.DataFrame()
+    with st.expander("展開更多研究資料", expanded=False):
+        if not row.empty:
+            r=row.iloc[0].to_dict()
+            st.markdown("### 公司基本資料")
+            st.markdown(f'<div class="v230-card"><div class="v230-card-title">{r.get("公司","")}｜{r.get("代碼","")}</div><div class="v230-small-muted">主產業：{r.get("產業","")}　｜　子產業：{r.get("子產業","")}　｜　產業鏈位置：{r.get("產業鏈位置","待補")}</div><div style="margin-top:10px;">{v230_tag_html(r.get("主題標籤",""))}</div></div>', unsafe_allow_html=True)
+            st.dataframe(pd.DataFrame([{"全球排名":r.get("全球排名","待補"),"全球市占率":r.get("全球市占率","待補"),"產業地位":r.get("產業地位","待補"),"主要競爭者":r.get("主要競爭者","待補"),"護城河":r.get("護城河","待補"),"主要風險":r.get("主要風險","待補")}]), use_container_width=True, hide_index=True)
+        else:
+            st.info("此個股仍在資料庫補齊中，後續會補上產業鏈位置、主題標籤、競爭者與護城河。")
+
+def home():
+    v230_css()
+    if "v227_active_symbol" not in st.session_state: st.session_state["v227_active_symbol"]="2330.TW"
+    now_show=datetime.now().strftime("%Y/%m/%d %H:%M")
+    st.markdown(f'<div class="v230-topbar"><div><div class="v230-brand">📈 智策股市 AI 決策平台</div><div class="v230-sub">企業價值研究平台｜產業鏈 × 全球競爭力 × 財務預測 × 合理價推估</div></div><div class="v230-version">V230 White Dashboard<br>{now_show}</div></div>', unsafe_allow_html=True)
+    q=st.text_input("搜尋公司名稱 / 代號 / 產業 / 主題標籤", placeholder="例如：2330、台積電、2313、華通、低軌衛星、CoWoS", key="v230_search")
+    if str(q or "").strip(): st.session_state["v227_active_symbol"]=v230_symbol(q)
+    df=v230_rows_df()
+    if df.empty:
+        st.warning("資料庫尚未載入。"); return
+    total=len(df); hot_ind=df["產業"].nunique()
+    hot_theme=len(set("、".join(df["主題標籤"].fillna("").astype(str)).split("、"))) if "主題標籤" in df.columns else 0
+    ai9=int((pd.to_numeric(df["AI受惠度"], errors="coerce").fillna(0)>=9).sum()) if "AI受惠度" in df.columns else 0
+    global5=int(df["全球競爭力"].astype(str).str.contains("★★★★★", regex=False).sum()) if "全球競爭力" in df.columns else 0
+    st.markdown(f'<div class="v230-kpi-grid"><div class="v230-kpi"><div class="v230-kpi-icon">🔥</div><div class="v230-kpi-label">熱門產業</div><div class="v230-kpi-value">{hot_ind}</div><div class="v230-kpi-note">涵蓋主要主產業</div></div><div class="v230-kpi"><div class="v230-kpi-icon">🏆</div><div class="v230-kpi-label">個股資料庫</div><div class="v230-kpi-value">{total}</div><div class="v230-kpi-note">持續補齊中</div></div><div class="v230-kpi"><div class="v230-kpi-icon">🏷️</div><div class="v230-kpi-label">主題標籤</div><div class="v230-kpi-value">{hot_theme}</div><div class="v230-kpi-note">可多重歸屬</div></div><div class="v230-kpi"><div class="v230-kpi-icon">🤖</div><div class="v230-kpi-label">AI高受惠</div><div class="v230-kpi-value">{ai9}</div><div class="v230-kpi-note">AI受惠度 ≥ 9</div></div><div class="v230-kpi"><div class="v230-kpi-icon">🌏</div><div class="v230-kpi-label">全球強勢</div><div class="v230-kpi-value">{global5}</div><div class="v230-kpi-note">★★★★★</div></div><div class="v230-kpi"><div class="v230-kpi-icon">📊</div><div class="v230-kpi-label">後續模組</div><div class="v230-kpi-value">2026E</div><div class="v230-kpi-note">財務預測預留</div></div></div>', unsafe_allow_html=True)
+    quick=[("台積電","2330"),("華通","2313"),("昇達科","3491"),("廣達","2382"),("奇鋐","3017"),("聯鈞","3450")]
+    st.markdown("### 核心快速查詢")
+    cols=st.columns(len(quick))
+    for col,(name,code_) in zip(cols,quick):
+        with col:
+            if st.button(name, key=f"v230_quick_{code_}", use_container_width=True):
+                st.session_state["v227_active_symbol"]=v230_symbol(code_); st.rerun()
+    left,right=st.columns([1.2,1])
+    with left:
+        st.markdown('<div class="v230-card"><div class="v230-card-title">熱門個股 TOP 10</div>', unsafe_allow_html=True)
+        show=df.sort_values(["AI受惠度","全球競爭力"], ascending=False).head(10)[["公司","代碼","產業","子產業","AI受惠度","全球競爭力"]]
+        st.dataframe(show, use_container_width=True, hide_index=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    with right:
+        st.markdown('<div class="v230-card"><div class="v230-card-title">熱門主題標籤</div>', unsafe_allow_html=True)
+        st.markdown(v230_tag_html("AI伺服器、CoWoS、先進封裝、HBM、光通訊、CPO、低軌衛星、機器人、無人機、國防軍工、車用電子、資料中心"), unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    with st.expander("產業 → 子產業 → 個股（選到即查詢）", expanded=False):
+        c1,c2,c3=st.columns(3)
+        with c1: ind=st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v230_home_ind")
+        dff=df[df["產業"]==ind]
+        with c2: sub=st.selectbox("子產業", sorted(dff["子產業"].dropna().unique()), key="v230_home_sub")
+        dff=dff[dff["子產業"]==sub]
+        labels={f"{r['公司']} / {r['代碼']}":r["代碼"] for _,r in dff.iterrows()}
+        with c3: picked=st.selectbox("個股", list(labels.keys()), key="v230_home_stock")
+        if picked:
+            code=labels[picked]
+            if st.session_state.get("v230_last_pick")!=picked:
+                st.session_state["v230_last_pick"]=picked; st.session_state["v227_active_symbol"]=code; st.rerun()
+    st.markdown("---")
+    v230_price_block(st.session_state.get("v227_active_symbol","2330.TW"))
+
+def industry_page():
+    v230_css(); st.header("🏭 產業分析")
+    df=v230_rows_df()
+    c1,c2,c3=st.columns(3)
+    with c1: ind=st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v230_industry_ind")
+    dff=df[df["產業"]==ind]
+    with c2: sub=st.selectbox("子產業", sorted(dff["子產業"].dropna().unique()), key="v230_industry_sub")
+    dff=dff[dff["子產業"]==sub]
+    labels={f"{r['公司']} / {r['代碼']}":r["代碼"] for _,r in dff.iterrows()}
+    with c3: picked=st.selectbox("個股（選到即查詢）", list(labels.keys()), key="v230_industry_stock")
+    code=labels[picked]; st.session_state["v227_active_symbol"]=code
+    row=dff[dff["代碼"]==code].iloc[0].to_dict()
+    meta=V224_INDUSTRY_META.get(ind, {"規模":"待補","成長率":"待補","AI關聯度":"待補","說明":"待補"})
+    k1,k2,k3,k4=st.columns(4); k1.metric("產業規模", meta.get("規模","待補")); k2.metric("成長率", meta.get("成長率","待補")); k3.metric("AI關聯度", meta.get("AI關聯度","待補")); k4.metric("同產業公司", len(dff))
+    st.info(meta.get("說明",""))
+    st.markdown("### 公司基本資料")
+    st.markdown(f'<div class="v230-card"><div class="v230-card-title">{row.get("公司","")}｜{row.get("代碼","")}</div><div class="v230-small-muted">主產業：{row.get("產業","")}　｜　子產業：{row.get("子產業","")}　｜　產業鏈位置：{row.get("產業鏈位置","待補")}</div><div style="margin-top:10px;">{v230_tag_html(row.get("主題標籤",""))}</div></div>', unsafe_allow_html=True)
+    st.dataframe(pd.DataFrame([{"全球排名":row.get("全球排名","待補"),"全球市占率":row.get("全球市占率","待補"),"產業地位":row.get("產業地位","待補"),"主要競爭者":row.get("主要競爭者","待補"),"護城河":row.get("護城河","待補"),"主要風險":row.get("主要風險","待補")}]), use_container_width=True, hide_index=True)
+    st.markdown("### 同產業主要公司")
+    st.dataframe(dff[["公司","代碼","子產業","產業鏈位置","AI受惠度","全球競爭力","產業地位"]], use_container_width=True, hide_index=True)
+
+def competition_page():
+    v230_css(); st.header("🌏 全球競爭力")
+    df=v230_rows_df()
+    themes=["全部"]+sorted(set([p.strip() for s in df["主題標籤"].fillna("").astype(str) for p in s.replace("，","、").split("、") if p.strip()]))
+    c0,c1,c2,c3=st.columns(4)
+    with c0: theme=st.selectbox("主題標籤", themes, key="v230_global_theme")
+    if theme!="全部": df=df[df["主題標籤"].astype(str).str.contains(theme, na=False)]
+    with c1: ind=st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v230_global_ind")
+    dff=df[df["產業"]==ind]
+    with c2: sub=st.selectbox("子產業", sorted(dff["子產業"].dropna().unique()), key="v230_global_sub")
+    dff=dff[dff["子產業"]==sub]
+    labels={f"{r['公司']} / {r['代碼']}":r["代碼"] for _,r in dff.iterrows()}
+    with c3: picked=st.selectbox("個股（選到即查詢）", list(labels.keys()), key="v230_global_stock")
+    code=labels[picked]; st.session_state["v227_active_symbol"]=code
+    row=dff[dff["代碼"]==code].iloc[0].to_dict()
+    st.markdown(f"## {row['公司']}（{row['代碼']}）")
+    g1,g2,g3,g4=st.columns(4)
+    ai_txt=f"{int(row['AI受惠度'])}/10" if int(row["AI受惠度"])>0 else "非AI主題"
+    g1.metric("全球排名", row["全球排名"]); g2.metric("AI受惠度", ai_txt); g3.metric("全球競爭力", row["全球競爭力"]); g4.metric("全球市占率", row["全球市占率"])
+    st.markdown(v230_tag_html(row.get("主題標籤","")), unsafe_allow_html=True)
+    st.dataframe(pd.DataFrame([{"產業地位":row["產業地位"],"競爭者":row["主要競爭者"],"護城河":row["護城河"],"主要風險":row["主要風險"],"產業鏈位置":row["產業鏈位置"]}]), use_container_width=True, hide_index=True)
+    st.markdown("---"); v224_ai_score_explanation()
+
+def global_competition(): competition_page()
+def industry_analysis(): industry_page()
+def v108_enterprise_home(): home()
+def v107_premium_home(): home()
+# ===== V230.0 WHITE DASHBOARD INVESTOR UI END =====
 
 
 if __name__ == '__main__':
