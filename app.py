@@ -6,7 +6,7 @@ import numpy as np
 import yfinance as yf
 import streamlit as st
 
-APP_VERSION = "V220.0 AI Industry Chain Map"
+APP_VERSION = "V221.0 Stable Investor Home"
 APP_NAME = "智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -294,6 +294,207 @@ def db_rows():
         for sym, v in STOCK_DB.items()
     ]
 # ===== V220.0 AI INDUSTRY CHAIN MAP END =====
+
+
+
+# ===== V221.0 STABLE INVESTOR HOME PATCH START =====
+# 目的：首頁只放一般投資人最在意的價格與區間；深度研究資料收進展開區。
+# 全球競爭力用 主產業 → 子產業 → 個股 方式篩選，避免全部擠在一起。
+
+def v221_ai_score_text(d):
+    try:
+        score = int(d.get("ai_score", 0))
+    except Exception:
+        score = 0
+    return f"{score}/10" if score > 0 else "非AI主題"
+
+def v221_ai_theme_text(d):
+    try:
+        score = int(d.get("ai_score", 0))
+    except Exception:
+        score = 0
+    if score <= 0:
+        return "非AI主題"
+    return d.get("theme_text", d.get("themes", "AI主題"))
+
+def v221_score_explanation():
+    st.markdown("""
+    ### AI受惠度評分說明
+
+    | 分數 | 定義 | 代表類型 |
+    |---|---|---|
+    | 10 | AI核心基礎建設或不可或缺關鍵晶片 | 台積電、信驊、緯穎 |
+    | 9 | AI關鍵零組件 | 台光電、奇鋐、雙鴻、CPO光通訊 |
+    | 8 | AI供應鏈直接受惠 | 封測、ABF載板、測試、ASIC設計 |
+    | 7 | AI需求明確帶動，但非唯一主軸 | 台達電、機器人、自動化 |
+    | 5~6 | 中度受惠 | AI PC、AI手機、光學 |
+    | 3~4 | 間接受惠 | 一般電子零組件 |
+    | 0 | 非AI主題 | 金融、航運、鋼鐵、塑化等傳統產業 |
+    """)
+    st.caption("AI受惠度不是買賣建議，而是衡量公司營收、訂單、估值是否可能受到 AI 投資循環帶動。")
+
+def v221_price_summary(symbol):
+    d = v108_get_decision(symbol) if "v108_get_decision" in globals() else v107_get_decision(symbol)
+    st.caption(f"資料更新時間：{d.get('updated','N/A')}｜現價來源：{d.get('source','N/A')}｜預期報酬率＝(合理價－現價)÷現價。")
+
+    st.markdown(f"## {d.get('name', symbol)}（{symbol}）")
+
+    m1,m2,m3,m4 = st.columns(4)
+    m1.metric("投資建議", d.get("action","觀察"))
+    m2.metric("現價", v108_fmt_price(d.get("price", np.nan)) if "v108_fmt_price" in globals() else v107_fmt_price(d.get("price", np.nan)))
+    m3.metric("合理價", v108_fmt_price(d.get("fair", np.nan)) if "v108_fmt_price" in globals() else v107_fmt_price(d.get("fair", np.nan)))
+    try:
+        ret_txt = f"{float(d.get('ret',0)):.1f}%"
+    except Exception:
+        ret_txt = "N/A"
+    m4.metric("預期報酬", ret_txt)
+
+    p1,p2,p3 = st.columns(3)
+    fmtf = v108_fmt_price if "v108_fmt_price" in globals() else v107_fmt_price
+    p1.metric("保守價", fmtf(d.get("cons", np.nan)))
+    p2.metric("合理價", fmtf(d.get("fair", np.nan)))
+    p3.metric("樂觀價", fmtf(d.get("opt", np.nan)))
+
+    with st.expander("展開更多研究資料", expanded=False):
+        st.markdown("### 🌍 全球競爭力與產業定位")
+        g1,g2,g3,g4 = st.columns(4)
+        g1.metric("AI受惠度", v221_ai_score_text(d))
+        g2.metric("全球競爭力", d.get("power", d.get("global_power","★★★☆☆")))
+        g3.metric("產業排名", d.get("rank", d.get("global_rank","待補")))
+        g4.metric("全球地位", d.get("position", d.get("global_position","待補")))
+
+        st.dataframe(pd.DataFrame([{
+            "主產業":d.get("industry","待補"),
+            "子產業":d.get("sub", d.get("sub_industry","待補")),
+            "AI主題":v221_ai_theme_text(d),
+            "主要競爭者":d.get("peers", d.get("competitors","待補")),
+            "護城河":d.get("moat","待補"),
+            "競爭優勢":d.get("advantage","待補"),
+            "主要風險":d.get("risk","待補")
+        }]), use_container_width=True, hide_index=True)
+
+        tabs = st.tabs(["投資人摘要","價格區間","風險提示","AI受惠度說明"])
+        with tabs[0]:
+            st.dataframe(pd.DataFrame([{
+                "公司":d.get("name",symbol),
+                "代碼":symbol,
+                "主產業":d.get("industry","待補"),
+                "子產業":d.get("sub", d.get("sub_industry","待補")),
+                "AI主題":v221_ai_theme_text(d),
+                "AI受惠度":v221_ai_score_text(d),
+                "全球競爭力":d.get("power", d.get("global_power","★★★☆☆")),
+                "投資建議":d.get("action","觀察"),
+                "現價":fmtf(d.get("price",np.nan)),
+                "合理價":fmtf(d.get("fair",np.nan)),
+                "預期報酬":ret_txt
+            }]), use_container_width=True, hide_index=True)
+        with tabs[1]:
+            st.dataframe(pd.DataFrame([{
+                "保守價":fmtf(d.get("cons",np.nan)),
+                "合理價":fmtf(d.get("fair",np.nan)),
+                "樂觀價":fmtf(d.get("opt",np.nan)),
+                "說明":"首頁先提供價格區間；進階版企業價值研究院將接回 DCF、EVA、EBO、CAP、ESG Premium。"
+            }]), use_container_width=True, hide_index=True)
+        with tabs[2]:
+            st.write(f"- 主要風險：{d.get('risk','待補')}")
+            st.write("- 財報、產業景氣、利率與匯率變化都可能影響估值。")
+        with tabs[3]:
+            v221_score_explanation()
+
+def v221_investor_home():
+    v108_css() if "v108_css" in globals() else v107_css()
+    now_show = datetime.now().strftime("%Y/%m/%d %H:%M")
+    st.markdown(f"""
+    <div class="v108-hero">
+      <div class="v108-title">智策股市 AI 決策平台</div>
+      <div class="v108-sub">首頁先看股價與合理價區間；想深入再展開產業鏈、全球競爭力與企業評價。</div>
+      <span class="v108-badge">最後更新：{now_show}</span>
+      <span class="v108-badge">資料來源：TWSE・TPEx・Yahoo Finance</span>
+      <span class="v108-badge">V221 Stable Investor Home</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div class="v108-note">一般投資人先看現價、保守價、合理價、樂觀價與預期報酬；深度研究資料已收合在「展開更多研究資料」。</div>', unsafe_allow_html=True)
+
+    c1,c2 = st.columns([1.2,1])
+    with c1:
+        q = st.text_input("搜尋股票代碼或公司名稱", value=st.session_state.get("v221_query",""), placeholder="例如：2330、台積電、2308、台達電、5274、信驊", key="v221_query_input")
+    with c2:
+        st.caption("現價每小時快取；重新整理頁面可取得最新資料。")
+
+    if str(q or "").strip():
+        st.session_state["v221_query"] = str(q).strip()
+        symbol = v108_normalize_symbol(q) if "v108_normalize_symbol" in globals() else v107_get_symbol(q)
+    else:
+        symbol = st.session_state.get("v221_active_symbol","2330.TW")
+
+    # 快速查詢
+    groups = [
+        ("核心", [("台積電","2330"),("台達電","2308"),("信驊","5274"),("聯發科","2454"),("廣達","2382"),("大立光","3008")]),
+        ("AI伺服器", [("緯穎","6669"),("緯創","3231"),("奇鋐","3017"),("雙鴻","3324"),("川湖","2059"),("台光電","2383")])
+    ]
+    for title, items in groups:
+        st.markdown(f"#### {title}快速查詢")
+        cols = st.columns(len(items))
+        for col, (label, code) in zip(cols, items):
+            with col:
+                if st.button(label, key=f"v221_quick_{code}", use_container_width=True):
+                    st.session_state["v221_query"] = code
+                    st.session_state["v221_active_symbol"] = v108_normalize_symbol(code) if "v108_normalize_symbol" in globals() else v107_get_symbol(code)
+                    st.rerun()
+
+    with st.expander("產業 → 子產業 → 個股", expanded=False):
+        rows = v108_rows() if "v108_rows" in globals() else v107_rows()
+        df = pd.DataFrame(rows)
+        if not df.empty:
+            ind_col = "產業"
+            sub_col = "子產業"
+            stock_col = "公司"
+            code_col = "代碼"
+            a,b,c,dcol = st.columns([1,1,1,0.25])
+            with a:
+                ind = st.selectbox("主產業", sorted(df[ind_col].dropna().unique()), key="v221_ind")
+            sub_df = df[df[ind_col] == ind]
+            with b:
+                sub = st.selectbox("子產業", sorted(sub_df[sub_col].dropna().unique()), key="v221_sub")
+            stock_df = sub_df[sub_df[sub_col] == sub]
+            with c:
+                label_map = {f"{r[stock_col]} / {r[code_col]}": r[code_col] for _, r in stock_df.iterrows()}
+                picked = st.selectbox("個股", list(label_map.keys()), key="v221_stock")
+            with dcol:
+                st.write("")
+                st.write("")
+                if st.button("套用", key="v221_apply", use_container_width=True):
+                    st.session_state["v221_active_symbol"] = label_map[picked]
+                    st.session_state["v221_query"] = label_map[picked]
+                    st.rerun()
+
+    v221_price_summary(symbol)
+
+def global_competition():
+    st.header("🌏 全球競爭力")
+    with st.expander("AI受惠度如何評分？", expanded=False):
+        v221_score_explanation()
+
+    rows = v108_rows() if "v108_rows" in globals() else v107_rows()
+    df = pd.DataFrame(rows)
+    if df.empty:
+        st.warning("資料庫尚未載入。")
+        return
+
+    a,b = st.columns(2)
+    with a:
+        ind = st.selectbox("主產業", ["全部"] + sorted(df["產業"].dropna().unique()), key="v221_global_ind")
+    if ind != "全部":
+        df = df[df["產業"] == ind]
+    with b:
+        sub = st.selectbox("子產業", ["全部"] + sorted(df["子產業"].dropna().unique()), key="v221_global_sub")
+    if sub != "全部":
+        df = df[df["子產業"] == sub]
+
+    st.dataframe(df.sort_values(["產業","子產業","代碼"]), use_container_width=True, hide_index=True)
+
+# ===== V221.0 STABLE INVESTOR HOME PATCH END =====
 
 
 def sidebar_nav():
