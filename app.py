@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V107.5 Industry Select Fix"
+APP_VERSION="V108.0 Enterprise Stable"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -16019,7 +16019,7 @@ def v104_format_pct(x):
     except Exception: return f"{float(x):.1f}%" if pd.notna(x) else "N/A"
 
 def v104_home_page():
-    st.markdown("### 🧭 AI最終投資決策首頁 V107.5")
+    st.markdown("### 🧭 AI最終投資決策首頁 V108.0")
     st.info("請先選產業，再選個股。首頁只保留投資人最需要的答案：能不能買、合理價區間、預期報酬、全球競爭力與主要風險。")
 
     st.caption("價格區間與預期報酬主要由 AIVM Composite Valuation Model 推估：綜合企業評價、歷史Forward驗證、Alpha/Quant分數、產業競爭力與現價安全邊際；預期報酬率＝(合理價－現價)÷現價。模型細部權重屬內部研究方法，如需研究資料請洽詢開發者。")
@@ -16900,31 +16900,7 @@ def v107_rows():
     except Exception:
         return []
 
-
-# ===== V107.5 QUICK SYMBOL BUTTONS START =====
-def v1075_recent_buttons():
-    try:
-        st.markdown("#### 常用快速查詢")
-        b1,b2,b3,b4,b5,b6 = st.columns(6)
-        quick = [
-            (b1, "台積電", "2330"),
-            (b2, "台達電", "2308"),
-            (b3, "信驊", "5274"),
-            (b4, "國巨", "2327"),
-            (b5, "南亞科", "2408"),
-            (b6, "大立光", "3008"),
-        ]
-        for col, label, qv in quick:
-            with col:
-                if st.button(label, key=f"v1075_quick_{qv}", use_container_width=True):
-                    st.session_state["v107_query"] = qv
-                    st.rerun()
-    except Exception:
-        pass
-# ===== V107.5 QUICK SYMBOL BUTTONS END =====
-
-
-def v107_premium_home():
+def v108_enterprise_home():
     v107_css()
     now_show=datetime.now().strftime("%Y/%m/%d %H:%M")
     st.markdown(f"""
@@ -16940,7 +16916,7 @@ def v107_premium_home():
 
     c1,c2=st.columns([1.25,1])
     with c1:
-        q=st.text_input("搜尋股票代碼或名稱", value=st.session_state.get("v107_query",""), placeholder="例如：2330、台積電、2308、台達電、5274、信驊", key="v107_query")
+        q=st.text_input("搜尋股票代碼或名稱", value=st.session_state.get("v107_query","2330"), placeholder="例如：2330、台積電、3131、弘塑、6215、和椿", key="v107_query")
     with c2:
         st.caption("現價每小時快取更新；重新整理頁面可取得最新資料。")
 
@@ -16952,12 +16928,8 @@ def v107_premium_home():
             pick=st.selectbox("選擇個股", v107_stock_options(ind), key="v107_stock_pick")
         if not q:
             q=pick.split("/")[-1].strip()
-    selected_symbol = sel.split("/")[-1].strip()
-    typed_query = str(q or "").strip()
-    if typed_query:
-        symbol = v107_get_symbol(typed_query)
-    else:
-        symbol = v107_get_symbol(selected_symbol)
+
+    symbol=v107_get_symbol(q)
     d=v107_get_decision(symbol)
 
     st.caption(f"資料更新時間：{d.get('updated','N/A')}｜現價來源：{d.get('source','N/A')}｜價格區間由綜合估值模型推估，預期報酬率＝(合理價－現價)÷現價。")
@@ -17294,6 +17266,121 @@ def v107_rows():
 # ===== V107.4 CORE TWSE TPEX DATABASE END =====
 
 
+
+# ===== V108.0 ENTERPRISE STABLE UI START =====
+def v108_css():
+    st.markdown("""
+    <style>
+    .v108-hero{background:linear-gradient(135deg,#071225 0%,#112a61 55%,#2450b8 100%);color:white;padding:30px 34px;border-radius:20px;box-shadow:0 16px 36px rgba(0,0,0,.18);margin:10px 0 22px 0;}
+    .v108-title{font-size:34px;font-weight:900;margin-bottom:9px;}.v108-sub{font-size:16px;opacity:.92;margin-bottom:16px;}
+    .v108-badge{display:inline-block;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.24);padding:8px 13px;border-radius:999px;margin-right:8px;margin-top:6px;font-size:14px;}
+    .v108-note{background:#eaf4ff;border-left:5px solid #2f7df6;padding:15px 18px;border-radius:12px;color:#064b8a;margin:14px 0 18px 0;font-size:15px;}
+    .v108-section-title{font-size:30px;font-weight:850;margin:22px 0 8px 0;} div[data-testid="stMetricValue"]{font-size:32px;} div[data-testid="stMetricLabel"]{font-size:14px;}
+    @media (max-width:768px){.v108-title{font-size:26px}.v108-hero{padding:22px 20px;border-radius:16px}div[data-testid="stMetricValue"]{font-size:26px}}
+    </style>""", unsafe_allow_html=True)
+
+def v108_fmt_price(x):
+    try:
+        if pd.isna(x): return 'N/A'
+        return f"{float(x):,.2f}"
+    except Exception: return 'N/A'
+
+def v108_normalize_symbol(q):
+    try:
+        if 'v1074_normalize_symbol' in globals(): return v1074_normalize_symbol(q)
+        if 'v1073_normalize_symbol' in globals(): return v1073_normalize_symbol(q)
+        return v107_get_symbol(q)
+    except Exception:
+        q=str(q or '').strip().upper()
+        if q.isdigit(): return q + ('.TWO' if q in {'3131','3260','3324','3363','4979','5274','5347','6215','8299'} else '.TW')
+        return q or '2330.TW'
+
+def v108_get_decision(symbol):
+    try:
+        if 'v1074_build_decision' in globals(): return v1074_build_decision(symbol)
+        if 'v1073_build_decision' in globals(): return v1073_build_decision(symbol)
+        return v107_get_decision(symbol)
+    except Exception:
+        now=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        return {'symbol':symbol,'name':symbol,'industry':'待補','sub':'待補','rank':'待補','power':'★★★☆☆','position':'待補','peers':'待補','moat':'待補','risk':'資料庫尚待補齊','price':np.nan,'source':'N/A','updated':now,'ret':0.0,'fair':np.nan,'cons':np.nan,'opt':np.nan,'action':'觀察','rating':'★★★☆☆'}
+
+def v108_industries():
+    try: return v107_industries()
+    except Exception: return ['半導體']
+
+def v108_stock_options(ind):
+    try: return v107_stock_options(ind)
+    except Exception: return ['台積電 / 2330.TW']
+
+def v108_rows():
+    try: return v107_rows()
+    except Exception: return []
+
+def v108_set_query(q):
+    st.session_state['v108_query']=str(q or '').strip()
+    st.session_state['v107_query']=str(q or '').strip()
+
+def v108_enterprise_home():
+    v108_css()
+    now_show=datetime.now().strftime('%Y/%m/%d %H:%M')
+    hero = '<div class="v108-hero"><div class="v108-title">智策股市 AI 決策平台</div><div class="v108-sub">上市櫃投資決策、合理價區間、預期報酬與全球競爭力分析</div><span class="v108-badge">最後更新：' + now_show + '</span><span class="v108-badge">資料來源：TWSE・TPEx・Yahoo Finance</span><span class="v108-badge">模型細節：內部研究方法</span></div>'
+    st.markdown(hero, unsafe_allow_html=True)
+    st.markdown('<div class="v108-note">請直接輸入股票代碼或公司名稱，也可從產業快速導航選股。首頁只保留投資人最需要的答案。</div>', unsafe_allow_html=True)
+    c1,c2=st.columns([1.15,1])
+    with c1:
+        q=st.text_input('搜尋股票代碼或名稱', value=st.session_state.get('v108_query',''), placeholder='例如：2330、台積電、2308、台達電、5274、信驊', key='v108_query_input')
+    with c2:
+        st.caption('現價每小時快取更新；重新整理頁面可取得最新資料。')
+    typed=str(q or '').strip()
+    if typed: st.session_state['v108_query']=typed
+    st.markdown('#### 常用快速查詢')
+    labs=[('台積電','2330'),('台達電','2308'),('信驊','5274'),('國巨','2327'),('南亞科','2408'),('大立光','3008')]
+    cols=st.columns(6)
+    for col,(lab,qv) in zip(cols,labs):
+        with col:
+            if st.button(lab,key=f'v108_quick_{qv}',use_container_width=True):
+                v108_set_query(qv); st.rerun()
+    selected_symbol='2330.TW'
+    with st.expander('產業快速導航', expanded=False):
+        a,b=st.columns(2)
+        with a: industry=st.selectbox('選擇產業', v108_industries(), key='v108_industry')
+        with b:
+            opts=v108_stock_options(industry)
+            selected_text=st.selectbox('選擇個股', opts, key='v108_stock_select')
+            try: selected_symbol=selected_text.split('/')[-1].strip()
+            except Exception: selected_symbol='2330.TW'
+        if st.button('套用選股', key='v108_apply_select', use_container_width=True):
+            v108_set_query(selected_symbol); st.rerun()
+        st.caption('選完產業與個股後，按「套用選股」即可切換；或直接在上方輸入代碼按 Enter。')
+    active=str(st.session_state.get('v108_query','') or typed or '').strip()
+    symbol=v108_normalize_symbol(active) if active else v108_normalize_symbol(selected_symbol)
+    d=v108_get_decision(symbol)
+    st.caption(f"資料更新時間：{d.get('updated','N/A')}｜現價來源：{d.get('source','N/A')}｜預期報酬率＝(合理價－現價)÷現價。")
+    st.markdown(f'<div class="v108-section-title">{d.get("name",symbol)}（{symbol}）</div>', unsafe_allow_html=True)
+    m1,m2,m3,m4=st.columns(4)
+    m1.metric('AI評級',d.get('rating','★★★☆☆')); m2.metric('投資建議',d.get('action','觀察')); m3.metric('現價',v108_fmt_price(d.get('price',np.nan)))
+    try: ret_txt=f"{float(d.get('ret',0)):.1f}%"
+    except Exception: ret_txt='N/A'
+    m4.metric('預期報酬',ret_txt)
+    p1,p2,p3=st.columns(3)
+    p1.metric('保守價',v108_fmt_price(d.get('cons',np.nan))); p2.metric('合理價',v108_fmt_price(d.get('fair',np.nan))); p3.metric('樂觀價',v108_fmt_price(d.get('opt',np.nan)))
+    st.markdown('### 🌍 產業全球競爭')
+    g1,g2,g3=st.columns(3)
+    g1.metric('全球競爭力',d.get('power','★★★☆☆')); g2.metric('產業排名',d.get('rank','待補')); g3.metric('全球地位',d.get('position','待補'))
+    st.dataframe(pd.DataFrame([{'產業':d.get('industry','待補'),'子產業':d.get('sub','待補'),'主要競爭者':d.get('peers','待補'),'護城河':d.get('moat','待補'),'主要風險':d.get('risk','待補')}]),use_container_width=True,hide_index=True)
+    tabs=st.tabs(['投資人摘要','價格區間','風險提示','產業個股清單','研究說明'])
+    with tabs[0]:
+        st.dataframe(pd.DataFrame([{'公司':d.get('name',symbol),'代碼':symbol,'AI評級':d.get('rating','★★★☆☆'),'投資建議':d.get('action','觀察'),'現價':v108_fmt_price(d.get('price',np.nan)),'合理價':v108_fmt_price(d.get('fair',np.nan)),'預期報酬':ret_txt,'全球競爭力':d.get('power','★★★☆☆'),'更新時間':d.get('updated','N/A')}]),use_container_width=True,hide_index=True)
+    with tabs[1]:
+        st.dataframe(pd.DataFrame([{'保守價':v108_fmt_price(d.get('cons',np.nan)),'合理價':v108_fmt_price(d.get('fair',np.nan)),'樂觀價':v108_fmt_price(d.get('opt',np.nan)),'計算說明':'預期報酬率＝(合理價－現價)÷現價'}]),use_container_width=True,hide_index=True)
+    with tabs[2]:
+        st.write(f"- 主要風險：{d.get('risk','待補')}"); st.write('- 若財報、產業景氣或市場利率變化，估值區間可能調整。'); st.write('- 本頁為研究輔助，不等於保證報酬。')
+    with tabs[3]:
+        rows=v108_rows(); st.dataframe(pd.DataFrame(rows).sort_values(['產業','子產業','代碼']),use_container_width=True,hide_index=True) if rows else st.info('產業資料庫尚待補齊。')
+    with tabs[4]: st.info('模型細節屬內部研究方法；如需完整研究資料請洽開發者。')
+# ===== V108.0 ENTERPRISE STABLE UI END =====
+
+
 def v968_main_dispatch():
     global page
     try:
@@ -17305,7 +17392,7 @@ def v968_main_dispatch():
 
     if page == "🏠首頁":
         try:
-            v107_premium_home()
+            v108_enterprise_home()
         except Exception as e:
             st.error(f"首頁投資決策入口載入失敗：{e}")
 
@@ -17479,7 +17566,7 @@ def v106_fmt_price(x):
     return f"{float(x):,.2f}" if pd.notna(x) else "N/A"
 
 def v106_public_home():
-    st.markdown("### 🧭 AI最終投資決策首頁 V107.5")
+    st.markdown("### 🧭 AI最終投資決策首頁 V108.0")
     st.caption(V106_PUBLIC_NOTE)
     qcol, icol, scol = st.columns([1.3,1,1.2])
     with qcol:
@@ -17533,11 +17620,11 @@ def v106_public_home():
 
 # ===== V107.0 FORCE PREMIUM HOME ROUTE START =====
 try:
-    def v104_home_page(): return v107_premium_home()
-    def v106_public_home(): return v107_premium_home()
-    def v906_force_home(): return v107_premium_home()
-    def v906_home_dashboard(): return v107_premium_home()
-    def v905_sector_dashboard(): return v107_premium_home()
+    def v104_home_page(): return v108_enterprise_home()
+    def v106_public_home(): return v108_enterprise_home()
+    def v906_force_home(): return v108_enterprise_home()
+    def v906_home_dashboard(): return v108_enterprise_home()
+    def v905_sector_dashboard(): return v108_enterprise_home()
 except Exception:
     pass
 # ===== V107.0 FORCE PREMIUM HOME ROUTE END =====
