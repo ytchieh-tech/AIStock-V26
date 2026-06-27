@@ -6,7 +6,7 @@ import numpy as np
 import yfinance as yf
 import streamlit as st
 
-APP_VERSION = "V230.0 White Dashboard Investor UI"
+APP_VERSION = "V231.0 Ranking Dashboard"
 APP_NAME = "智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -1977,6 +1977,183 @@ def industry_analysis(): industry_page()
 def v108_enterprise_home(): home()
 def v107_premium_home(): home()
 # ===== V230.0 WHITE DASHBOARD INVESTOR UI END =====
+
+
+
+
+
+# ===== V231.0 RANKING DASHBOARD START =====
+
+def v231_rank_table(df):
+    rows = []
+    for _, r in df.iterrows():
+        sym = r.get("代碼", "")
+        try:
+            info = STOCK_DB.get(sym, {})
+        except Exception:
+            info = {}
+        try:
+            px = V224_FALLBACK_PRICE.get(sym, float("nan"))
+        except Exception:
+            px = float("nan")
+        try:
+            fair_mult = float(info.get("fair_mult", 1.0))
+        except Exception:
+            fair_mult = 1.0
+        try:
+            fair = float(px) * fair_mult
+            ret = (fair - float(px)) / float(px) * 100 if float(px) > 0 else float("nan")
+        except Exception:
+            fair, ret = float("nan"), float("nan")
+        rows.append({
+            "公司": r.get("公司",""),
+            "代碼": sym,
+            "產業": r.get("產業",""),
+            "子產業": r.get("子產業",""),
+            "現價": px,
+            "綜合合理價": fair,
+            "預期報酬%": ret,
+            "AI受惠度": r.get("AI受惠度",0),
+            "全球競爭力": r.get("全球競爭力",""),
+            "主題標籤": r.get("主題標籤",""),
+        })
+    out = pd.DataFrame(rows)
+    if not out.empty:
+        out["現價"] = pd.to_numeric(out["現價"], errors="coerce")
+        out["綜合合理價"] = pd.to_numeric(out["綜合合理價"], errors="coerce")
+        out["預期報酬%"] = pd.to_numeric(out["預期報酬%"], errors="coerce")
+        out["AI受惠度"] = pd.to_numeric(out["AI受惠度"], errors="coerce").fillna(0)
+    return out
+
+def v231_fmt_rank(df):
+    d = df.copy()
+    for c in ["現價","綜合合理價"]:
+        if c in d.columns:
+            d[c] = d[c].map(lambda x: "N/A" if pd.isna(x) else f"{x:,.2f}")
+    if "預期報酬%" in d.columns:
+        d["預期報酬%"] = d["預期報酬%"].map(lambda x: "N/A" if pd.isna(x) else f"{x:.1f}%")
+    return d
+
+def home():
+    v230_css()
+    if "v227_active_symbol" not in st.session_state:
+        st.session_state["v227_active_symbol"] = "2330.TW"
+
+    now_show = datetime.now().strftime("%Y/%m/%d %H:%M")
+    st.markdown(f"""
+    <div class="v230-topbar">
+      <div>
+        <div class="v230-brand">📈 智策股市 AI 決策平台</div>
+        <div class="v230-sub">企業價值研究平台｜產業鏈 × 全球競爭力 × 財務預測 × 合理價推估</div>
+      </div>
+      <div class="v230-version">V231 Ranking Dashboard<br>{now_show}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    q = st.text_input("搜尋公司名稱 / 代號 / 產業 / 主題標籤", placeholder="例如：2330、台積電、2313、華通、低軌衛星、CoWoS", key="v231_search")
+    if str(q or "").strip():
+        st.session_state["v227_active_symbol"] = v230_symbol(q)
+
+    df = v230_rows_df()
+    if df.empty:
+        st.warning("資料庫尚未載入。")
+        return
+
+    rank = v231_rank_table(df)
+
+    total = len(df)
+    hot_ind = df["產業"].nunique()
+    hot_theme = len(set("、".join(df["主題標籤"].fillna("").astype(str)).split("、"))) if "主題標籤" in df.columns else 0
+    ai9 = int((pd.to_numeric(df["AI受惠度"], errors="coerce").fillna(0) >= 9).sum()) if "AI受惠度" in df.columns else 0
+    undervalued = int((rank["預期報酬%"].fillna(0) > 0).sum()) if not rank.empty else 0
+    global5 = int(df["全球競爭力"].astype(str).str.contains("★★★★★", regex=False).sum()) if "全球競爭力" in df.columns else 0
+
+    st.markdown(f"""
+    <div class="v230-kpi-grid">
+      <div class="v230-kpi"><div class="v230-kpi-icon">🔥</div><div class="v230-kpi-label">熱門產業</div><div class="v230-kpi-value">{hot_ind}</div><div class="v230-kpi-note">涵蓋主要主產業</div></div>
+      <div class="v230-kpi"><div class="v230-kpi-icon">🏆</div><div class="v230-kpi-label">個股資料庫</div><div class="v230-kpi-value">{total}</div><div class="v230-kpi-note">持續補齊中</div></div>
+      <div class="v230-kpi"><div class="v230-kpi-icon">🏷️</div><div class="v230-kpi-label">主題標籤</div><div class="v230-kpi-value">{hot_theme}</div><div class="v230-kpi-note">可多重歸屬</div></div>
+      <div class="v230-kpi"><div class="v230-kpi-icon">📉</div><div class="v230-kpi-label">低估個股</div><div class="v230-kpi-value">{undervalued}</div><div class="v230-kpi-note">預期報酬 > 0</div></div>
+      <div class="v230-kpi"><div class="v230-kpi-icon">🤖</div><div class="v230-kpi-label">AI高受惠</div><div class="v230-kpi-value">{ai9}</div><div class="v230-kpi-note">AI受惠度 ≥ 9</div></div>
+      <div class="v230-kpi"><div class="v230-kpi-icon">🌏</div><div class="v230-kpi-label">全球強勢</div><div class="v230-kpi-value">{global5}</div><div class="v230-kpi-note">★★★★★</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### 核心快速查詢")
+    quick = [("台積電","2330"),("華通","2313"),("昇達科","3491"),("廣達","2382"),("奇鋐","3017"),("聯鈞","3450")]
+    cols = st.columns(len(quick))
+    for col, (name, code_) in zip(cols, quick):
+        with col:
+            if st.button(name, key=f"v231_quick_{code_}", use_container_width=True):
+                st.session_state["v227_active_symbol"] = v230_symbol(code_)
+                st.rerun()
+
+    with st.expander("排行計算標準", expanded=False):
+        st.markdown("""
+        **熱門個股 TOP 10**：以 AI受惠度、全球競爭力、產業鏈資料完整度作為排序基礎。  
+        **低估排行 TOP 10**：以 `預期報酬 = (綜合合理價 - 現價) ÷ 現價` 排序。  
+        **AI受惠排行 TOP 10**：以 AI受惠度 1–10 分排序。  
+        **全球競爭力排行 TOP 10**：以全球競爭力星等與產業地位排序。  
+
+        目前仍是研究資料庫版本；等企業評價模型與財務預測中心完成後，低估排行會改用 DCF / EVA / EBO / FCFF / 財測模型的綜合結果。
+        """)
+
+    tab1, tab2, tab3, tab4 = st.tabs(["熱門個股", "低估排行", "AI受惠排行", "全球競爭力排行"])
+
+    with tab1:
+        show = df.copy()
+        show["_stars"] = show["全球競爭力"].astype(str).str.count("★")
+        show = show.sort_values(["AI受惠度","_stars"], ascending=False).head(10)
+        st.dataframe(show[["公司","代碼","產業","子產業","AI受惠度","全球競爭力","產業地位"]], use_container_width=True, hide_index=True)
+
+    with tab2:
+        low = rank.dropna(subset=["預期報酬%"]).sort_values("預期報酬%", ascending=False).head(10)
+        st.dataframe(v231_fmt_rank(low[["公司","代碼","產業","子產業","現價","綜合合理價","預期報酬%","AI受惠度"]]), use_container_width=True, hide_index=True)
+
+    with tab3:
+        ai = df.copy()
+        ai["_stars"] = ai["全球競爭力"].astype(str).str.count("★")
+        ai = ai.sort_values(["AI受惠度","_stars"], ascending=False).head(10)
+        st.dataframe(ai[["公司","代碼","產業","子產業","AI受惠度","全球競爭力","主題標籤"]], use_container_width=True, hide_index=True)
+
+    with tab4:
+        gl = df.copy()
+        gl["_stars"] = gl["全球競爭力"].astype(str).str.count("★")
+        gl = gl.sort_values(["_stars","AI受惠度"], ascending=False).head(10)
+        st.dataframe(gl[["公司","代碼","產業","子產業","全球競爭力","全球排名","產業地位"]], use_container_width=True, hide_index=True)
+
+    right1, right2 = st.columns([1,1])
+    with right1:
+        st.markdown('<div class="v230-card"><div class="v230-card-title">熱門主題標籤</div>', unsafe_allow_html=True)
+        st.markdown(v230_tag_html("AI伺服器、CoWoS、先進封裝、HBM、光通訊、CPO、低軌衛星、機器人、無人機、國防軍工、車用電子、資料中心"), unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    with right2:
+        st.markdown('<div class="v230-card"><div class="v230-card-title">後續資料補齊重點</div><div class="v230-small-muted">1. 清除 N/A 股價與待補欄位<br>2. 補齊產業鏈位置<br>3. 補企業評價模型<br>4. 接財務預測 2026E / 2027E / 2028E</div></div>', unsafe_allow_html=True)
+
+    with st.expander("產業 → 子產業 → 個股（選到即查詢）", expanded=False):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            ind = st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v231_home_ind")
+        dff = df[df["產業"] == ind]
+        with c2:
+            sub = st.selectbox("子產業", sorted(dff["子產業"].dropna().unique()), key="v231_home_sub")
+        dff = dff[dff["子產業"] == sub]
+        labels = {f"{r['公司']} / {r['代碼']}": r["代碼"] for _, r in dff.iterrows()}
+        with c3:
+            picked = st.selectbox("個股", list(labels.keys()), key="v231_home_stock")
+        if picked:
+            code = labels[picked]
+            if st.session_state.get("v231_last_pick") != picked:
+                st.session_state["v231_last_pick"] = picked
+                st.session_state["v227_active_symbol"] = code
+                st.rerun()
+
+    st.markdown("---")
+    v230_price_block(st.session_state.get("v227_active_symbol","2330.TW"))
+
+def v108_enterprise_home(): home()
+def v107_premium_home(): home()
+# ===== V231.0 RANKING DASHBOARD END =====
 
 
 if __name__ == '__main__':
