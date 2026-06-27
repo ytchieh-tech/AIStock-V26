@@ -6,7 +6,7 @@ import numpy as np
 import yfinance as yf
 import streamlit as st
 
-APP_VERSION = "V223.0 Direct Select Competition"
+APP_VERSION = "V224.0 Research Pages Stock Expansion"
 APP_NAME = "智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -1033,6 +1033,323 @@ def v108_enterprise_home():
 def v107_premium_home():
     home()
 # ===== V223.0 DIRECT SELECT + GLOBAL COMPETITION DETAIL END =====
+
+
+
+
+
+# ===== V224.0 RESEARCH PAGES + STOCK EXPANSION START =====
+# 1) 首頁使用核心 decision() + fallback price，降低 N/A
+# 2) 產業分析改成 主產業/子產業/產業規模/成長率/AI關聯度/主要公司
+# 3) 全球競爭力改成 主產業/子產業/個股 + 詳細卡片
+# 4) 順便補齊部分重點股票資料
+
+V224_EXTRA_STOCKS = {
+    "1504.TW":{"name":"東元","industry":"電力/重電","sub":"馬達/機電/電網","rank":"馬達與機電主要廠","power":"★★★★☆","position":"馬達、機電與能源設備供應商","peers":"ABB、Siemens、WEG、中興電","moat":"中高：馬達技術、機電整合、品牌通路","risk":"原料、匯率、景氣循環","fair_mult":1.05},
+    "1514.TW":{"name":"亞力","industry":"電力/重電","sub":"電力設備/配電","rank":"配電設備供應商","power":"★★★☆☆","position":"電力設備與配電盤供應商","peers":"華城、中興電、士電","moat":"中：電力設備認證與工程經驗","risk":"政策進度、原料成本","fair_mult":1.06},
+    "1605.TW":{"name":"華新","industry":"電線電纜","sub":"電線電纜/不銹鋼","rank":"電纜主要廠","power":"★★★☆☆","position":"電線電纜與不銹鋼供應商","peers":"大亞、合機、東元","moat":"中：電纜產能與通路","risk":"銅價、景氣循環","fair_mult":1.02},
+    "1609.TW":{"name":"大亞","industry":"電線電纜","sub":"電線電纜/綠能","rank":"電纜主要廠","power":"★★★☆☆","position":"電線電纜與綠能題材供應商","peers":"華新、合機、華榮","moat":"中：電纜產能與能源轉型題材","risk":"銅價、政策進度","fair_mult":1.04},
+    "3023.TW":{"name":"信邦","industry":"車用/連接線","sub":"連接線/車用電子","rank":"連接線主要廠","power":"★★★★☆","position":"車用、工控與綠能連接線供應商","peers":"貿聯-KY、胡連、正崴","moat":"中高：客戶認證、多元應用","risk":"車市循環、匯率","fair_mult":1.05},
+    "3665.TW":{"name":"貿聯-KY","industry":"車用/連接線","sub":"車用/高速線束","rank":"全球線束主要廠","power":"★★★★☆","position":"車用與高速線束供應商","peers":"信邦、Aptiv、TE Connectivity","moat":"中高：車用客戶認證與全球產能","risk":"車用需求、匯率","fair_mult":1.07},
+    "6415.TW":{"name":"矽力-KY","industry":"IC設計","sub":"PMIC/電源管理IC","rank":"PMIC主要廠","power":"★★★★☆","position":"電源管理IC供應商","peers":"TI、MPS、立錡、致新","moat":"中高：PMIC產品線與客戶導入","risk":"庫存循環、競爭","fair_mult":1.06},
+    "3529.TWO":{"name":"力旺","industry":"IC設計","sub":"矽智財/IP","rank":"IP授權利基廠","power":"★★★★☆","position":"嵌入式非揮發性記憶體IP供應商","peers":"Synopsys、ARM、M31、晶心科","moat":"高：IP授權、製程導入、高毛利","risk":"授權案時程、客戶集中","fair_mult":1.10},
+    "6643.TWO":{"name":"M31","industry":"IC設計","sub":"高速IP/矽智財","rank":"IP供應商","power":"★★★★☆","position":"高速介面IP與矽智財供應商","peers":"Synopsys、Cadence、力旺、晶心科","moat":"中高：高速IP與客戶導入","risk":"授權波動、先進製程競爭","fair_mult":1.08},
+    "6533.TW":{"name":"晶心科","industry":"IC設計","sub":"RISC-V IP","rank":"RISC-V IP主要廠","power":"★★★★☆","position":"RISC-V處理器IP供應商","peers":"ARM、SiFive、MIPS、Synopsys","moat":"中高：RISC-V IP與工具鏈","risk":"IP商業化速度、競爭","fair_mult":1.08},
+    "4966.TW":{"name":"譜瑞-KY","industry":"IC設計","sub":"高速傳輸IC","rank":"高速介面IC主要廠","power":"★★★★☆","position":"高速傳輸與顯示介面IC供應商","peers":"祥碩、瑞昱、Parade同業","moat":"中高：高速介面IC技術","risk":"PC/消費電子循環","fair_mult":1.06},
+    "5269.TW":{"name":"祥碩","industry":"IC設計","sub":"高速傳輸IC","rank":"USB控制IC主要廠","power":"★★★★☆","position":"高速傳輸控制IC供應商","peers":"瑞昱、譜瑞、創惟","moat":"中高：高速傳輸IC與平台認證","risk":"PC平台循環、產品週期","fair_mult":1.06},
+    "6442.TW":{"name":"光聖","industry":"光通訊/CPO","sub":"光通訊元件","rank":"光通訊元件供應商","power":"★★★★☆","position":"資料中心光通訊零組件供應商","peers":"華星光、上詮、眾達、Finisar","moat":"中高：光通訊元件與客戶導入","risk":"出貨時程、競爭","fair_mult":1.10},
+    "3081.TWO":{"name":"聯亞","industry":"光通訊/CPO","sub":"磊晶/光通訊元件","rank":"光通訊磊晶供應商","power":"★★★★☆","position":"光通訊磊晶與雷射元件供應商","peers":"華星光、上詮、Lumentum、Coherent","moat":"中高：磊晶與光元件技術","risk":"CPO導入時程、客戶集中","fair_mult":1.10},
+    "3363.TWO":{"name":"上詮","industry":"光通訊/CPO","sub":"光通訊元件","rank":"光通訊元件供應商","power":"★★★☆☆","position":"光通訊與資料中心元件供應商","peers":"華星光、聯亞、眾達","moat":"中：光通訊元件與客戶導入","risk":"需求波動、競爭","fair_mult":1.08},
+    "4977.TWO":{"name":"眾達-KY","industry":"光通訊/CPO","sub":"光收發模組","rank":"光通訊模組供應商","power":"★★★☆☆","position":"光收發模組與資料中心光通訊供應商","peers":"華星光、上詮、光聖","moat":"中：光模組設計與客戶基礎","risk":"需求波動、客戶集中","fair_mult":1.06},
+    "8046.TW":{"name":"南電","industry":"PCB/載板","sub":"ABF/BT載板","rank":"ABF載板主要廠","power":"★★★★☆","position":"載板與封裝基板重要供應商","peers":"欣興、景碩、Ibiden、Shinko","moat":"中高：載板產能與集團資源","risk":"ABF需求循環、價格壓力","fair_mult":1.04},
+    "3189.TWO":{"name":"景碩","industry":"PCB/載板","sub":"ABF/BT載板","rank":"載板主要廠","power":"★★★☆☆","position":"ABF與BT載板供應商","peers":"欣興、南電、Ibiden","moat":"中：載板技術與客戶認證","risk":"載板循環、價格壓力","fair_mult":1.02},
+    "4958.TW":{"name":"臻鼎-KY","industry":"PCB/載板","sub":"PCB/HDI","rank":"全球PCB龍頭之一","power":"★★★★☆","position":"全球PCB與HDI主要供應商","peers":"欣興、華通、健鼎、TTM","moat":"中高：規模、客戶認證、製程","risk":"客戶集中、消費電子循環","fair_mult":1.04},
+    "3044.TW":{"name":"健鼎","industry":"PCB/載板","sub":"PCB","rank":"PCB主要廠","power":"★★★☆☆","position":"PCB量產與車用/伺服器板供應商","peers":"欣興、華通、瀚宇博","moat":"中：PCB量產能力與客戶基礎","risk":"景氣循環、原料成本","fair_mult":1.03},
+    "3406.TW":{"name":"玉晶光","industry":"光學","sub":"手機/AR光學鏡頭","rank":"全球主要鏡頭廠","power":"★★★★☆","position":"手機與AR/VR光學供應商","peers":"大立光、Sunny Optical、AAC","moat":"中高：光學製程與客戶導入","risk":"手機需求循環、毛利波動","fair_mult":1.05},
+    "3019.TW":{"name":"亞光","industry":"光學","sub":"光學模組","rank":"光學模組供應商","power":"★★★☆☆","position":"光學模組與影像應用供應商","peers":"大立光、玉晶光、舜宇光學","moat":"中：光學模組與車用應用","risk":"需求循環、競爭","fair_mult":1.03},
+    "6789.TW":{"name":"采鈺","industry":"光學","sub":"CIS/影像感測","rank":"影像感測封裝供應商","power":"★★★☆☆","position":"影像感測與光學相關封裝供應商","peers":"Sony供應鏈、同欣電、精材","moat":"中：影像感測封裝能力","risk":"手機/車用需求循環","fair_mult":1.04},
+    "2492.TW":{"name":"華新科","industry":"被動元件","sub":"MLCC/晶片電阻","rank":"台灣被動元件主要廠","power":"★★★★☆","position":"MLCC與晶片電阻重要供應商","peers":"國巨、Murata、TDK","moat":"中：車用/工規被動元件","risk":"價格循環、庫存調整","fair_mult":1.06},
+    "3026.TW":{"name":"禾伸堂","industry":"被動元件","sub":"MLCC/被動元件","rank":"被動元件供應商","power":"★★★☆☆","position":"MLCC與被動元件供應商","peers":"國巨、華新科、Murata","moat":"中：MLCC產品與通路","risk":"景氣循環、價格波動","fair_mult":1.03},
+    "2375.TW":{"name":"凱美","industry":"被動元件","sub":"鋁電容/被動元件","rank":"電容供應商","power":"★★★☆☆","position":"鋁電容與被動元件供應商","peers":"立隆電、Nichicon、Nippon Chemi-Con","moat":"中：電容產品線與通路","risk":"價格循環、庫存","fair_mult":1.03},
+    "2472.TW":{"name":"立隆電","industry":"被動元件","sub":"鋁電容","rank":"鋁電容供應商","power":"★★★☆☆","position":"鋁電容與固態電容供應商","peers":"凱美、Nichicon、Nippon Chemi-Con","moat":"中：電容產品與車用/工控應用","risk":"原料成本、景氣循環","fair_mult":1.03},
+    "3260.TWO":{"name":"威剛","industry":"記憶體","sub":"記憶體模組","rank":"記憶體模組主要通路商","power":"★★★☆☆","position":"DRAM/NAND模組與通路供應商","peers":"創見、十銓、金士頓","moat":"中：模組品牌、通路、庫存操作","risk":"記憶體價格波動、庫存","fair_mult":1.08},
+    "4967.TWO":{"name":"十銓","industry":"記憶體","sub":"記憶體模組","rank":"模組供應商","power":"★★★☆☆","position":"記憶體模組與電競儲存供應商","peers":"威剛、創見、金士頓","moat":"中：品牌與通路","risk":"記憶體價格波動、庫存","fair_mult":1.06},
+    "2451.TW":{"name":"創見","industry":"記憶體","sub":"工控記憶體模組","rank":"工控模組品牌","power":"★★★☆☆","position":"工控與嵌入式記憶體模組供應商","peers":"威剛、十銓、宇瞻","moat":"中：工控通路、產品穩定性","risk":"記憶體價格波動、庫存","fair_mult":1.04},
+    "2881.TW":{"name":"富邦金","industry":"金融","sub":"金控/壽險/銀行","rank":"台灣大型金控","power":"★★★★☆","position":"壽險、銀行、證券綜合金控","peers":"國泰金、中信金、兆豐金","moat":"中高：金融通路與資本規模","risk":"利率、股債市、信用風險","fair_mult":1.02},
+    "2882.TW":{"name":"國泰金","industry":"金融","sub":"金控/壽險/銀行","rank":"台灣大型金控","power":"★★★★☆","position":"壽險與銀行大型金控","peers":"富邦金、中信金、兆豐金","moat":"中高：壽險規模、金融通路","risk":"利率、匯率、股債市","fair_mult":1.02},
+    "2891.TW":{"name":"中信金","industry":"金融","sub":"金控/銀行","rank":"銀行型金控","power":"★★★★☆","position":"銀行與金融服務金控","peers":"富邦金、國泰金、玉山金","moat":"中高：銀行通路、財管能力","risk":"利差、信用風險、景氣","fair_mult":1.02},
+    "2886.TW":{"name":"兆豐金","industry":"金融","sub":"公股銀行金控","rank":"公股大型金控","power":"★★★★☆","position":"公股銀行金控與外匯業務","peers":"第一金、華南金、合庫金","moat":"中高：公股銀行通路與外匯業務","risk":"利差、政策、信用風險","fair_mult":1.02},
+    "2603.TW":{"name":"長榮","industry":"航運","sub":"貨櫃航運","rank":"全球貨櫃航運主要業者","power":"★★★★☆","position":"全球貨櫃航運公司","peers":"Maersk、MSC、CMA CGM、陽明","moat":"中：船隊規模與航線布局","risk":"運價循環、油價、地緣政治","fair_mult":1.00},
+    "2609.TW":{"name":"陽明","industry":"航運","sub":"貨櫃航運","rank":"全球貨櫃航運業者","power":"★★★☆☆","position":"貨櫃航運公司","peers":"長榮、萬海、Maersk、MSC","moat":"中：航線與船隊","risk":"運價循環、油價","fair_mult":0.98},
+    "2615.TW":{"name":"萬海","industry":"航運","sub":"貨櫃航運","rank":"亞洲航線主要業者","power":"★★★☆☆","position":"區域貨櫃航運公司","peers":"長榮、陽明、區域航商","moat":"中：區域航線布局","risk":"運價循環、油價","fair_mult":0.98},
+}
+try:
+    STOCK_DB.update(V224_EXTRA_STOCKS)
+    ALIASES.clear()
+    for sym, v in STOCK_DB.items():
+        ALIASES[sym.upper()] = sym
+        ALIASES[sym.split(".")[0]] = sym
+        ALIASES[v["name"]] = sym
+        ALIASES[v["name"].upper()] = sym
+except Exception:
+    pass
+
+V224_FALLBACK_PRICE = {
+    "2330.TW":2340,"2308.TW":1810,"2454.TW":1520,"5274.TWO":6200,"3661.TW":4200,"3443.TW":900,"3035.TW":95,
+    "2382.TW":300,"3231.TW":120,"6669.TW":2800,"2317.TW":210,"3017.TW":950,"3324.TWO":760,"2059.TW":3300,
+    "2383.TW":1500,"3037.TW":180,"8046.TW":130,"2408.TW":65,"8299.TWO":600,"2327.TW":600,"3008.TW":4720,
+    "4979.TWO":250,"6215.TWO":90,"2049.TW":230,"2359.TW":126.5,"1519.TW":650,"1513.TW":180,"2357.TW":701,
+    "6415.TW":520,"3529.TWO":2500,"6643.TWO":1200,"6533.TW":520,"4966.TW":800,"5269.TW":1400,"6442.TW":760,
+    "3081.TWO":450,"3363.TWO":220,"2492.TW":120,"3260.TWO":110,"2881.TW":90,"2882.TW":75,"2603.TW":220
+}
+
+V224_INDUSTRY_META = {
+    "半導體": {"規模":"極大","成長率":"中高","AI關聯度":"極高","說明":"AI算力、先進製程、成熟製程與封測核心供應鏈"},
+    "IC設計": {"規模":"大","成長率":"高","AI關聯度":"極高","說明":"AI ASIC、BMC、SoC、IP、PMIC與高速傳輸IC"},
+    "AI伺服器/ODM": {"規模":"大","成長率":"高","AI關聯度":"極高","說明":"雲端伺服器、AI伺服器ODM與EMS"},
+    "AI PC/品牌": {"規模":"中大","成長率":"中","AI關聯度":"中高","說明":"AI PC、主機板、品牌PC與週邊平台"},
+    "散熱": {"規模":"中","成長率":"高","AI關聯度":"極高","說明":"AI伺服器散熱、液冷、均熱片與風扇"},
+    "電子材料": {"規模":"中大","成長率":"高","AI關聯度":"高","說明":"高速CCL、AI伺服器材料與電子材料"},
+    "PCB/載板": {"規模":"大","成長率":"中高","AI關聯度":"高","說明":"ABF載板、HDI、PCB與先進封裝基板"},
+    "光通訊/CPO": {"規模":"中","成長率":"高","AI關聯度":"極高","說明":"資料中心光模組、CPO、矽光與光通訊元件"},
+    "記憶體": {"規模":"大","成長率":"高循環","AI關聯度":"高","說明":"DRAM、NAND、SSD控制IC、記憶體模組"},
+    "被動元件": {"規模":"中大","成長率":"中","AI關聯度":"中","說明":"MLCC、電阻、電感、電容，受AI伺服器與車用帶動"},
+    "光學": {"規模":"中","成長率":"中","AI關聯度":"中","說明":"手機鏡頭、AR/VR、車用鏡頭與機器視覺"},
+    "自動化/機器人": {"規模":"中","成長率":"中高","AI關聯度":"高","說明":"工業自動化、機器視覺、機器人零組件與整合"},
+    "電力/重電": {"規模":"中大","成長率":"中高","AI關聯度":"非直接AI","說明":"電網升級、變壓器、配電與能源轉型"},
+    "電線電纜": {"規模":"中","成長率":"中","AI關聯度":"非直接AI","說明":"電網、建設、綠能與工業用電線電纜"},
+    "車用/連接線": {"規模":"中大","成長率":"中高","AI關聯度":"間接","說明":"車用線束、連接線、EV與工控連接需求"},
+    "金融": {"規模":"極大","成長率":"低中","AI關聯度":"非AI主題","說明":"利率、金融通路、壽險、銀行與資本市場"},
+    "航運": {"規模":"大","成長率":"循環","AI關聯度":"非AI主題","說明":"運價循環、貨櫃航運與全球貿易"},
+}
+
+def v224_fmt(x):
+    try:
+        if pd.isna(x): return "N/A"
+        return f"{float(x):,.2f}"
+    except Exception:
+        return "N/A"
+
+def v224_symbol(q):
+    try:
+        return normalize_symbol(q)
+    except Exception:
+        q=str(q or "").strip().upper()
+        return q+".TW" if q.isdigit() else (q or "2330.TW")
+
+def v224_decision(symbol):
+    try:
+        d = decision(symbol)
+    except Exception:
+        d = v223_decision(symbol) if "v223_decision" in globals() else {}
+    symbol = d.get("symbol", v224_symbol(symbol))
+    if pd.isna(d.get("price", np.nan)) or d.get("price", np.nan) in [None, "N/A"]:
+        price = V224_FALLBACK_PRICE.get(symbol, np.nan)
+        mult = float(d.get("fair_mult", STOCK_DB.get(symbol, {}).get("fair_mult", 1.0)))
+        if pd.notna(price) and price > 0:
+            d["price"] = price
+            d["cons"] = price * max(.78, mult - .16)
+            d["fair"] = price * mult
+            d["opt"] = price * (mult + .14)
+            d["ret"] = (d["fair"] / price - 1) * 100
+            d["source"] = "Yahoo Finance / fallback估算"
+        else:
+            d.setdefault("price", np.nan); d.setdefault("cons", np.nan); d.setdefault("fair", np.nan); d.setdefault("opt", np.nan); d.setdefault("ret", 0)
+    d.setdefault("symbol", symbol)
+    d.setdefault("name", STOCK_DB.get(symbol, {}).get("name", symbol))
+    d.setdefault("industry", STOCK_DB.get(symbol, {}).get("industry", "待補"))
+    d.setdefault("sub", STOCK_DB.get(symbol, {}).get("sub", "待補"))
+    d.setdefault("updated", tw_now() if "tw_now" in globals() else "N/A")
+    return d
+
+def v224_ai_score(d):
+    t = d.get("theme_text", "")
+    industry = d.get("industry", "")
+    sym = d.get("symbol", "")
+    if "AI ASIC" in t or "CoWoS" in t or sym in ["2330.TW","5274.TWO","6669.TW"]:
+        return 10
+    if any(k in t for k in ["AI伺服器","CPO","液冷","光通訊"]) or industry in ["散熱","光通訊/CPO"]:
+        return 9
+    if any(k in t for k in ["HBM","記憶體","ABF","先進封裝"]) or industry in ["PCB/載板"]:
+        return 8
+    if industry in ["自動化/機器人","電源/能源管理"] or "機器人" in t:
+        return 7
+    if industry in ["AI PC/品牌","光學"]:
+        return 6
+    if industry in ["金融","航運","電力/重電","電線電纜"]:
+        return 0
+    return 2
+
+def v224_rows_df():
+    rows = []
+    for sym, v in STOCK_DB.items():
+        d = {**v, "symbol": sym}
+        ai = v224_ai_score(d)
+        rows.append({
+            "產業": v.get("industry","待補"),
+            "子產業": v.get("sub","待補"),
+            "公司": v.get("name",sym),
+            "代碼": sym,
+            "AI主題": v.get("theme_text", "一般產業" if ai > 0 else "非AI主題"),
+            "AI受惠度": ai,
+            "全球競爭力": v.get("power","★★★☆☆"),
+            "全球排名": v.get("rank","待補"),
+            "產業地位": v.get("position","待補"),
+            "主要競爭者": v.get("peers","待補"),
+            "護城河": v.get("moat","待補"),
+            "主要風險": v.get("risk","待補"),
+        })
+    return pd.DataFrame(rows)
+
+def v224_ai_score_explanation():
+    st.markdown("### AI受惠度評分說明")
+    st.dataframe(pd.DataFrame([
+        {"分數":"10","說明":"AI核心基礎建設或不可或缺關鍵晶片","常見類型":"台積電、信驊、緯穎"},
+        {"分數":"9","說明":"AI關鍵零組件，訂單與AI資本支出高度連動","常見類型":"台光電、奇鋐、雙鴻、CPO光通訊"},
+        {"分數":"8","說明":"AI供應鏈直接受惠","常見類型":"封測、ABF載板、測試、ASIC設計服務"},
+        {"分數":"7","說明":"AI需求明確帶動，但非唯一主軸","常見類型":"台達電、機器人、自動化"},
+        {"分數":"5~6","說明":"中度受惠","常見類型":"AI PC、AI手機、光學"},
+        {"分數":"3~4","說明":"間接受惠","常見類型":"一般電子零組件"},
+        {"分數":"0","說明":"非AI主題","常見類型":"金融、航運、鋼鐵、塑化、食品等傳統產業"},
+    ]), use_container_width=True, hide_index=True)
+    st.caption("傳統產業若不是AI直接供應鏈，不硬塞AI分數，改看成長驅動因子。")
+
+def v224_price_block(symbol):
+    d = v224_decision(symbol)
+    st.caption(f"資料更新時間：{d.get('updated','N/A')}｜現價來源：{d.get('source','Yahoo Finance')}｜預期報酬率＝(合理價－現價)÷現價。")
+    st.markdown(f"## {d.get('name', symbol)}（d.get('symbol', symbol)）".replace("d.get('symbol', symbol)", d.get("symbol", symbol)))
+    c1,c2,c3,c4 = st.columns(4)
+    c1.metric("投資建議", d.get("action","觀察"))
+    c2.metric("現價", v224_fmt(d.get("price", np.nan)))
+    c3.metric("合理價", v224_fmt(d.get("fair", np.nan)))
+    try: ret_txt = f"{float(d.get('ret',0)):.1f}%"
+    except Exception: ret_txt = "N/A"
+    c4.metric("預期報酬", ret_txt)
+    p1,p2,p3 = st.columns(3)
+    p1.metric("保守價", v224_fmt(d.get("cons", np.nan)))
+    p2.metric("合理價", v224_fmt(d.get("fair", np.nan)))
+    p3.metric("樂觀價", v224_fmt(d.get("opt", np.nan)))
+    with st.expander("展開更多研究資料", expanded=False):
+        ai = v224_ai_score(d)
+        g1,g2,g3 = st.columns(3)
+        g1.metric("AI受惠度", f"{ai}/10" if ai > 0 else "非AI主題")
+        g2.metric("全球競爭力", d.get("power","★★★☆☆"))
+        g3.metric("產業排名", d.get("rank","待補"))
+        st.dataframe(pd.DataFrame([{
+            "主產業":d.get("industry","待補"),
+            "子產業":d.get("sub","待補"),
+            "AI主題":d.get("theme_text","一般產業" if ai>0 else "非AI主題"),
+            "全球地位":d.get("position","待補"),
+            "主要競爭者":d.get("peers","待補"),
+            "護城河":d.get("moat","待補"),
+            "主要風險":d.get("risk","待補"),
+        }]), use_container_width=True, hide_index=True)
+
+def home():
+    try: v108_css()
+    except Exception:
+        try: v107_css()
+        except Exception: pass
+    if "v224_active_symbol" not in st.session_state:
+        st.session_state["v224_active_symbol"] = "2330.TW"
+    now_show = datetime.now().strftime("%Y/%m/%d %H:%M")
+    st.markdown(f"""
+    <div class="v108-hero">
+      <div class="v108-title">智策股市 AI 決策平台</div>
+      <div class="v108-sub">首頁先看價格與區間；深度資料收合在研究資料中。</div>
+      <span class="v108-badge">最後更新：{now_show}</span>
+      <span class="v108-badge">V224 Research Pages</span>
+      <span class="v108-badge">一般投資人版</span>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown('<div class="v108-note">一般投資人先看現價、保守價、合理價、樂觀價、預期報酬與投資建議；想深入再看產業分析與全球競爭力。</div>', unsafe_allow_html=True)
+    q = st.text_input("搜尋股票代碼或公司名稱", placeholder="例如：2330、台積電、2308、台達電、5274、信驊", key="v224_search")
+    if str(q or "").strip():
+        st.session_state["v224_active_symbol"] = v224_symbol(q)
+    quick = [("台積電","2330"),("台達電","2308"),("信驊","5274"),("聯發科","2454"),("廣達","2382"),("大立光","3008")]
+    st.markdown("#### 核心快速查詢")
+    cols = st.columns(len(quick))
+    for col, (name, code_) in zip(cols, quick):
+        with col:
+            if st.button(name, key=f"v224_quick_{code_}", use_container_width=True):
+                st.session_state["v224_active_symbol"] = v224_symbol(code_)
+                st.rerun()
+    with st.expander("產業 → 子產業 → 個股", expanded=False):
+        df = v224_rows_df()
+        c1,c2,c3 = st.columns(3)
+        with c1:
+            ind = st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v224_home_ind")
+        sub_df = df[df["產業"] == ind]
+        with c2:
+            sub = st.selectbox("子產業", sorted(sub_df["子產業"].dropna().unique()), key="v224_home_sub")
+        stock_df = sub_df[sub_df["子產業"] == sub]
+        labels = {f"{r['公司']} / {r['代碼']}": r["代碼"] for _, r in stock_df.iterrows()}
+        with c3:
+            picked = st.selectbox("個股（選到後直接切換）", list(labels.keys()), key="v224_home_stock")
+        code_ = labels.get(picked)
+        if code_ and st.session_state.get("v224_last_pick") != picked:
+            st.session_state["v224_last_pick"] = picked
+            st.session_state["v224_active_symbol"] = code_
+            st.rerun()
+    v224_price_block(st.session_state.get("v224_active_symbol","2330.TW"))
+
+def industry_page():
+    st.header("🏭 產業分析")
+    df = v224_rows_df()
+    c1,c2 = st.columns(2)
+    with c1:
+        ind = st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v224_industry_ind")
+    dff = df[df["產業"] == ind]
+    with c2:
+        sub = st.selectbox("子產業", ["全部"] + sorted(dff["子產業"].dropna().unique()), key="v224_industry_sub")
+    if sub != "全部":
+        dff = dff[dff["子產業"] == sub]
+    meta = V224_INDUSTRY_META.get(ind, {"規模":"待補","成長率":"待補","AI關聯度":"待補","說明":"待補"})
+    m1,m2,m3 = st.columns(3)
+    m1.metric("產業規模", meta["規模"])
+    m2.metric("成長率", meta["成長率"])
+    m3.metric("AI關聯度", meta["AI關聯度"])
+    st.info(meta["說明"])
+    st.markdown("### 主要公司")
+    st.dataframe(dff[["公司","代碼","子產業","AI主題","AI受惠度","全球競爭力","產業地位"]].sort_values(["子產業","代碼"]), use_container_width=True, hide_index=True)
+
+def competition_page():
+    st.header("🌏 全球競爭力")
+    df = v224_rows_df()
+    c1,c2,c3 = st.columns(3)
+    with c1:
+        ind = st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v224_global_ind")
+    dff = df[df["產業"] == ind]
+    with c2:
+        sub = st.selectbox("子產業", sorted(dff["子產業"].dropna().unique()), key="v224_global_sub")
+    dff = dff[dff["子產業"] == sub]
+    labels = {f"{r['公司']} / {r['代碼']}": r["代碼"] for _, r in dff.iterrows()}
+    with c3:
+        picked = st.selectbox("個股", list(labels.keys()), key="v224_global_stock")
+    row = dff[dff["代碼"] == labels[picked]].iloc[0].to_dict()
+    st.markdown(f"## {row['公司']}（{row['代碼']}）")
+    g1,g2,g3,g4 = st.columns(4)
+    ai_txt = f"{row['AI受惠度']}/10" if int(row["AI受惠度"]) > 0 else "非AI主題"
+    g1.metric("全球排名", row["全球排名"])
+    g2.metric("AI受惠度", ai_txt)
+    g3.metric("全球競爭力", row["全球競爭力"])
+    g4.metric("產業地位", row["產業地位"])
+    st.dataframe(pd.DataFrame([{
+        "主產業":row["產業"],"子產業":row["子產業"],"個股":row["公司"],"代碼":row["代碼"],
+        "競爭者":row["主要競爭者"],"護城河":row["護城河"],"主要風險":row["主要風險"],"AI主題":row["AI主題"]
+    }]), use_container_width=True, hide_index=True)
+    st.markdown("---")
+    v224_ai_score_explanation()
+
+def global_competition():
+    competition_page()
+def industry_analysis():
+    industry_page()
+def v108_enterprise_home():
+    home()
+def v107_premium_home():
+    home()
+# ===== V224.0 RESEARCH PAGES + STOCK EXPANSION END =====
 
 
 if __name__ == '__main__':
