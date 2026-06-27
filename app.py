@@ -52,7 +52,7 @@ except Exception:
     st_autorefresh = None
 
 
-APP_VERSION="V108.0 Enterprise Stable"
+APP_VERSION="V108.1 Clean UI"
 APP_NAME="智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -463,7 +463,7 @@ def unified_symbol_manager(symbols):
 
     st.markdown("🎯")
     qtext = st.text_input(
-        "搜尋股票名稱或代碼",
+        "搜尋股票代碼或名稱",
         value="",
         placeholder="例如：2330、聯電、和椿、6415、6830",
         key="v53_symbol_search"
@@ -2420,7 +2420,7 @@ def unified_symbol_manager(symbols):
 
     st.markdown("🎯")
     qtext = st.text_input(
-        "搜尋股票名稱或代碼",
+        "搜尋股票代碼或名稱",
         value="",
         placeholder="例如：2330、聯電、和椿、6415、6830、6308",
         key="v55_symbol_search"
@@ -16019,7 +16019,7 @@ def v104_format_pct(x):
     except Exception: return f"{float(x):.1f}%" if pd.notna(x) else "N/A"
 
 def v104_home_page():
-    st.markdown("### 🧭 AI最終投資決策首頁 V108.0")
+    st.markdown("### 🧭 AI最終投資決策首頁 V108.1")
     st.info("請先選產業，再選個股。首頁只保留投資人最需要的答案：能不能買、合理價區間、預期報酬、全球競爭力與主要風險。")
 
     st.caption("價格區間與預期報酬主要由 AIVM Composite Valuation Model 推估：綜合企業評價、歷史Forward驗證、Alpha/Quant分數、產業競爭力與現價安全邊際；預期報酬率＝(合理價－現價)÷現價。模型細部權重屬內部研究方法，如需研究資料請洽詢開發者。")
@@ -16900,7 +16900,60 @@ def v107_rows():
     except Exception:
         return []
 
+
+# ===== V108.1 CLEAN UI PATCH START =====
+def v1081_hide_legacy_home_ui():
+    st.markdown("""
+    <style>
+    /* 隱藏舊版首頁上方的重複搜尋與候選區，保留主選單與新版 V108 首頁 */
+    div[data-testid="stTextInput"]:has(input[placeholder*="聯電"]) {
+        display:none !important;
+    }
+    div[data-testid="stExpander"]:has(summary p:contains("候選")) {
+        display:none !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+# ===== V108.1 CLEAN UI PATCH END =====
+
+
+def v1081_hide_legacy_by_js():
+    try:
+        components.html("""
+        <script>
+        const hideLegacy = () => {
+          const doc = window.parent.document;
+          const all = [...doc.querySelectorAll('label, p, span, div')];
+          all.forEach(el => {
+            const txt = (el.innerText || '').trim();
+            if (txt === '目前全站分析：台積電 / 2330.TW' || txt.includes('目前全站分析')) {
+              let box = el.closest('[data-testid="stMarkdownContainer"]') || el.parentElement;
+              if (box) box.style.display = 'none';
+            }
+            if (txt === '候選 / 最近使用' || txt.includes('候選 / 最近使用')) {
+              let exp = el.closest('[data-testid="stExpander"]');
+              if (exp) exp.style.display = 'none';
+            }
+            if (txt === '搜尋股票代碼或名稱') {
+              let parent = el.closest('[data-testid="stVerticalBlock"]');
+              if (parent) {
+                const input = parent.querySelector('input[placeholder*="2330"]');
+                if (input) parent.style.display = 'none';
+              }
+            }
+          });
+        };
+        setTimeout(hideLegacy, 300);
+        setTimeout(hideLegacy, 900);
+        setTimeout(hideLegacy, 1600);
+        </script>
+        """, height=0)
+    except Exception:
+        pass
+
+
 def v108_enterprise_home():
+    v1081_hide_legacy_by_js()
     v107_css()
     now_show=datetime.now().strftime("%Y/%m/%d %H:%M")
     st.markdown(f"""
@@ -17566,7 +17619,7 @@ def v106_fmt_price(x):
     return f"{float(x):,.2f}" if pd.notna(x) else "N/A"
 
 def v106_public_home():
-    st.markdown("### 🧭 AI最終投資決策首頁 V108.0")
+    st.markdown("### 🧭 AI最終投資決策首頁 V108.1")
     st.caption(V106_PUBLIC_NOTE)
     qcol, icol, scol = st.columns([1.3,1,1.2])
     with qcol:
