@@ -3792,5 +3792,149 @@ def settings_page():
 
 # ===== V241.0 MORE STOCK COVERAGE + QUALITY DASHBOARD END =====
 
+
+# ===== V242.0 HOME QUERY RESTORE + MORE COVERAGE START =====
+APP_VERSION = "V242.0 Home Query Restore + More Coverage"
+DB_VERSION = "TW-STOCK-20260628-V242"
+
+# V242：續補常用搜尋個股；同時修正首頁查詢結果區塊消失的問題。
+V242_EXTRA_STOCKS = {
+    "9904.TW": _v238_stock("寶成","製鞋/通路","運動鞋代工/通路","全球鞋業主要集團","★★★★☆","運動鞋代工與通路集團，服務國際運動品牌供應鏈","豐泰、鈺齊-KY、申洲國際","中高：製造規模、客戶認證與海外產能","品牌庫存、工資、匯率與消費景氣",1.03,"製鞋、運動品牌、消費","下游鞋業代工/通路","全球鞋業主要集團","Nike、Adidas等國際運動品牌與鞋類通路"),
+    "9802.TW": _v238_stock("鈺齊-KY","紡織/鞋業","戶外鞋/運動鞋代工","戶外鞋代工供應商","★★★☆☆","戶外機能鞋與運動鞋代工供應商","豐泰、寶成、國際鞋業代工廠","中：戶外鞋製程、品牌客戶與海外產能","品牌庫存、匯率、人力成本",1.03,"戶外鞋、運動品牌、消費","下游鞋業代工","戶外鞋代工供應商","國際戶外與運動品牌客戶"),
+    "1227.TW": _v238_stock("佳格","食品/消費","食用油/營養食品","台灣食品主要品牌","★★★★☆","食用油、穀物、營養食品與民生食品品牌商","統一、味全、聯華食、國際食品品牌","中高：品牌、通路與產品組合","原物料、消費景氣、通路競爭",1.03,"食品、民生消費、品牌","下游食品品牌","台灣食品主要品牌","量販、超商、食品通路與終端消費者"),
+    "1201.TW": _v238_stock("味全","食品/消費","乳品/飲料/食品","台灣食品飲料品牌","★★★☆☆","乳品、飲料與食品品牌商","統一、佳格、光泉、國際食品品牌","中：品牌、通路與產品線","食品安全、原物料、消費景氣",1.02,"食品、飲料、民生消費","下游食品品牌","台灣食品飲料品牌","超商、量販、餐飲通路與終端消費者"),
+    "1210.TW": _v238_stock("大成","食品/消費","飼料/肉品/食品","食品與飼料整合廠","★★★☆☆","飼料、肉品、食品加工與餐飲供應鏈整合廠","卜蜂、統一、食品加工同業","中：垂直整合、通路與食品加工能力","原物料、禽畜價格、食品安全",1.02,"食品、飼料、肉品","上中下游食品整合","食品與飼料整合廠","餐飲通路、量販、食品加工與終端消費者"),
+    "1215.TW": _v238_stock("卜蜂","食品/消費","飼料/肉品/食品","肉品與飼料主要廠","★★★☆☆","飼料、肉品加工與食品供應商","大成、統一、食品加工同業","中：垂直整合、肉品通路與品牌","原物料、禽畜價格、食品安全",1.02,"食品、飼料、肉品","上中下游食品整合","肉品與飼料主要廠","餐飲、量販、食品通路與終端消費者"),
+    "1231.TW": _v238_stock("聯華食","食品/消費","休閒食品/鮮食","休閒食品與鮮食供應商","★★★☆☆","休閒食品、鮮食與零售通路食品供應商","統一、佳格、食品通路同業","中：品牌、鮮食製造與通路合作","原物料、通路競爭、消費景氣",1.03,"食品、鮮食、民生消費","下游食品品牌/通路供應","休閒食品與鮮食供應商","超商、量販、通路與終端消費者"),
+    "1707.TW": _v238_stock("葡萄王","生技/食品","保健食品/益生菌","保健食品主要品牌","★★★★☆","保健食品、益生菌與生技保健產品品牌商","大江、生展、國際保健品牌","中高：品牌、通路、研發與代工能力","法規、通路競爭、消費需求",1.04,"保健食品、生技、民生消費","下游保健品牌/代工","台灣保健食品主要品牌","藥局、直銷、電商、通路與終端消費者"),
+    "8436.TWO": _v238_stock("大江","生技/食品","保健食品/CDMO","保健食品代工主要廠","★★★★☆","保健食品、機能飲品與生技產品代工/品牌供應商","葡萄王、生展、國際保健食品代工廠","中高：配方、劑型、客戶與國際布局","客戶訂單、法規、通路庫存",1.04,"保健食品、生技、CDMO","中下游保健食品代工","保健食品代工主要廠","品牌客戶、通路商、保健食品與電商客戶"),
+    "1722.TW": _v238_stock("台肥","化肥/資產","肥料/化工/資產","台灣肥料主要廠","★★★☆☆","肥料、化工與資產開發公司","國際肥料廠、化工同業","中：肥料供應、通路與資產價值","原料、農業需求、政策與資產開發進度",1.02,"肥料、化工、資產","上游農業資材/資產","台灣肥料主要廠","農業客戶、經銷通路、化工與資產市場"),
+    "1717.TW": _v238_stock("長興","化工/材料","樹脂/電子材料","化工與電子材料供應商","★★★☆☆","合成樹脂、塗料材料與電子化學品供應商","永光、國際化工材料廠","中：材料配方、客戶基礎與產品線","景氣循環、原料成本、電子材料需求",1.03,"化工材料、電子材料、PCB","上游材料","化工與電子材料供應商","塗料、PCB、電子材料與工業客戶"),
+    "1711.TW": _v238_stock("永光","化工/材料","染料/特化/電子化學品","特用化學品供應商","★★★☆☆","染料、特用化學品與電子化學品供應商","長興、國際化工材料廠","中：特化配方、產品線與客戶基礎","原料成本、景氣循環、競爭",1.02,"特用化學、電子化學品","上游材料","特用化學品供應商","紡織、電子、工業材料與化學品客戶"),
+    "1736.TW": _v238_stock("喬山","運動器材","健身器材/品牌","全球健身器材主要廠","★★★★☆","商用與家用健身器材品牌製造商","Peloton、Life Fitness、國際健身器材品牌","中高：品牌、產品線、通路與製造能力","消費景氣、庫存、匯率",1.04,"健身器材、消費品牌、健康","下游品牌/製造","全球健身器材主要廠","健身房、飯店、企業、通路與終端消費者"),
+    "8464.TW": _v238_stock("億豐","居家/建材","窗簾/居家裝修","全球窗簾主要供應商","★★★★☆","窗簾與居家裝修產品主要供應商","Hunter Douglas、居家建材同業","中高：通路、製造、產品設計與品牌客戶","房市、消費景氣、匯率",1.04,"居家裝修、建材、消費","下游居家建材","全球窗簾主要供應商","北美通路、居家裝修零售與終端消費者"),
+    "9939.TW": _v238_stock("宏全","包材/飲料","飲料包材/代工","飲料包材與代工主要廠","★★★★☆","飲料包材、充填代工與包裝解決方案供應商","統一、國際包材與飲料代工廠","中高：客戶、包材技術與海外布局","原料、飲料需求、匯率",1.03,"包材、飲料、民生消費","中游包材/代工","飲料包材與代工主要廠","飲料品牌、食品品牌與通路客戶"),
+    "9921.TW": _v238_stock("巨大","自行車","自行車/電動自行車","全球自行車品牌龍頭之一","★★★★☆","自行車、電動自行車與品牌通路供應商","美利達、Trek、Specialized","中高：品牌、通路、產品設計與製造能力","歐美庫存、消費景氣、匯率",1.04,"自行車、電動自行車、消費","下游品牌/製造","全球自行車品牌龍頭之一","自行車通路、消費者、運動休閒市場"),
+    "9914.TW": _v238_stock("美利達","自行車","自行車/電動自行車","全球自行車品牌主要廠","★★★★☆","自行車、電動自行車與品牌/代工供應商","巨大、Trek、Specialized","中高：品牌、研發、製造與國際通路","歐美庫存、消費景氣、匯率",1.04,"自行車、電動自行車、消費","下游品牌/製造","全球自行車品牌主要廠","自行車通路、消費者、運動休閒市場"),
+}
+try:
+    for _sym, _upd in V242_EXTRA_STOCKS.items():
+        STOCK_DB[_sym] = {**STOCK_DB.get(_sym, {}), **_upd}
+    ALIASES.clear()
+    for _sym, _v in STOCK_DB.items():
+        ALIASES[_sym.upper()] = _sym
+        ALIASES[_sym.split('.')[0]] = _sym
+        ALIASES[_v.get('name', _sym)] = _sym
+        ALIASES[_v.get('name', _sym).upper()] = _sym
+    OTC_CODES = {s.split('.')[0] for s in STOCK_DB if s.endswith('.TWO')}
+except Exception:
+    pass
+
+def v242_query_panel(symbol):
+    try:
+        sym = v230_symbol(symbol)
+    except Exception:
+        sym = symbol or '2330.TW'
+    d = v230_decision(sym)
+    info = STOCK_DB.get(sym, {})
+    st.markdown('### 🔎 查詢結果 / 個股估值區間')
+    st.markdown(f"#### {d.get('name', info.get('name', sym))}（{d.get('symbol', sym)}）")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric('現價', v230_fmt(d.get('price', float('nan'))))
+    c2.metric('安全邊際價', v230_fmt(d.get('cons', float('nan'))))
+    c3.metric('合理價', v230_fmt(d.get('fair', float('nan'))))
+    c4.metric('樂觀價', v230_fmt(d.get('opt', float('nan'))))
+    c5, c6, c7, c8 = st.columns(4)
+    try:
+        ret_txt = f"{float(d.get('ret', 0)):.1f}%"
+    except Exception:
+        ret_txt = 'N/A'
+    c5.metric('預期報酬', ret_txt)
+    c6.metric('投資建議', d.get('action', '觀察'))
+    c7.metric('AI受惠度', info.get('ai_score', info.get('ai_benefit', info.get('AI受惠度', '待補'))))
+    c8.metric('全球競爭力', info.get('power', '待補'))
+    rows = [{
+        '產業': info.get('industry', '待補'),
+        '子產業': info.get('sub', '待補'),
+        '產業地位': info.get('position', info.get('rank','待補')),
+        '主要客戶': info.get('customers', info.get('major_customers', '待補')),
+        'AI客戶': info.get('ai_customers', '待補'),
+        '競爭者': info.get('peers', '待補'),
+        '護城河': info.get('moat', '待補'),
+        '主要風險': info.get('risk', '待補'),
+    }]
+    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    with st.expander('展開完整公司資料', expanded=False):
+        st.write('主要客戶：', rows[0]['主要客戶'])
+        st.write('AI客戶 / AI關聯：', rows[0]['AI客戶'])
+        st.write('競爭者：', rows[0]['競爭者'])
+        st.write('護城河：', rows[0]['護城河'])
+        st.write('主要風險：', rows[0]['主要風險'])
+        st.caption(f"資料更新時間：{d.get('updated','N/A')}｜現價來源：{d.get('source','Yahoo Finance')}｜估值區間為公開版初估，深度DCF/EVA/EBO會放入研究院/Pro版。")
+
+def home():
+    v230_css()
+    if 'v227_active_symbol' not in st.session_state:
+        st.session_state['v227_active_symbol'] = '2330.TW'
+    now_show = datetime.now().strftime('%Y/%m/%d %H:%M')
+    st.markdown(f"<div class='v230-topbar'><div><div class='v230-brand'>📈 智策股市 AI 決策平台</div><div class='v230-sub'>企業價值研究平台｜產業鏈 × 全球競爭力 × 財務預測 × 合理價推估</div></div><div class='v230-version'>{APP_VERSION}<br>{now_show}</div></div>", unsafe_allow_html=True)
+    q = st.text_input('搜尋公司名稱 / 代號 / 產業 / 主題標籤', placeholder='例如：2330、台積電、2313、華通、低軌衛星、CoWoS', key='v242_search')
+    if str(q or '').strip():
+        st.session_state['v227_active_symbol'] = v230_symbol(q)
+    df = v230_rows_df()
+    if df.empty:
+        st.warning('資料庫尚未載入。')
+        return
+    rank = v231_rank_table(df)
+    total = len(df)
+    hot_ind = df['產業'].nunique()
+    hot_theme = len(set('、'.join(df['主題標籤'].fillna('').astype(str)).split('、'))) if '主題標籤' in df.columns else 0
+    ai9 = int((pd.to_numeric(df['AI受惠度'], errors='coerce').fillna(0) >= 9).sum()) if 'AI受惠度' in df.columns else 0
+    valid_price = int(rank['現價'].notna().sum()) if not rank.empty else 0
+    global5 = int(df['全球競爭力'].astype(str).str.contains('★★★★★', regex=False).sum()) if '全球競爭力' in df.columns else 0
+    st.markdown(f"<div class='v230-kpi-grid'><div class='v230-kpi'><div class='v230-kpi-icon'>🔥</div><div class='v230-kpi-label'>熱門產業</div><div class='v230-kpi-value'>{hot_ind}</div><div class='v230-kpi-note'>涵蓋主要主產業</div></div><div class='v230-kpi'><div class='v230-kpi-icon'>🏆</div><div class='v230-kpi-label'>個股資料庫</div><div class='v230-kpi-value'>{total}</div><div class='v230-kpi-note'>持續補齊中</div></div><div class='v230-kpi'><div class='v230-kpi-icon'>🏷️</div><div class='v230-kpi-label'>主題標籤</div><div class='v230-kpi-value'>{hot_theme}</div><div class='v230-kpi-note'>可多重歸屬</div></div><div class='v230-kpi'><div class='v230-kpi-icon'>💹</div><div class='v230-kpi-label'>有效現價</div><div class='v230-kpi-value'>{valid_price}</div><div class='v230-kpi-note'>Yahoo Finance</div></div><div class='v230-kpi'><div class='v230-kpi-icon'>🤖</div><div class='v230-kpi-label'>AI高受惠</div><div class='v230-kpi-value'>{ai9}</div><div class='v230-kpi-note'>AI受惠度 ≥ 9</div></div><div class='v230-kpi'><div class='v230-kpi-icon'>🌏</div><div class='v230-kpi-label'>全球強勢</div><div class='v230-kpi-value'>{global5}</div><div class='v230-kpi-note'>★★★★★</div></div></div>", unsafe_allow_html=True)
+    v240_system_dashboard(df)
+    v242_query_panel(st.session_state.get('v227_active_symbol','2330.TW'))
+    st.markdown('### 核心快速查詢')
+    quick = [('台積電','2330'),('華通','2313'),('昇達科','3491'),('廣達','2382'),('奇鋐','3017'),('聯鈞','3450')]
+    cols = st.columns(len(quick))
+    for col, (name, code_) in zip(cols, quick):
+        with col:
+            if st.button(name, key=f'v242_quick_{code_}', use_container_width=True):
+                st.session_state['v227_active_symbol'] = v230_symbol(code_)
+                st.rerun()
+    with st.expander('排行計算標準', expanded=False):
+        st.markdown('**V242 修正重點：** 首頁下方恢復個股查詢結果區塊。低估排行以預期報酬計算，現價優先抓 Yahoo Finance。')
+    tab1, tab2, tab3, tab4 = st.tabs(['熱門個股', '低估排行', 'AI受惠排行', '全球競爭力排行'])
+    with tab1:
+        show = df.copy(); show['_stars'] = show['全球競爭力'].astype(str).str.count('★')
+        show = show.sort_values(['AI受惠度','_stars'], ascending=False).head(10)
+        st.dataframe(show[['公司','代碼','產業','子產業','AI受惠度','全球競爭力','產業地位']], use_container_width=True, hide_index=True)
+    with tab2:
+        low = rank.dropna(subset=['現價','綜合合理價','預期報酬%'])
+        low = low[low['現價'] > 0].sort_values('預期報酬%', ascending=False).head(10)
+        st.dataframe(v231_fmt_rank(low[['公司','代碼','產業','子產業','現價','綜合合理價','預期報酬%','AI受惠度']]), use_container_width=True, hide_index=True)
+    with tab3:
+        ai = df.sort_values('AI受惠度', ascending=False).head(15)
+        st.dataframe(ai[['公司','代碼','產業','子產業','AI受惠度','全球競爭力','主要客戶']], use_container_width=True, hide_index=True)
+    with tab4:
+        g = df.copy(); g['_stars'] = g['全球競爭力'].astype(str).str.count('★')
+        g = g.sort_values(['_stars','AI受惠度'], ascending=False).head(15)
+        st.dataframe(g[['公司','代碼','產業','子產業','全球競爭力','全球排名','全球市占率']], use_container_width=True, hide_index=True)
+
+def settings_page():
+    st.header('⚙️ 設定')
+    st.write('系統版本：', APP_VERSION)
+    st.write('資料庫版本：', DB_VERSION)
+    st.write('資料庫股票數：', len(STOCK_DB))
+    st.write('本版新增：恢復首頁查詢結果區塊，並續補食品、生技、化工、居家、自行車、製鞋等常用個股。')
+    try:
+        v240_system_dashboard(v230_rows_df())
+    except Exception:
+        pass
+    st.info('公開版優先提供現價、估值區間與產業位置；主要客戶若未正式揭露，會以公開供應鏈/產業合理推估並持續校正。')
+
+# ===== V242.0 HOME QUERY RESTORE + MORE COVERAGE END =====
+
 if __name__ == '__main__':
     main()
