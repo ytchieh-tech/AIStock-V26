@@ -3794,8 +3794,8 @@ def settings_page():
 
 
 # ===== V242.0 HOME QUERY RESTORE + MORE COVERAGE START =====
-APP_VERSION = "V242.0 Home Query Restore + More Coverage"
-DB_VERSION = "TW-STOCK-20260628-V242"
+APP_VERSION = "V243.0 Home Selector Restore + More Coverage"
+DB_VERSION = "TW-STOCK-20260628-V243"
 
 # V242：續補常用搜尋個股；同時修正首頁查詢結果區塊消失的問題。
 V242_EXTRA_STOCKS = {
@@ -3935,6 +3935,161 @@ def settings_page():
     st.info('公開版優先提供現價、估值區間與產業位置；主要客戶若未正式揭露，會以公開供應鏈/產業合理推估並持續校正。')
 
 # ===== V242.0 HOME QUERY RESTORE + MORE COVERAGE END =====
+
+
+# ===== V243.0 HOME SELECTOR RESTORE + MORE COVERAGE START =====
+APP_VERSION = "V243.0 Home Selector Restore + More Coverage"
+DB_VERSION = "TW-STOCK-20260628-V243"
+
+# V243：恢復首頁「主產業 → 子產業 → 個股」三段式直接查詢，不再藏在下方或展開區。
+# 使用者選到個股後立即更新估值區間，方便公開版快速查價。
+def v243_home_selector(df):
+    st.markdown('### 🧭 類股 / 子產業 / 個股快速估值查詢')
+    c1, c2, c3 = st.columns([1,1,1.3])
+    try:
+        industries = sorted(df['產業'].dropna().astype(str).unique())
+    except Exception:
+        industries = []
+    if not industries:
+        return st.session_state.get('v227_active_symbol','2330.TW')
+    with c1:
+        ind = st.selectbox('主產業', industries, key='v243_home_ind')
+    dff = df[df['產業'].astype(str) == str(ind)].copy()
+    subs = sorted(dff['子產業'].dropna().astype(str).unique()) if '子產業' in dff.columns else []
+    if not subs:
+        subs = ['全部']
+    with c2:
+        sub = st.selectbox('子產業', subs, key='v243_home_sub')
+    if sub != '全部' and '子產業' in dff.columns:
+        dff = dff[dff['子產業'].astype(str) == str(sub)].copy()
+    label_map = {}
+    try:
+        for _, r in dff.sort_values(['公司','代碼']).iterrows():
+            label_map[f"{r.get('公司','')} / {r.get('代碼','')}"] = r.get('代碼','')
+    except Exception:
+        pass
+    if not label_map:
+        return st.session_state.get('v227_active_symbol','2330.TW')
+    current = st.session_state.get('v227_active_symbol','2330.TW')
+    default_index = 0
+    for i, (lab, code) in enumerate(label_map.items()):
+        if str(code) == str(current):
+            default_index = i
+            break
+    with c3:
+        picked = st.selectbox('個股（選到即查詢估值）', list(label_map.keys()), index=default_index, key='v243_home_stock')
+    code = label_map.get(picked, current)
+    if code and st.session_state.get('v227_active_symbol') != code:
+        st.session_state['v227_active_symbol'] = code
+        st.rerun()
+    return code
+
+# 簡化表格欄位，避免首頁過長資訊被擠掉；完整資料仍放在展開區。
+def v243_query_panel(symbol):
+    try:
+        sym = v230_symbol(symbol)
+    except Exception:
+        sym = symbol or '2330.TW'
+    d = v230_decision(sym)
+    info = STOCK_DB.get(sym, {})
+    st.markdown('### 🔎 查詢結果 / 個股估值區間')
+    st.markdown(f"#### {d.get('name', info.get('name', sym))}（{d.get('symbol', sym)}）")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric('現價', v230_fmt(d.get('price', float('nan'))))
+    c2.metric('安全邊際價', v230_fmt(d.get('cons', float('nan'))))
+    c3.metric('合理價', v230_fmt(d.get('fair', float('nan'))))
+    c4.metric('樂觀價', v230_fmt(d.get('opt', float('nan'))))
+    c5, c6, c7, c8 = st.columns(4)
+    try:
+        ret_txt = f"{float(d.get('ret', 0)):.1f}%"
+    except Exception:
+        ret_txt = 'N/A'
+    c5.metric('預期報酬', ret_txt)
+    c6.metric('投資建議', d.get('action', '觀察'))
+    c7.metric('AI受惠度', info.get('ai_score', info.get('ai_benefit', info.get('AI受惠度', '待補'))))
+    c8.metric('全球競爭力', info.get('power', '待補'))
+    summary = [{
+        '產業': info.get('industry', '待補'),
+        '子產業': info.get('sub', '待補'),
+        '產業地位': info.get('position', info.get('rank','待補')),
+        '全球排名/市占率': f"{info.get('global_rank', info.get('rank','待補'))} / {info.get('market_share', info.get('global_share','待補'))}",
+        '主要客戶摘要': info.get('customers', info.get('major_customers', '待補')),
+    }]
+    st.dataframe(pd.DataFrame(summary), use_container_width=True, hide_index=True)
+    with st.expander('展開完整公司資料：主要客戶 / AI客戶 / 競爭者 / 風險', expanded=False):
+        st.write('主要客戶：', info.get('customers', info.get('major_customers', '待補')))
+        st.write('AI客戶 / AI關聯：', info.get('ai_customers', '待補'))
+        st.write('競爭者：', info.get('peers', '待補'))
+        st.write('護城河：', info.get('moat', '待補'))
+        st.write('主要風險：', info.get('risk', '待補'))
+        st.caption(f"資料更新時間：{d.get('updated','N/A')}｜現價來源：{d.get('source','Yahoo Finance')}｜估值區間為公開版初估，深度DCF/EVA/EBO會放入研究院/Pro版。")
+
+def home():
+    v230_css()
+    if 'v227_active_symbol' not in st.session_state:
+        st.session_state['v227_active_symbol'] = '2330.TW'
+    now_show = datetime.now().strftime('%Y/%m/%d %H:%M')
+    st.markdown(f"<div class='v230-topbar'><div><div class='v230-brand'>📈 智策股市 AI 決策平台</div><div class='v230-sub'>企業價值研究平台｜產業鏈 × 全球競爭力 × 財務預測 × 合理價推估</div></div><div class='v230-version'>{APP_VERSION}<br>{now_show}</div></div>", unsafe_allow_html=True)
+    q = st.text_input('搜尋公司名稱 / 代號 / 產業 / 主題標籤', placeholder='例如：2330、台積電、2313、華通、低軌衛星、CoWoS', key='v243_search')
+    if str(q or '').strip():
+        st.session_state['v227_active_symbol'] = v230_symbol(q)
+    df = v230_rows_df()
+    if df.empty:
+        st.warning('資料庫尚未載入。')
+        return
+    rank = v231_rank_table(df)
+    total = len(df)
+    hot_ind = df['產業'].nunique()
+    hot_theme = len(set('、'.join(df['主題標籤'].fillna('').astype(str)).split('、'))) if '主題標籤' in df.columns else 0
+    ai9 = int((pd.to_numeric(df['AI受惠度'], errors='coerce').fillna(0) >= 9).sum()) if 'AI受惠度' in df.columns else 0
+    valid_price = int(rank['現價'].notna().sum()) if not rank.empty else 0
+    global5 = int(df['全球競爭力'].astype(str).str.contains('★★★★★', regex=False).sum()) if '全球競爭力' in df.columns else 0
+    st.markdown(f"<div class='v230-kpi-grid'><div class='v230-kpi'><div class='v230-kpi-icon'>🔥</div><div class='v230-kpi-label'>熱門產業</div><div class='v230-kpi-value'>{hot_ind}</div><div class='v230-kpi-note'>涵蓋主要主產業</div></div><div class='v230-kpi'><div class='v230-kpi-icon'>🏆</div><div class='v230-kpi-label'>個股資料庫</div><div class='v230-kpi-value'>{total}</div><div class='v230-kpi-note'>持續補齊中</div></div><div class='v230-kpi'><div class='v230-kpi-icon'>🏷️</div><div class='v230-kpi-label'>主題標籤</div><div class='v230-kpi-value'>{hot_theme}</div><div class='v230-kpi-note'>可多重歸屬</div></div><div class='v230-kpi'><div class='v230-kpi-icon'>💹</div><div class='v230-kpi-label'>有效現價</div><div class='v230-kpi-value'>{valid_price}</div><div class='v230-kpi-note'>Yahoo Finance</div></div><div class='v230-kpi'><div class='v230-kpi-icon'>🤖</div><div class='v230-kpi-label'>AI高受惠</div><div class='v230-kpi-value'>{ai9}</div><div class='v230-kpi-note'>AI受惠度 ≥ 9</div></div><div class='v230-kpi'><div class='v230-kpi-icon'>🌏</div><div class='v230-kpi-label'>全球強勢</div><div class='v230-kpi-value'>{global5}</div><div class='v230-kpi-note'>★★★★★</div></div></div>", unsafe_allow_html=True)
+    v240_system_dashboard(df)
+    selected_code = v243_home_selector(df)
+    v243_query_panel(selected_code)
+    st.markdown('### 核心快速查詢')
+    quick = [('台積電','2330'),('華通','2313'),('昇達科','3491'),('廣達','2382'),('奇鋐','3017'),('聯鈞','3450')]
+    cols = st.columns(len(quick))
+    for col, (name, code_) in zip(cols, quick):
+        with col:
+            if st.button(name, key=f'v243_quick_{code_}', use_container_width=True):
+                st.session_state['v227_active_symbol'] = v230_symbol(code_)
+                st.rerun()
+    with st.expander('排行計算標準', expanded=False):
+        st.markdown('**V243 修正重點：** 首頁恢復主產業 → 子產業 → 個股三段式選單；選到個股即顯示估值區間。')
+    tab1, tab2, tab3, tab4 = st.tabs(['熱門個股', '低估排行', 'AI受惠排行', '全球競爭力排行'])
+    with tab1:
+        show = df.copy(); show['_stars'] = show['全球競爭力'].astype(str).str.count('★')
+        show = show.sort_values(['AI受惠度','_stars'], ascending=False).head(10)
+        st.dataframe(show[['公司','代碼','產業','子產業','AI受惠度','全球競爭力','產業地位']], use_container_width=True, hide_index=True)
+    with tab2:
+        low = rank.dropna(subset=['現價','綜合合理價','預期報酬%'])
+        low = low[low['現價'] > 0].sort_values('預期報酬%', ascending=False).head(10)
+        st.dataframe(v231_fmt_rank(low[['公司','代碼','產業','子產業','現價','綜合合理價','預期報酬%','AI受惠度']]), use_container_width=True, hide_index=True)
+    with tab3:
+        ai = df.sort_values('AI受惠度', ascending=False).head(15)
+        cols_ai = [c for c in ['公司','代碼','產業','子產業','AI受惠度','全球競爭力','主要客戶'] if c in ai.columns]
+        st.dataframe(ai[cols_ai], use_container_width=True, hide_index=True)
+    with tab4:
+        g = df.copy(); g['_stars'] = g['全球競爭力'].astype(str).str.count('★')
+        g = g.sort_values(['_stars','AI受惠度'], ascending=False).head(15)
+        cols_g = [c for c in ['公司','代碼','產業','子產業','全球競爭力','全球排名','全球市占率'] if c in g.columns]
+        st.dataframe(g[cols_g], use_container_width=True, hide_index=True)
+
+def settings_page():
+    st.header('⚙️ 設定')
+    st.write('系統版本：', APP_VERSION)
+    st.write('資料庫版本：', DB_VERSION)
+    st.write('資料庫股票數：', len(STOCK_DB))
+    st.write('本版修正：首頁恢復主產業 → 子產業 → 個股三段式選單，選到即可查詢估值區間。')
+    try:
+        v240_system_dashboard(v230_rows_df())
+    except Exception:
+        pass
+    st.info('公開版優先提供現價、估值區間與產業位置；主要客戶若未正式揭露，會以公開供應鏈/產業合理推估並持續校正。')
+
+# ===== V243.0 HOME SELECTOR RESTORE + MORE COVERAGE END =====
 
 if __name__ == '__main__':
     main()
