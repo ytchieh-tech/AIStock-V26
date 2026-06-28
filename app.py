@@ -5594,5 +5594,347 @@ def settings_page():
 
 # ===== V253.0 FORMAL VALUATION GUARD + RANKING FIX END =====
 
+
+# ===== V254.0 DATA HEALTH + MODEL VALIDATION ALPHA START =====
+APP_VERSION = "V254.0 Data Health + Model Validation Alpha"
+DB_VERSION = "TW-STOCK-20260628-V254"
+
+# 第二階段：資料庫健康檢查 + 模型驗證中心 Alpha
+# 目標：資料修正與估值模型校正一起做，避免下市/停牌/錯價股票污染低估排行。
+V254_STATUS_OVERRIDES = {
+    # 使用者回報需確認：先標記 REVIEW 並排除低估排行，避免資料污染。
+    "6806.TW": {"status": "REVIEW", "note": "使用者回報此股狀態需確認，暫排除低估排行與正式估值排行。"},
+}
+
+V254_ALPHA_SYMBOLS = ["2330.TW", "2454.TW", "2308.TW"]
+
+# 手動輸入/資料庫可補欄位：未來可由年報、財報、財測中心自動灌入。
+V254_ALPHA_DEFAULT_INPUTS = {
+    "2330.TW": {"eps": None, "forward_eps": None, "bvps": None, "fcfps": None, "ebitda_ps": None, "revenue_growth": 0.15, "roe": 0.25, "wacc": 0.09, "terminal_g": 0.03, "target_pe": 24, "target_pb": 5.0, "target_ev_ebitda": 13},
+    "2454.TW": {"eps": None, "forward_eps": None, "bvps": None, "fcfps": None, "ebitda_ps": None, "revenue_growth": 0.10, "roe": 0.22, "wacc": 0.10, "terminal_g": 0.025, "target_pe": 18, "target_pb": 3.5, "target_ev_ebitda": 11},
+    "2308.TW": {"eps": None, "forward_eps": None, "bvps": None, "fcfps": None, "ebitda_ps": None, "revenue_growth": 0.12, "roe": 0.20, "wacc": 0.09, "terminal_g": 0.025, "target_pe": 22, "target_pb": 4.5, "target_ev_ebitda": 14},
+}
+
+
+def v254_parse_float(x, default=float('nan')):
+    try:
+        if x is None:
+            return default
+        if isinstance(x, str):
+            x = x.replace(',', '').replace('%','').replace('元','').strip()
+            if x in ['', 'N/A', '待補', '-']:
+                return default
+        return float(x)
+    except Exception:
+        return default
+
+
+def v254_stock_status(symbol, info=None):
+    sym = normalize_symbol(symbol)
+    info = info or STOCK_DB.get(sym, {})
+    if sym in V254_STATUS_OVERRIDES:
+        s = V254_STATUS_OVERRIDES[sym]
+        return s.get('status','REVIEW'), s.get('note','需人工確認')
+    raw = str(info.get('status', info.get('stock_status', ''))).upper()
+    if raw in ['DELISTED','INACTIVE','SUSPENDED','ETF','ETN','REVIEW']:
+        return raw, info.get('status_note', '資料庫標記')
+    name = str(info.get('name','')).upper()
+    ind = str(info.get('industry','')).upper()
+    if 'ETF' in name or 'ETF' in ind or 'ETN' in name or 'ETN' in ind:
+        return 'ETF', 'ETF/ETN 不進入個股低估排行'
+    if not (sym.endswith('.TW') or sym.endswith('.TWO')):
+        return 'UNKNOWN', '非標準上市櫃代號，需確認'
+    return 'ACTIVE', '有效股票候選'
+
+
+def v254_status_counts():
+    counts = {'ACTIVE':0, 'REVIEW':0, 'DELISTED':0, 'INACTIVE':0, 'SUSPENDED':0, 'ETF':0, 'ETN':0, 'UNKNOWN':0}
+    for sym, info in STOCK_DB.items():
+        stt, _ = v254_stock_status(sym, info)
+        counts[stt] = counts.get(stt, 0) + 1
+    return counts
+
+
+def v254_reasonable_valuation(d):
+    try:
+        price = float(d.get('price', float('nan')))
+        fair = float(d.get('fair', float('nan')))
+        if pd.isna(price) or pd.isna(fair) or price <= 0 or fair <= 0:
+            return False, '現價或合理價無效'
+        ratio = fair / price
+        if ratio > 3.0:
+            return False, '合理價高於現價3倍，需模型校正'
+        if ratio < 0.30:
+            return False, '合理價低於現價30%，需模型校正'
+        return True, '通過合理性檢查'
+    except Exception:
+        return False, '合理性檢查失敗'
+
+
+_V254_PREV_DECISION = globals().get('v253_decision', globals().get('v252_decision', globals().get('decision')))
+
+def v254_decision(symbol):
+    sym = normalize_symbol(symbol)
+    d = _V254_PREV_DECISION(sym) if _V254_PREV_DECISION else {}
+    info = STOCK_DB.get(sym, {})
+    status, note = v254_stock_status(sym, info)
+    d['stock_status'] = status
+    d['status_note'] = note
+    ok, sane_note = v254_reasonable_valuation(d)
+    d['valuation_sanity'] = sane_note
+    if status != 'ACTIVE':
+        d['valuation_quality'] = '排除排行'
+        d['action'] = '資料待確認'
+        d['ret'] = float('nan')
+    elif d.get('valuation_quality') == '正式估值' and not ok:
+        d['valuation_quality'] = '模型待校正'
+        d['action'] = '資料待確認'
+        d['ret'] = float('nan')
+    return d
+
+# 覆蓋所有決策入口
+for _fn in ['decision','v224_decision','v223_decision','v230_decision','v233_decision','v252_decision','v253_decision']:
+    globals()[_fn] = v254_decision
+
+
+def v231_rank_table(df):
+    rows = []
+    for _, r in df.iterrows():
+        sym = r.get('代碼', '')
+        d = v254_decision(sym)
+        if d.get('stock_status') != 'ACTIVE':
+            continue
+        if d.get('valuation_quality') != '正式估值':
+            continue
+        ok, _ = v254_reasonable_valuation(d)
+        if not ok:
+            continue
+        rows.append({
+            '公司': r.get('公司',''), '代碼': sym, '產業': r.get('產業',''), '子產業': r.get('子產業',''),
+            '現價': d.get('price', float('nan')), '綜合合理價': d.get('fair', float('nan')),
+            '預期報酬%': d.get('ret', float('nan')), '估值狀態': d.get('valuation_quality',''),
+            '資料狀態': d.get('stock_status',''), 'AI受惠度': r.get('AI受惠度',0),
+            '全球競爭力': r.get('全球競爭力',''), '主題標籤': r.get('主題標籤',''),
+        })
+    out = pd.DataFrame(rows)
+    for col in ['現價','綜合合理價','預期報酬%','AI受惠度']:
+        if col in out.columns:
+            out[col] = pd.to_numeric(out[col], errors='coerce')
+    return out
+
+
+def v240_completion_stats(df=None):
+    total = len(STOCK_DB)
+    status_counts = v254_status_counts()
+    with_customer = sum(1 for v in STOCK_DB.values() if v.get('customers') or v.get('major_customers'))
+    with_ai_customer = sum(1 for v in STOCK_DB.values() if v.get('ai_customers'))
+    with_valuation = 0
+    formal_active = 0
+    for sym, v in STOCK_DB.items():
+        if globals().get('v253_has_formal_inputs', lambda x: False)(v):
+            with_valuation += 1
+            if v254_stock_status(sym, v)[0] == 'ACTIVE':
+                formal_active += 1
+    with_comp = sum(1 for v in STOCK_DB.values() if v.get('peers') or v.get('moat') or v.get('position'))
+    return {'total': total, 'active': status_counts.get('ACTIVE',0), 'review': status_counts.get('REVIEW',0),
+            'etf': status_counts.get('ETF',0)+status_counts.get('ETN',0), 'unknown': status_counts.get('UNKNOWN',0),
+            'with_customer': with_customer, 'with_ai_customer': with_ai_customer,
+            'with_valuation': with_valuation, 'formal_active': formal_active, 'with_competition': with_comp}
+
+
+def v254_health_dashboard():
+    st.subheader('🩺 資料庫健康檢查')
+    stats = v240_completion_stats()
+    c = st.columns(6)
+    c[0].metric('股票總數', stats['total'])
+    c[1].metric('有效股票', stats['active'])
+    c[2].metric('待確認', stats['review'])
+    c[3].metric('ETF/ETN', stats['etf'])
+    c[4].metric('正式估值', stats['formal_active'])
+    c[5].metric('主要客戶', stats['with_customer'])
+    st.caption('V254 起：待確認、ETF/ETN、非標準代號、估值異常者，不進入低估排行。')
+    rows=[]
+    for sym, info in STOCK_DB.items():
+        stt, note = v254_stock_status(sym, info)
+        if stt != 'ACTIVE':
+            rows.append({'代碼':sym,'公司':info.get('name',sym),'產業':info.get('industry',''),'狀態':stt,'原因':note})
+    if rows:
+        st.dataframe(pd.DataFrame(rows).head(200), use_container_width=True, hide_index=True)
+    else:
+        st.success('目前沒有待確認/排除項目。')
+
+
+def v254_model_values(price, row):
+    eps = v254_parse_float(row.get('EPS'))
+    f_eps = v254_parse_float(row.get('Forward EPS'))
+    bvps = v254_parse_float(row.get('BVPS'))
+    fcfps = v254_parse_float(row.get('FCF/股'))
+    ebitda_ps = v254_parse_float(row.get('EBITDA/股'))
+    growth = v254_parse_float(row.get('營收成長率'), 0.0)
+    roe = v254_parse_float(row.get('ROE'), 0.0)
+    wacc = max(v254_parse_float(row.get('WACC'), 0.09), 0.01)
+    tg = min(max(v254_parse_float(row.get('永續成長率'), 0.02), 0.0), wacc-0.005)
+    pe = v254_parse_float(row.get('目標PE'))
+    pb = v254_parse_float(row.get('目標PB'))
+    evm = v254_parse_float(row.get('目標EV/EBITDA'))
+    vals = []
+    def add(model, value, note):
+        try:
+            value = float(value)
+            if pd.notna(value) and value > 0:
+                dev = (value/price-1)*100 if pd.notna(price) and price>0 else float('nan')
+                vals.append({'模型':model,'合理價':round(value,2),'與現價偏離%':round(dev,2) if pd.notna(dev) else float('nan'),'資料需求/備註':note})
+        except Exception: pass
+    add('PE', eps*pe, 'EPS × 目標PE')
+    add('Forward PE', f_eps*pe, 'Forward EPS × 目標PE')
+    add('PB', bvps*pb, 'BVPS × 目標PB')
+    add('EBO/RIM', bvps + max(roe-wacc, -0.5)*bvps/(wacc-tg), 'BVPS + 超額盈餘折現，簡化版')
+    add('EVA', bvps + max(roe-wacc, -0.5)*bvps/(wacc-tg), '簡化EVA近似，需NOPAT/IC正式化')
+    add('EV/EBITDA', ebitda_ps*evm, 'EBITDA/股 × 目標倍數')
+    add('DCF', fcfps*(1+growth)/(wacc-tg), 'FCF/股 Gordon簡化版')
+    peg_pe = min(max(growth*100, 5), 35)
+    add('PEG', eps*peg_pe, 'PEG=1簡化：EPS × 成長率PE')
+    out = pd.DataFrame(vals)
+    if not out.empty:
+        out['絕對偏離%'] = out['與現價偏離%'].abs()
+        out = out.sort_values('絕對偏離%').drop(columns=['絕對偏離%'])
+    return out
+
+
+def model_validation_alpha_page():
+    st.header('🧪 模型驗證中心 Alpha')
+    st.info('本頁先做「目前價格偏離測試」與資料欄位校正；等財報資料補齊後，會擴充為 3~5 年回測 MAPE / RMSE / R²。')
+    sym = st.selectbox('選擇測試公司', V254_ALPHA_SYMBOLS, format_func=lambda s: f"{STOCK_DB.get(s,{}).get('name',s)} / {s}")
+    info = STOCK_DB.get(sym,{})
+    price = v254_decision(sym).get('price', float('nan'))
+    st.metric('目前現價', v230_fmt(price))
+
+    base = V254_ALPHA_DEFAULT_INPUTS.get(sym, {}).copy()
+    # 嘗試從資料庫已有欄位帶入，若沒有則讓使用者自行輸入。
+    base['eps'] = base.get('eps') if base.get('eps') is not None else info.get('eps_2026', info.get('eps', None))
+    base['forward_eps'] = base.get('forward_eps') if base.get('forward_eps') is not None else info.get('forward_eps', None)
+    base['bvps'] = base.get('bvps') if base.get('bvps') is not None else info.get('bvps', None)
+    edit_df = pd.DataFrame([{
+        'EPS': base.get('eps'), 'Forward EPS': base.get('forward_eps'), 'BVPS': base.get('bvps'),
+        'FCF/股': base.get('fcfps'), 'EBITDA/股': base.get('ebitda_ps'),
+        '營收成長率': base.get('revenue_growth',0.10), 'ROE': base.get('roe',0.20),
+        'WACC': base.get('wacc',0.09), '永續成長率': base.get('terminal_g',0.025),
+        '目標PE': base.get('target_pe',18), '目標PB': base.get('target_pb',3.0), '目標EV/EBITDA': base.get('target_ev_ebitda',12),
+    }])
+    st.caption('請先輸入財報/假設欄位。空白模型不會計算；這樣可以避免假資料造成錯誤合理價。')
+    edited = st.data_editor(edit_df, use_container_width=True, hide_index=True, num_rows='fixed')
+    result = v254_model_values(float(price) if pd.notna(price) else float('nan'), edited.iloc[0].to_dict())
+    if result.empty:
+        st.warning('目前缺少 EPS、BVPS、FCF/股或 EBITDA/股等資料，無法產生模型比較。')
+    else:
+        st.subheader('模型偏離現價排名')
+        st.dataframe(result, use_container_width=True, hide_index=True)
+        top = result.head(3)
+        if len(top) > 0:
+            st.success('暫定前三名模型：' + '、'.join(top['模型'].astype(str).tolist()))
+            try:
+                fair = float(top.iloc[0]['合理價'])
+                err = abs(float(top.iloc[0]['與現價偏離%']))/100
+                c1,c2,c3 = st.columns(3)
+                c1.metric('保守價', v230_fmt(fair*(1-err)))
+                c2.metric('合理價', v230_fmt(fair))
+                c3.metric('樂觀價', v230_fmt(fair*(1+err)))
+            except Exception:
+                pass
+    st.divider()
+    v254_health_dashboard()
+
+
+def v247_query_panel(symbol):
+    try: sym = v230_symbol(symbol)
+    except Exception: sym = symbol or '2330.TW'
+    d = v254_decision(sym)
+    info = STOCK_DB.get(sym, {})
+    st.markdown('### 🔎 查詢結果 / 個股估值區間')
+    st.markdown(f"#### {d.get('name', info.get('name', sym))}（{d.get('symbol', sym)}）")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric('現價', v230_fmt(d.get('price', float('nan'))))
+    c2.metric('安全邊際價', v230_fmt(d.get('cons', float('nan'))))
+    c3.metric('合理價', v230_fmt(d.get('fair', float('nan'))))
+    c4.metric('樂觀價', v230_fmt(d.get('opt', float('nan'))))
+    c5, c6, c7, c8 = st.columns(4)
+    ret = d.get('ret', float('nan'))
+    ret_txt = 'N/A' if pd.isna(ret) else f"{float(ret):.1f}%"
+    c5.metric('預期報酬', ret_txt)
+    c6.metric('投資建議', d.get('action', '觀察'))
+    c7.metric('估值狀態', d.get('valuation_quality', '待補'))
+    c8.metric('資料狀態', d.get('stock_status', 'ACTIVE'))
+    pe_txt = 'N/A'
+    if pd.notna(d.get('pe_mid', float('nan'))):
+        pe_txt = f"{d.get('pe_low'):.0f}x / {d.get('pe_mid'):.0f}x / {d.get('pe_high'):.0f}x"
+    eps_txt = 'N/A' if pd.isna(d.get('eps_used', float('nan'))) else f"{float(d.get('eps_used')):.2f}"
+    valuation_row = [{
+        '估值狀態': d.get('valuation_quality','估值待補'),
+        '估值方法': d.get('valuation_method','正式估值待補'),
+        'EPS/每股盈餘': eps_txt,
+        '本益比區間': pe_txt,
+        '資料狀態': d.get('stock_status','ACTIVE'),
+        '合理性檢查': d.get('valuation_sanity','待檢查'),
+        '重要說明': 'V254起：異常估值、待確認股票、ETF/ETN 不進入低估排行'
+    }]
+    st.dataframe(pd.DataFrame(valuation_row), use_container_width=True, hide_index=True)
+    if d.get('stock_status') != 'ACTIVE':
+        st.warning(f"此股目前資料狀態為 {d.get('stock_status')}：{d.get('status_note')}；暫不納入排行。")
+    elif d.get('valuation_quality') not in ['正式估值','快速參考']:
+        st.warning('此股估值資料需校正，暫不納入低估排行。')
+    summary = [{'產業': info.get('industry', '待補'), '子產業': info.get('sub', '待補'), '產業地位': info.get('position', info.get('rank','待補')), '主要客戶摘要': info.get('customers', info.get('major_customers', '待補'))}]
+    st.dataframe(pd.DataFrame(summary), use_container_width=True, hide_index=True)
+    with st.expander('展開完整公司資料：主要客戶 / AI客戶 / 競爭者 / 風險', expanded=False):
+        st.write('主要客戶：', info.get('customers', info.get('major_customers', '待補')))
+        st.write('AI客戶 / AI關聯：', info.get('ai_customers', '待補'))
+        st.write('競爭者：', info.get('peers', '待補'))
+        st.write('護城河：', info.get('moat', '待補'))
+        st.write('主要風險：', info.get('risk', '待補'))
+        st.caption(f"資料更新時間：{d.get('updated','N/A')}｜現價來源：{d.get('source','Yahoo Finance')}｜第二階段：資料庫健康檢查 + 模型驗證。")
+
+v246_query_panel = v247_query_panel
+v245_query_panel = v247_query_panel
+v244_query_panel = v247_query_panel
+
+
+def sidebar_nav():
+    st.sidebar.title('智策股市 AI 平台')
+    st.sidebar.caption(APP_VERSION)
+    page = st.sidebar.radio('主選單', ['🏠 首頁','📈 股票分析','🏭 產業分析','🌏 全球競爭力','🧪 模型驗證中心','🏢 企業價值研究院','⭐ 自選股','⚙️ 設定'])
+    q = st.sidebar.text_input('快速搜尋', placeholder='2330、台積電、2308、台達電')
+    if q:
+        set_active(q)
+    st.sidebar.caption('V254：資料庫健康檢查與估值模型校正同步進行。')
+    return page
+
+
+def settings_page():
+    st.header('⚙️ 設定')
+    st.write('系統版本：', APP_VERSION)
+    st.write('資料庫版本：', DB_VERSION)
+    st.write('資料庫股票數：', len(STOCK_DB))
+    st.info('V254：新增資料庫健康檢查、待確認股票排除排行、估值合理性檢查、模型驗證中心 Alpha。')
+    v254_health_dashboard()
+
+
+def main():
+    page = sidebar_nav()
+    if page in ['🏠 首頁','📈 股票分析']:
+        home()
+    elif page == '🏭 產業分析':
+        industry_page()
+    elif page == '🌏 全球競爭力':
+        competition_page()
+    elif page == '🧪 模型驗證中心':
+        model_validation_alpha_page()
+    elif page == '🏢 企業價值研究院':
+        valuation_page()
+    elif page == '⭐ 自選股':
+        watchlist()
+    else:
+        settings_page()
+
+# ===== V254.0 DATA HEALTH + MODEL VALIDATION ALPHA END =====
+
 if __name__ == '__main__':
     main()
