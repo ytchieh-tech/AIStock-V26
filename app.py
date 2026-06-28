@@ -2991,5 +2991,185 @@ def v230_rows_df():
 
 # ===== V236.0 PRICE DATABASE EXPANSION END =====
 
+
+
+# ===== V237.0 GLOBAL DETAIL EXPANDER + MORE STOCK PRICE COVERAGE START =====
+# 目標：
+# 1) 全球競爭力頁面將「主要客戶、競爭者、護城河、風險」改為可展開完整閱讀，避免 dataframe 欄位被截斷。
+# 2) 繼續擴充熱門類股個股資料，讓更多股票能查詢現價與三段估值區間。
+
+APP_VERSION = "V237.0 Global Detail Expander + More Stock Coverage"
+
+V237_EXTRA_STOCKS = {
+    # 金融/證券/保險
+    "2883.TW": {"name":"開發金", "industry":"金融", "sub":"金控/證券/壽險", "rank":"大型金控", "power":"★★★☆☆", "position":"證券、壽險與投資型金控", "peers":"富邦金、國泰金、元大金、中信金", "moat":"中：金融通路、證券與投資平台", "risk":"利率、股債市波動、壽險淨值", "fair_mult":1.02, "customers":"個人金融、企業金融、證券、壽險與財富管理客戶", "ai_customers":"金融科技與AI客服間接受惠", "theme_text":"金融、金控、證券、壽險", "chain_position":"金融服務", "market_share":"台灣大型金控"},
+    "2886.TW": {"name":"兆豐金", "industry":"金融", "sub":"公股銀行金控", "rank":"公股大型金控", "power":"★★★★☆", "position":"外匯、企金與銀行型金控", "peers":"第一金、華南金、合庫金、彰銀", "moat":"中高：公股資源、外匯與企金客戶", "risk":"利差、信用風險、政策", "fair_mult":1.03, "customers":"企業金融、外匯、個人金融與財富管理客戶", "ai_customers":"金融科技間接受惠", "theme_text":"金融、公股金控、銀行", "chain_position":"金融服務", "market_share":"台灣公股大型金控"},
+    "2887.TW": {"name":"台新金", "industry":"金融", "sub":"金控/銀行", "rank":"銀行金控", "power":"★★★☆☆", "position":"消金、企金、財管與金融科技金控", "peers":"玉山金、中信金、永豐金", "moat":"中：零售銀行、信用卡與財管通路", "risk":"利差、信用風險、併購整合", "fair_mult":1.02, "customers":"個人金融、信用卡、企業金融與財富管理客戶", "ai_customers":"金融科技與AI客服間接受惠", "theme_text":"金融、銀行、財管", "chain_position":"金融服務", "market_share":"台灣銀行金控"},
+    "2890.TW": {"name":"永豐金", "industry":"金融", "sub":"金控/銀行/證券", "rank":"銀行金控", "power":"★★★☆☆", "position":"銀行、證券與財管服務金控", "peers":"玉山金、台新金、元大金", "moat":"中：銀行通路與證券財管平台", "risk":"利差、股市成交量、信用風險", "fair_mult":1.02, "customers":"個人金融、企業金融、證券與財富管理客戶", "ai_customers":"金融科技間接受惠", "theme_text":"金融、銀行、證券", "chain_position":"金融服務", "market_share":"台灣銀行金控"},
+    "2891.TW": {"name":"中信金", "industry":"金融", "sub":"金控/銀行/壽險", "rank":"大型民營金控", "power":"★★★★☆", "position":"銀行、壽險、信用卡與財富管理大型金控", "peers":"富邦金、國泰金、玉山金、兆豐金", "moat":"中高：銀行通路、信用卡、財管與品牌", "risk":"利率、壽險淨值、信用風險", "fair_mult":1.03, "customers":"個人金融、企業金融、信用卡、壽險與財富管理客戶", "ai_customers":"金融科技與AI客服間接受惠", "theme_text":"金融、金控、銀行、壽險", "chain_position":"金融服務", "market_share":"台灣大型民營金控"},
+    "2882.TW": {"name":"國泰金", "industry":"金融", "sub":"金控/壽險/銀行", "rank":"大型金控", "power":"★★★★☆", "position":"壽險、銀行、證券與資產管理大型金控", "peers":"富邦金、中信金、開發金", "moat":"高：保險品牌、金融通路與資產規模", "risk":"利率、匯率、股債市波動、壽險淨值", "fair_mult":1.03, "customers":"壽險、個人金融、企業金融、信用卡與財富管理客戶", "ai_customers":"金融科技與AI客服間接受惠", "theme_text":"金融、金控、壽險、銀行", "chain_position":"金融服務", "market_share":"台灣大型金控"},
+    "2881.TW": {"name":"富邦金", "industry":"金融", "sub":"金控/壽險/銀行/證券", "rank":"大型金控", "power":"★★★★☆", "position":"壽險、銀行、證券與產險大型金控", "peers":"國泰金、中信金、開發金", "moat":"高：金融通路、保險品牌與資產規模", "risk":"利率、壽險淨值、股債市波動", "fair_mult":1.03, "customers":"壽險、產險、銀行、證券與財富管理客戶", "ai_customers":"金融科技與AI客服間接受惠", "theme_text":"金融、金控、壽險、銀行", "chain_position":"金融服務", "market_share":"台灣大型金控"},
+
+    # 航運/航空/物流
+    "2615.TW": {"name":"萬海", "industry":"航運", "sub":"貨櫃航運", "rank":"亞洲區域貨櫃航商", "power":"★★★☆☆", "position":"亞洲區域航線與貨櫃運輸服務商", "peers":"長榮、陽明、ONE、HMM", "moat":"中：航線網路、船隊與區域服務", "risk":"運價循環、油價、地緣政治、船舶供給", "fair_mult":1.04, "customers":"進出口商、貨代、零售品牌、製造業與物流客戶", "ai_customers":"AI硬體供應鏈海運需求間接受惠", "theme_text":"航運、貨櫃、全球貿易", "chain_position":"下游運輸服務", "market_share":"亞洲貨櫃航商"},
+    "2609.TW": {"name":"陽明", "industry":"航運", "sub":"貨櫃航運", "rank":"全球貨櫃航商", "power":"★★★☆☆", "position":"遠洋貨櫃運輸與全球航線服務商", "peers":"長榮、萬海、Maersk、MSC、Hapag-Lloyd", "moat":"中：船隊、航線與聯盟資源", "risk":"運價循環、油價、船舶供給、地緣政治", "fair_mult":1.04, "customers":"進出口商、貨代、零售品牌、製造業與物流客戶", "ai_customers":"AI硬體供應鏈海運需求間接受惠", "theme_text":"航運、貨櫃、全球貿易", "chain_position":"下游運輸服務", "market_share":"全球貨櫃航商"},
+    "2603.TW": {"name":"長榮", "industry":"航運", "sub":"貨櫃航運", "rank":"全球大型貨櫃航商", "power":"★★★★☆", "position":"全球遠洋貨櫃航運與物流服務商", "peers":"陽明、萬海、Maersk、MSC、CMA CGM", "moat":"中高：船隊規模、航線網路與財務體質", "risk":"運價循環、油價、船舶供給、地緣政治", "fair_mult":1.05, "customers":"全球進出口商、貨代、零售品牌、製造業與物流客戶", "ai_customers":"AI硬體供應鏈海運需求間接受惠", "theme_text":"航運、貨櫃、全球貿易", "chain_position":"下游運輸服務", "market_share":"全球大型貨櫃航商"},
+    "2610.TW": {"name":"華航", "industry":"航空", "sub":"航空客運/貨運", "rank":"台灣主要航空公司", "power":"★★★☆☆", "position":"客運、貨運與航空服務供應商", "peers":"長榮航、星宇航空、國際航空公司", "moat":"中：航權、機隊、貨運與品牌", "risk":"油價、匯率、景氣、旅遊需求", "fair_mult":1.03, "customers":"旅客、航空貨運、物流、電子零組件與跨境商務客戶", "ai_customers":"AI伺服器與電子零組件空運需求間接受惠", "theme_text":"航空、旅遊、航空貨運", "chain_position":"運輸服務", "market_share":"台灣主要航空公司"},
+    "2618.TW": {"name":"長榮航", "industry":"航空", "sub":"航空客運/貨運", "rank":"台灣主要航空公司", "power":"★★★☆☆", "position":"客運、貨運與航空服務供應商", "peers":"華航、星宇航空、國際航空公司", "moat":"中：航權、機隊、服務品牌與貨運能力", "risk":"油價、匯率、景氣、旅遊需求", "fair_mult":1.03, "customers":"旅客、航空貨運、物流、電子零組件與跨境商務客戶", "ai_customers":"AI伺服器與電子零組件空運需求間接受惠", "theme_text":"航空、旅遊、航空貨運", "chain_position":"運輸服務", "market_share":"台灣主要航空公司"},
+    "2646.TW": {"name":"星宇航空", "industry":"航空", "sub":"航空客運", "rank":"新興航空品牌", "power":"★★★☆☆", "position":"國際客運與航空服務品牌", "peers":"華航、長榮航、國際航空公司", "moat":"中：品牌、航線布局與服務定位", "risk":"油價、匯率、展線成本、旅遊需求", "fair_mult":1.04, "customers":"旅客、商務客、航空旅遊與國際航線客戶", "ai_customers":"無直接AI客戶", "theme_text":"航空、旅遊、消費服務", "chain_position":"運輸服務", "market_share":"台灣新興航空品牌"},
+
+    # 鋼鐵/塑化/材料
+    "2002.TW": {"name":"中鋼", "industry":"鋼鐵", "sub":"一貫作業鋼廠", "rank":"台灣鋼鐵龍頭", "power":"★★★★☆", "position":"熱軋、冷軋、鋼板、線材與高值化鋼材供應商", "peers":"寶鋼、浦項、JFE、新日鐵、台塑集團鋼鐵供應鏈", "moat":"中高：規模、產品線、下游客戶與政策地位", "risk":"景氣循環、鐵礦砂/煤價、匯率、碳成本", "fair_mult":1.02, "customers":"汽車、營建、機械、家電、造船、能源與製造業客戶", "ai_customers":"資料中心機電與機房建設間接受惠", "theme_text":"鋼鐵、基建、製造業、碳中和", "chain_position":"上游鋼材", "market_share":"台灣鋼鐵龍頭"},
+    "2014.TW": {"name":"中鴻", "industry":"鋼鐵", "sub":"熱軋/冷軋鋼品", "rank":"鋼材供應商", "power":"★★★☆☆", "position":"熱軋、冷軋與鋼管鋼材供應商", "peers":"中鋼、燁輝、東和鋼鐵", "moat":"中：中鋼集團資源與鋼材客戶", "risk":"鋼價循環、原料成本、需求波動", "fair_mult":1.01, "customers":"營建、機械、製造業、鋼管與加工客戶", "ai_customers":"資料中心建設間接受惠有限", "theme_text":"鋼鐵、製造業、基建", "chain_position":"中游鋼材加工", "market_share":"台灣鋼材供應商"},
+    "2027.TW": {"name":"大成鋼", "industry":"鋼鐵", "sub":"不銹鋼/鋁品通路", "rank":"金屬通路供應商", "power":"★★★☆☆", "position":"不銹鋼、鋁品與金屬材料通路服務商", "peers":"美國金屬通路商、燁聯、華新", "moat":"中：北美通路、庫存管理與客戶基礎", "risk":"金屬價格、利率、庫存評價、匯率", "fair_mult":1.02, "customers":"北美製造業、建材、工業材料與金屬加工客戶", "ai_customers":"資料中心建設間接受惠有限", "theme_text":"鋼鐵、不銹鋼、鋁、北美基建", "chain_position":"中下游金屬通路", "market_share":"北美金屬通路供應商"},
+    "1301.TW": {"name":"台塑", "industry":"塑化", "sub":"PVC/塑膠原料", "rank":"台灣塑化龍頭之一", "power":"★★★★☆", "position":"PVC、PE、塑膠原料與石化產品供應商", "peers":"台化、南亞、Formosa Plastics USA、國際石化廠", "moat":"中高：垂直整合、規模與石化集團資源", "risk":"油價、石化循環、中國供給、碳成本", "fair_mult":1.02, "customers":"塑膠加工、建材、包材、工業材料與化工客戶", "ai_customers":"無直接AI客戶", "theme_text":"塑化、原物料、景氣循環", "chain_position":"上游石化原料", "market_share":"台灣塑化龍頭之一"},
+    "1303.TW": {"name":"南亞", "industry":"塑化/電子材料", "sub":"塑膠/銅箔基板/電子材料", "rank":"塑化與電子材料大廠", "power":"★★★★☆", "position":"塑膠、化纖、電子材料、銅箔基板與化工產品供應商", "peers":"台塑、台化、台光電、聯茂、國際電子材料廠", "moat":"中高：集團整合、材料技術與客戶基礎", "risk":"石化循環、電子材料需求、油價與碳成本", "fair_mult":1.03, "customers":"電子材料、PCB、塑膠加工、化纖、工業材料客戶", "ai_customers":"AI伺服器PCB/材料間接受惠", "theme_text":"塑化、電子材料、PCB材料、AI伺服器", "chain_position":"上游材料", "market_share":"台灣塑化與電子材料大廠"},
+    "1326.TW": {"name":"台化", "industry":"塑化/紡纖", "sub":"芳香烴/化纖/塑化", "rank":"台灣塑化大廠", "power":"★★★★☆", "position":"芳香烴、化纖、塑膠與石化產品供應商", "peers":"台塑、南亞、國際石化與化纖廠", "moat":"中高：垂直整合、集團資源與規模", "risk":"油價、石化循環、中國供給、碳成本", "fair_mult":1.02, "customers":"化纖、紡織、塑膠加工、工業材料與石化客戶", "ai_customers":"無直接AI客戶", "theme_text":"塑化、化纖、原物料", "chain_position":"上游石化/化纖", "market_share":"台灣塑化與化纖大廠"},
+    "1402.TW": {"name":"遠東新", "industry":"紡纖/材料", "sub":"聚酯/紡纖/投資", "rank":"聚酯與紡纖大廠", "power":"★★★☆☆", "position":"聚酯、紡纖、環保回收材料與多角化投資集團", "peers":"新纖、力麗、國際聚酯廠", "moat":"中：垂直整合、品牌客戶與回收材料布局", "risk":"原料、紡纖景氣、投資收益波動", "fair_mult":1.02, "customers":"運動品牌、服飾、包材、工業材料與通路客戶", "ai_customers":"無直接AI客戶", "theme_text":"紡纖、聚酯、回收材料、消費", "chain_position":"上中游材料/紡纖", "market_share":"台灣聚酯與紡纖大廠"},
+
+    # 食品/通路/消費
+    "1216.TW": {"name":"統一", "industry":"食品/通路", "sub":"食品飲料/通路投資", "rank":"台灣食品龍頭", "power":"★★★★☆", "position":"食品飲料、乳品、通路與消費品集團", "peers":"味全、卜蜂、味王、統一超相關通路", "moat":"高：品牌、通路、產品組合與集團資源", "risk":"原物料、消費景氣、食品安全、匯率", "fair_mult":1.03, "customers":"超商、量販、餐飲、家庭消費者與食品通路客戶", "ai_customers":"零售數據與智慧物流間接受惠", "theme_text":"食品、通路、消費、民生必需", "chain_position":"中下游食品與通路", "market_share":"台灣食品龍頭"},
+    "2912.TW": {"name":"統一超", "industry":"通路/零售", "sub":"便利商店/零售", "rank":"台灣超商龍頭", "power":"★★★★★", "position":"便利商店、零售通路、物流與生活服務平台", "peers":"全家、萊爾富、全聯、量販通路", "moat":"高：門市密度、品牌、物流與支付服務", "risk":"人事租金成本、消費景氣、展店飽和", "fair_mult":1.04, "customers":"一般消費者、食品飲料品牌、物流、支付與生活服務客戶", "ai_customers":"零售數據、AI補貨與智慧物流間接受惠", "theme_text":"通路、零售、超商、民生消費", "chain_position":"下游零售通路", "market_share":"台灣便利商店龍頭"},
+    "5903.TW": {"name":"全家", "industry":"通路/零售", "sub":"便利商店", "rank":"台灣主要超商", "power":"★★★★☆", "position":"便利商店、零售通路與生活服務平台", "peers":"統一超、萊爾富、全聯", "moat":"中高：門市網路、品牌、會員與物流", "risk":"人事租金成本、消費景氣、展店飽和", "fair_mult":1.03, "customers":"一般消費者、食品飲料品牌、支付與物流服務客戶", "ai_customers":"零售數據、AI補貨與智慧物流間接受惠", "theme_text":"通路、零售、超商、民生消費", "chain_position":"下游零售通路", "market_share":"台灣主要便利商店"},
+    "2915.TW": {"name":"潤泰全", "industry":"通路/投資", "sub":"流通/投資控股", "rank":"投資控股公司", "power":"★★★☆☆", "position":"流通、紡織與轉投資控股公司", "peers":"潤泰新、統一、遠東新", "moat":"中：通路與投資資產", "risk":"轉投資波動、消費景氣、資產評價", "fair_mult":1.02, "customers":"流通、消費品、轉投資與資產相關客戶", "ai_customers":"無直接AI客戶", "theme_text":"通路、投資控股、消費", "chain_position":"投資控股/流通", "market_share":"投資控股公司"},
+    "1101.TW": {"name":"台泥", "industry":"水泥/能源", "sub":"水泥/儲能/能源", "rank":"台灣水泥龍頭", "power":"★★★★☆", "position":"水泥、建材、儲能與能源轉型供應商", "peers":"亞泥、環泥、國際水泥廠", "moat":"中高：品牌、礦權、通路與能源轉型資源", "risk":"營建景氣、煤價、碳成本、海外市場", "fair_mult":1.02, "customers":"營建、基礎建設、建材、儲能與能源服務客戶", "ai_customers":"資料中心儲能/用電間接受惠", "theme_text":"水泥、建材、儲能、能源轉型", "chain_position":"上游建材/能源", "market_share":"台灣水泥龍頭"},
+    "1102.TW": {"name":"亞泥", "industry":"水泥/建材", "sub":"水泥/建材", "rank":"台灣水泥主要廠", "power":"★★★☆☆", "position":"水泥、建材與基礎建設材料供應商", "peers":"台泥、環泥、國際水泥廠", "moat":"中：礦權、品牌、通路與建材客戶", "risk":"營建景氣、煤價、碳成本、中國市場", "fair_mult":1.02, "customers":"營建、基礎建設、水泥與建材客戶", "ai_customers":"資料中心建設間接受惠有限", "theme_text":"水泥、建材、基建", "chain_position":"上游建材", "market_share":"台灣水泥主要廠"},
+
+    # 電子與零組件補充
+    "2324.TW": {"name":"仁寶", "industry":"AI伺服器/ODM", "sub":"NB ODM/伺服器", "rank":"ODM主要廠", "power":"★★★☆☆", "position":"筆電ODM與伺服器代工供應商", "peers":"廣達、緯創、英業達、鴻海", "moat":"中：ODM規模、品牌客戶與伺服器布局", "risk":"毛利率、PC需求、AI伺服器進度", "fair_mult":1.03, "customers":"全球PC品牌、企業伺服器、雲端與消費電子客戶", "ai_customers":"AI伺服器與邊緣AI PC客戶間接受惠", "theme_text":"ODM、AI伺服器、AI PC", "chain_position":"下游系統組裝", "market_share":"全球NB ODM主要廠"},
+    "2376.TW": {"name":"技嘉", "industry":"AI伺服器/品牌", "sub":"主機板/顯卡/伺服器", "rank":"板卡與伺服器品牌", "power":"★★★★☆", "position":"主機板、顯卡、AI伺服器與工作站供應商", "peers":"華碩、微星、Supermicro、廣達", "moat":"中高：板卡設計、品牌通路與伺服器產品線", "risk":"AI訂單波動、顯卡循環、庫存", "fair_mult":1.06, "customers":"AI伺服器、企業IT、電競、通路與資料中心客戶", "ai_customers":"AI伺服器、GPU平台與企業AI客戶", "theme_text":"AI伺服器、主機板、顯卡、AI PC", "chain_position":"中下游系統/品牌", "market_share":"全球板卡品牌與伺服器供應商"},
+    "2377.TW": {"name":"微星", "industry":"AI PC/品牌", "sub":"電競PC/主機板/顯卡", "rank":"電競品牌", "power":"★★★★☆", "position":"電競筆電、主機板、顯卡與AI PC品牌", "peers":"華碩、技嘉、Lenovo、Dell", "moat":"中高：電競品牌、板卡設計與通路", "risk":"PC循環、庫存、顯卡需求波動", "fair_mult":1.04, "customers":"電競玩家、通路、企業IT、AI PC與顯卡客戶", "ai_customers":"AI PC、GPU與邊緣AI使用者", "theme_text":"AI PC、電競、主機板、顯卡", "chain_position":"下游品牌/通路", "market_share":"全球電競PC品牌"},
+    "2357.TW": {"name":"華碩", "industry":"AI PC/品牌", "sub":"PC/主機板/伺服器", "rank":"全球PC品牌", "power":"★★★★☆", "position":"PC、主機板、電競、AI PC與伺服器品牌", "peers":"Lenovo、HP、Dell、Acer、MSI", "moat":"高：品牌、通路、主機板技術與產品線", "risk":"PC需求、庫存、競爭、匯率", "fair_mult":1.04, "customers":"消費者、企業IT、電競、AI PC、通路與伺服器客戶", "ai_customers":"AI PC、邊緣AI與伺服器客戶", "theme_text":"AI PC、PC品牌、主機板、伺服器", "chain_position":"下游品牌/系統", "market_share":"全球PC品牌"},
+    "2353.TW": {"name":"宏碁", "industry":"AI PC/品牌", "sub":"PC品牌/周邊", "rank":"全球PC品牌", "power":"★★★☆☆", "position":"PC、AI PC、顯示器與消費電子品牌", "peers":"華碩、Lenovo、HP、Dell", "moat":"中：品牌、通路與產品線", "risk":"PC需求、價格競爭、庫存", "fair_mult":1.02, "customers":"消費者、企業IT、教育、AI PC與通路客戶", "ai_customers":"AI PC與邊緣AI使用者", "theme_text":"AI PC、PC品牌、消費電子", "chain_position":"下游品牌/通路", "market_share":"全球PC品牌"},
+    "2352.TW": {"name":"佳世達", "industry":"電子/系統整合", "sub":"顯示器/醫療/企業解決方案", "rank":"電子製造與解決方案公司", "power":"★★★☆☆", "position":"顯示器、醫療、企業解決方案與電子製造服務商", "peers":"明基材料、群創、ODM同業", "moat":"中：產品線、醫療與企業解決方案布局", "risk":"顯示器需求、轉型成效、毛利率", "fair_mult":1.03, "customers":"企業IT、醫療、顯示器、工業與電子品牌客戶", "ai_customers":"AI醫療與企業AI間接受惠", "theme_text":"醫療、企業解決方案、顯示器", "chain_position":"中下游系統/服務", "market_share":"電子製造與解決方案供應商"},
+    "2301.TW": {"name":"光寶科", "industry":"電源管理", "sub":"電源/光電/車用", "rank":"電源與電子零組件大廠", "power":"★★★★☆", "position":"電源供應器、資料中心電源、車用電子與光電零組件供應商", "peers":"台達電、康舒、群電、飛宏", "moat":"中高：電源設計、全球客戶與製造規模", "risk":"毛利率、終端需求、競爭、匯率", "fair_mult":1.05, "customers":"資料中心、PC、車用、工業、雲端與品牌電子客戶", "ai_customers":"AI伺服器電源、資料中心與雲端客戶", "theme_text":"電源管理、AI伺服器、車用電子", "chain_position":"中游電源/零組件", "market_share":"全球電源供應器主要廠"},
+    "6412.TW": {"name":"群電", "industry":"電源管理", "sub":"電源供應器", "rank":"電源供應商", "power":"★★★☆☆", "position":"電源供應器、充電器與電源模組供應商", "peers":"台達電、光寶科、康舒、飛宏", "moat":"中：電源設計、客戶基礎與量產能力", "risk":"PC需求、價格競爭、產品組合", "fair_mult":1.03, "customers":"PC品牌、消費電子、工業電源與資料中心相關客戶", "ai_customers":"AI PC與資料中心電源間接受惠", "theme_text":"電源管理、AI PC、消費電子", "chain_position":"中游電源零組件", "market_share":"電源供應器供應商"},
+}
+
+try:
+    STOCK_DB.update(V237_EXTRA_STOCKS)
+    ALIASES.clear()
+    for sym, v in STOCK_DB.items():
+        ALIASES[sym.upper()] = sym
+        ALIASES[sym.split('.')[0]] = sym
+        ALIASES[v.get('name', sym)] = sym
+        ALIASES[v.get('name', sym).upper()] = sym
+    OTC_CODES = {s.split('.')[0] for s in STOCK_DB if s.endswith('.TWO')}
+except Exception:
+    pass
+
+# 小工具：將「、/，/,」分隔文字做成可閱讀的清單
+def v237_split_items(text):
+    s = str(text or "待補").replace("，", "、").replace(",", "、").replace("/", "、")
+    parts = [p.strip() for p in s.split("、") if p.strip()]
+    return parts if parts else ["待補"]
+
+def v237_chip_html(text):
+    parts = v237_split_items(text)
+    return '<div class="v230-tag-wrap">' + ''.join([f'<span class="v230-tag">{p}</span>' for p in parts]) + '</div>'
+
+def v237_detail_box(title, value, icon="🔎", expanded=False):
+    with st.expander(f"{icon} {title}", expanded=expanded):
+        st.markdown(v237_chip_html(value), unsafe_allow_html=True)
+        st.caption(str(value or "待補"))
+
+def v237_global_detail_panel(row):
+    st.markdown("### 競爭力完整資料")
+    c1, c2 = st.columns(2)
+    with c1:
+        v237_detail_box("主要客戶 / 終端客戶", row.get("主要客戶", "待補"), "👥", True)
+        v237_detail_box("主要競爭者", row.get("主要競爭者", row.get("競爭者", "待補")), "⚔️", True)
+        v237_detail_box("產業鏈位置", row.get("產業鏈位置", "待補"), "🧭", False)
+    with c2:
+        v237_detail_box("護城河", row.get("護城河", "待補"), "🏰", True)
+        v237_detail_box("主要風險", row.get("主要風險", "待補"), "⚠️", True)
+        v237_detail_box("AI 客戶 / AI 關聯", row.get("AI客戶", "待補"), "🤖", False)
+    st.markdown("### 表格摘要")
+    st.dataframe(pd.DataFrame([{
+        "產業地位":row.get("產業地位","待補"),
+        "主要客戶":row.get("主要客戶","待補"),
+        "競爭者":row.get("主要競爭者", row.get("競爭者","待補")),
+        "護城河":row.get("護城河","待補"),
+        "主要風險":row.get("主要風險","待補"),
+        "產業鏈位置":row.get("產業鏈位置","待補")
+    }]), use_container_width=True, hide_index=True)
+
+def v230_price_block(symbol):
+    d=v230_decision(symbol); sym=d.get("symbol", symbol)
+    st.caption(f"資料更新時間：{d.get('updated','N/A')}｜現價來源：{d.get('source','Yahoo Finance')}｜預期報酬率＝(綜合合理價－現價)÷現價。")
+    st.markdown(f"## {d.get('name', sym)}（{sym}）")
+    c1,c2,c3,c4=st.columns(4)
+    c1.metric("投資建議", d.get("action","觀察"))
+    c2.metric("現價", v230_fmt(d.get("price", float("nan"))))
+    c3.metric("綜合合理價", v230_fmt(d.get("fair", float("nan"))))
+    try: ret_txt=f"{float(d.get('ret',0)):.1f}%"
+    except Exception: ret_txt="N/A"
+    c4.metric("預期報酬", ret_txt)
+    p1,p2,p3=st.columns(3)
+    p1.metric("安全邊際價", v230_fmt(d.get("cons", float("nan"))))
+    p2.metric("合理價值", v230_fmt(d.get("fair", float("nan"))))
+    p3.metric("潛在價值", v230_fmt(d.get("opt", float("nan"))))
+    df=v230_rows_df(); row=df[df["代碼"]==sym] if not df.empty and "代碼" in df.columns else pd.DataFrame()
+    with st.expander("展開更多研究資料", expanded=True):
+        if not row.empty:
+            r=row.iloc[0].to_dict()
+            st.markdown("### 公司基本資料")
+            st.markdown(f'<div class="v230-card"><div class="v230-card-title">{r.get("公司","")}｜{r.get("代碼","")}</div><div class="v230-small-muted">主產業：{r.get("產業","")}　｜　子產業：{r.get("子產業","")}　｜　產業鏈位置：{r.get("產業鏈位置","待補")}</div><div style="margin-top:10px;">{v230_tag_html(r.get("主題標籤",""))}</div></div>', unsafe_allow_html=True)
+            v237_global_detail_panel(r)
+        else:
+            st.info("此個股仍在資料庫補齊中，後續會補上產業鏈位置、主題標籤、主要客戶、競爭者與護城河。")
+
+def competition_page():
+    v230_css(); st.header("🌏 全球競爭力")
+    df=v230_rows_df()
+    themes=["全部"]+sorted(set([p.strip() for s in df["主題標籤"].fillna("").astype(str) for p in s.replace("，","、").split("、") if p.strip()]))
+    c0,c1,c2,c3=st.columns(4)
+    with c0: theme=st.selectbox("主題標籤", themes, key="v237_global_theme")
+    if theme!="全部": df=df[df["主題標籤"].astype(str).str.contains(theme, na=False)]
+    with c1: ind=st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v237_global_ind")
+    dff=df[df["產業"]==ind]
+    with c2: sub=st.selectbox("子產業", sorted(dff["子產業"].dropna().unique()), key="v237_global_sub")
+    dff=dff[dff["子產業"]==sub]
+    labels={f"{r['公司']} / {r['代碼']}":r["代碼"] for _,r in dff.iterrows()}
+    with c3: picked=st.selectbox("個股（選到即查詢）", list(labels.keys()), key="v237_global_stock")
+    code=labels[picked]; st.session_state["v227_active_symbol"]=code
+    row=dff[dff["代碼"]==code].iloc[0].to_dict()
+    st.markdown(f"## {row['公司']}（{row['代碼']}）")
+    g1,g2,g3,g4=st.columns(4)
+    try: ai_txt=f"{int(row['AI受惠度'])}/10" if int(row["AI受惠度"])>0 else "非AI主題"
+    except Exception: ai_txt="N/A"
+    g1.metric("全球排名", row.get("全球排名","待補")); g2.metric("AI受惠度", ai_txt); g3.metric("全球競爭力", row.get("全球競爭力","待補")); g4.metric("全球市占率", row.get("全球市占率","待補"))
+    st.markdown(v230_tag_html(row.get("主題標籤","")), unsafe_allow_html=True)
+    v237_global_detail_panel(row)
+    try:
+        st.markdown("---"); v224_ai_score_explanation()
+    except Exception:
+        pass
+
+def industry_page():
+    v230_css(); st.header("🏭 產業分析")
+    df=v230_rows_df()
+    c1,c2,c3=st.columns(3)
+    with c1: ind=st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v237_industry_ind")
+    dff=df[df["產業"]==ind]
+    with c2: sub=st.selectbox("子產業", sorted(dff["子產業"].dropna().unique()), key="v237_industry_sub")
+    dff=dff[dff["子產業"]==sub]
+    labels={f"{r['公司']} / {r['代碼']}":r["代碼"] for _,r in dff.iterrows()}
+    with c3: picked=st.selectbox("個股（選到即查詢）", list(labels.keys()), key="v237_industry_stock")
+    code=labels[picked]; st.session_state["v227_active_symbol"]=code
+    row=dff[dff["代碼"]==code].iloc[0].to_dict()
+    meta=V224_INDUSTRY_META.get(ind, {"規模":"待補","成長率":"待補","AI關聯度":"待補","說明":"待補"})
+    k1,k2,k3,k4=st.columns(4); k1.metric("產業規模", meta.get("規模","待補")); k2.metric("成長率", meta.get("成長率","待補")); k3.metric("AI關聯度", meta.get("AI關聯度","待補")); k4.metric("同產業公司", len(dff))
+    st.info(meta.get("說明",""))
+    st.markdown("### 公司基本資料")
+    st.markdown(f'<div class="v230-card"><div class="v230-card-title">{row.get("公司","")}｜{row.get("代碼","")}</div><div class="v230-small-muted">主產業：{row.get("產業","")}　｜　子產業：{row.get("子產業","")}　｜　產業鏈位置：{row.get("產業鏈位置","待補")}</div><div style="margin-top:10px;">{v230_tag_html(row.get("主題標籤",""))}</div></div>', unsafe_allow_html=True)
+    v237_global_detail_panel(row)
+    st.markdown("### 同產業主要公司")
+    cols=["公司","代碼","子產業","產業鏈位置","主要客戶","AI受惠度","全球競爭力","產業地位"]
+    st.dataframe(dff[[c for c in cols if c in dff.columns]], use_container_width=True, hide_index=True)
+
+# ===== V237.0 GLOBAL DETAIL EXPANDER + MORE STOCK PRICE COVERAGE END =====
+
+
 if __name__ == '__main__':
     main()
