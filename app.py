@@ -6438,34 +6438,68 @@ def sidebar_nav():
 # ===== V256.0 TSMC TOP3/TOP5 MODEL TEST END =====
 
 
-# ===== V257.0 TSMC MODEL LAB START =====
-APP_VERSION = "V257.0 TSMC Model Lab Composite Validation"
-DB_VERSION = "TW-STOCK-20260628-V257"
 
-# V257 目標：不再只看單一模型，正式比較「單模型 / Top3 / Top5」在台積電上的回測表現。
-# 注意：目前已由年報確認 EPS；BVPS/FCF/EBITDA 待下一版從財報中心完整抽取後再加入。
-V257_TSMC_MANUAL = pd.DataFrame([
-    {"年度":2021,"EPS":23.01,"fallback_avg_price":596.0,"note":"年報EPS 23.01"},
-    {"年度":2022,"EPS":39.20,"fallback_avg_price":503.0,"note":"年報EPS 39.20"},
-    {"年度":2023,"EPS":32.34,"fallback_avg_price":552.0,"note":"年報EPS 32.34"},
-    {"年度":2024,"EPS":45.25,"fallback_avg_price":879.0,"note":"年報EPS 45.25"},
-    {"年度":2025,"EPS":66.25,"fallback_avg_price":1260.0,"note":"年報EPS 66.25"},
+# ===== V258.0 TSMC 31 MODEL TOURNAMENT START =====
+APP_VERSION = "V258.0 TSMC 31 Model Tournament"
+DB_VERSION = "TW-STOCK-20260628-V258"
+
+# V258 目標：避免 Top5 全部都是 PE 家族，改用「模型分組錦標賽」。
+# 先用台積電做完整測試：每組先選冠軍，再做 Group Champion / Top3 / Top5 / Top10 比較。
+# 注意：目前黃金資料集已確認 EPS 與年度平均股價；BVPS、FCF、EBITDA 尚未完全抽取，
+# 因此 PB/DCF/EVA/EBO/EV 類模型為 Alpha Proxy，用來測試「分組選模」流程，不作正式估值結論。
+
+V258_TSMC_MANUAL = pd.DataFrame([
+    {"年度":2021,"EPS":23.01,"fallback_avg_price":597.70,"note":"年報EPS 23.01"},
+    {"年度":2022,"EPS":39.20,"fallback_avg_price":516.25,"note":"年報EPS 39.20"},
+    {"年度":2023,"EPS":32.34,"fallback_avg_price":543.45,"note":"年報EPS 32.34"},
+    {"年度":2024,"EPS":45.25,"fallback_avg_price":889.06,"note":"年報EPS 45.25"},
+    {"年度":2025,"EPS":66.25,"fallback_avg_price":1163.15,"note":"年報EPS 66.25"},
 ])
 
-V257_MODEL_CONFIG = {
-    "PE歷史中位數": "pe_median",
-    "PE歷史平均": "pe_mean",
-    "PE近三年中位數": "pe_3y_median",
-    "PE近三年加權": "pe_3y_weighted",
-    "Forward PE成長修正": "forward_growth_pe",
-    "AI/HPC溢價PE": "ai_hpc_pe",
-    "EPS趨勢回歸": "eps_price_regression",
-    "動能PE混合": "momentum_pe_blend",
-    "盈餘能力價值EPV": "epv",
-    "指標盈餘Indexed": "indexed_earnings",
+V258_MODELS = {
+    # A. 價值派 / PE-PB-Residual
+    "PE歷史平均":        {"kind":"pe_mean",          "group":"A 價值派"},
+    "PE歷史中位數":      {"kind":"pe_median",        "group":"A 價值派"},
+    "PE近三年加權":      {"kind":"pe_3y_weighted",   "group":"A 價值派"},
+    "PE近三年中位數":    {"kind":"pe_3y_median",     "group":"A 價值派"},
+    "Earnings Power EPV": {"kind":"epv",             "group":"A 價值派"},
+    "Indexed Earnings":  {"kind":"indexed",          "group":"A 價值派"},
+    "EBO/RIM Proxy":     {"kind":"ebo_proxy",        "group":"A 價值派"},
+    "EVA Proxy":         {"kind":"eva_proxy",        "group":"A 價值派"},
+
+    # B. 現金流派（目前缺FCF，先用EPS與資本化 proxy 測流程）
+    "DCF-FCFF Proxy":    {"kind":"dcf_fcff_proxy",   "group":"B 現金流派"},
+    "DCF-FCFE Proxy":    {"kind":"dcf_fcfe_proxy",   "group":"B 現金流派"},
+    "Owner Earnings":    {"kind":"owner_earnings",   "group":"B 現金流派"},
+    "Reverse DCF Proxy": {"kind":"reverse_dcf",      "group":"B 現金流派"},
+    "CAP Proxy":         {"kind":"cap_proxy",        "group":"B 現金流派"},
+
+    # C. 成長派
+    "Forward PE成長修正": {"kind":"forward_growth_pe", "group":"C 成長派"},
+    "PEG簡化":           {"kind":"peg_simple",        "group":"C 成長派"},
+    "EPS CAGR PE":       {"kind":"eps_cagr_pe",       "group":"C 成長派"},
+    "AI/HPC Premium PE": {"kind":"ai_hpc_pe",         "group":"C 成長派"},
+    "Growth Adjusted PE": {"kind":"growth_adjusted_pe","group":"C 成長派"},
+    "Super Bull AI PE":  {"kind":"super_bull_ai_pe",  "group":"C 成長派"},
+
+    # D. 市場派
+    "動能PE混合":         {"kind":"momentum_pe_blend", "group":"D 市場派"},
+    "Relative PE Proxy": {"kind":"relative_pe",       "group":"D 市場派"},
+    "Market Multiple":   {"kind":"market_multiple",   "group":"D 市場派"},
+    "Price Trend Regression": {"kind":"price_trend_reg", "group":"D 市場派"},
+    "EPS-Price Regression":   {"kind":"eps_price_reg",  "group":"D 市場派"},
+
+    # E. 企業評價特殊派
+    "Asset Value Proxy":       {"kind":"asset_proxy",       "group":"E 特殊派"},
+    "Replacement Cost Proxy":  {"kind":"replacement_proxy", "group":"E 特殊派"},
+    "Option Pricing Proxy":    {"kind":"option_proxy",      "group":"E 特殊派"},
+    "SOTP Proxy":              {"kind":"sotp_proxy",        "group":"E 特殊派"},
+    "ESG Premium PE":          {"kind":"esg_premium_pe",    "group":"E 特殊派"},
+    "Quality Compounder":      {"kind":"quality_compounder", "group":"E 特殊派"},
+    "AI Infrastructure Composite": {"kind":"ai_infra_composite", "group":"E 特殊派"},
 }
 
-def v257_grade(mape):
+def v258_grade(mape):
     try:
         m=float(mape)
     except Exception:
@@ -6477,8 +6511,8 @@ def v257_grade(mape):
     return '淘汰'
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def v257_tsmc_dataset():
-    df = V257_TSMC_MANUAL.copy()
+def v258_tsmc_dataset():
+    df = V258_TSMC_MANUAL.copy()
     try:
         hist = yf.Ticker('2330.TW').history(start='2021-01-01', end='2026-01-01', interval='1d', auto_adjust=False)
         if hist is not None and not hist.empty and 'Close' in hist:
@@ -6495,194 +6529,248 @@ def v257_tsmc_dataset():
     df['股價成長率'] = df['平均股價'].pct_change()
     return df
 
-def v257_model_value(row, prev, model):
-    eps=float(row['EPS'])
+def _v258_hist_stats(prev):
     pe = pd.to_numeric(prev.get('PE', pd.Series(dtype=float)), errors='coerce').replace([np.inf,-np.inf], np.nan).dropna()
-    if len(pe)==0:
-        return np.nan
     eps_hist = pd.to_numeric(prev.get('EPS', pd.Series(dtype=float)), errors='coerce').dropna()
     price_hist = pd.to_numeric(prev.get('平均股價', pd.Series(dtype=float)), errors='coerce').dropna()
     g = pd.to_numeric(prev.get('EPS成長率', pd.Series(dtype=float)), errors='coerce').replace([np.inf,-np.inf], np.nan).dropna()
-    g3 = float(g.tail(3).median()) if len(g) else 0.08
-    g3 = min(max(g3, -0.25), 0.55)
-    pe_med=float(pe.median())
-    pe_mean=float(pe.mean())
-    pe_3y=float(pe.tail(3).median())
-    kind=V257_MODEL_CONFIG[model]
-    if kind=='pe_median':
-        return eps*pe_med
-    if kind=='pe_mean':
-        return eps*pe_mean
-    if kind=='pe_3y_median':
-        return eps*pe_3y
+    price_g = pd.to_numeric(prev.get('股價成長率', pd.Series(dtype=float)), errors='coerce').replace([np.inf,-np.inf], np.nan).dropna()
+    pe_med=float(pe.median()) if len(pe) else 18.0
+    pe_mean=float(pe.mean()) if len(pe) else 18.0
+    pe_3y=float(pe.tail(3).median()) if len(pe) else pe_med
+    g_med=float(g.tail(3).median()) if len(g) else 0.08
+    g_med=min(max(g_med, -0.25), 0.65)
+    pg=float(price_g.tail(2).mean()) if len(price_g) else 0.0
+    pg=min(max(pg, -0.35), 0.65)
+    return pe, eps_hist, price_hist, pe_med, pe_mean, pe_3y, g_med, pg
+
+def v258_model_value(row, prev, model):
+    eps=float(row['EPS'])
+    year=int(row['年度'])
+    pe, eps_hist, price_hist, pe_med, pe_mean, pe_3y, g, pg = _v258_hist_stats(prev)
+    if len(pe)==0:
+        return np.nan
+    kind=V258_MODELS[model]['kind']
+    # 價值派
+    if kind=='pe_mean': return eps*pe_mean
+    if kind=='pe_median': return eps*pe_med
+    if kind=='pe_3y_median': return eps*pe_3y
     if kind=='pe_3y_weighted':
         p=pe.tail(3).values
         w=np.arange(1,len(p)+1,dtype=float); w=w/w.sum()
         return eps*float(np.sum(p*w))
-    if kind=='forward_growth_pe':
-        # 成長修正PE：用歷史PE為底，依EPS成長率調整，但限制上限，避免過度樂觀。
-        adj = 1 + max(g3,0)*0.45
-        return eps*min(pe_med*adj, 38)
+    if kind=='epv': return eps/0.085*0.70
+    if kind=='indexed':
+        base=float(pe.iloc[0]) if len(pe) else pe_med
+        return eps*((base+pe_med+pe_3y)/3)
+    if kind=='ebo_proxy':
+        # 沒有BVPS前，先用EPS資本化+ROE品質折扣作proxy
+        return eps * min(max(pe_med*(1+max(g,0)*0.25), 12), 32) * 0.92
+    if kind=='eva_proxy':
+        spread=max(0.02, min(0.18, 0.25-0.09))
+        return eps * min(max(pe_med*(1+spread), 12), 34) * 0.90
+    # 現金流派 proxy
+    if kind=='dcf_fcff_proxy': return eps * min(max((1+g)/(0.09-0.03), 13), 33) * 0.72
+    if kind=='dcf_fcfe_proxy': return eps * min(max((1+g)/(0.095-0.035), 12), 32) * 0.70
+    if kind=='owner_earnings': return eps * min(max(pe_med*(1+max(g,0)*0.15), 12), 30) * 0.85
+    if kind=='reverse_dcf': return eps * min(max(pe_3y*(1+max(g,0)*0.20), 12), 34) * 0.88
+    if kind=='cap_proxy': return eps * min(max(pe_med*(1+max(g,0)*0.35), 12), 36) * 0.82
+    # 成長派
+    if kind=='forward_growth_pe': return eps * min(pe_med*(1+max(g,0)*0.45), 38)
+    if kind=='peg_simple':
+        gg=max(abs(g),0.05)*100
+        # PEG用法若直接用成長率常失真，限制合理範圍
+        return eps * min(max(gg*0.85, 12), 40)
+    if kind=='eps_cagr_pe': return eps * min(max(pe_med + max(g,0)*18, 12), 42)
     if kind=='ai_hpc_pe':
-        # 2024以後市場因AI/HPC重估，允許PE往近三年與35倍靠攏。
-        year=int(row['年度'])
         premium = 1.20 if year >= 2024 else 1.05
-        return eps*min(max(pe_3y*premium, pe_med), 40)
-    if kind=='eps_price_regression':
-        # 僅在前期樣本>=3時使用 EPS 對價格的一階回歸；不足時退回PE中位數。
-        if len(eps_hist) >= 3 and len(price_hist) >= 3:
+        return eps*min(max(pe_3y*premium, pe_med), 42)
+    if kind=='growth_adjusted_pe': return eps*min(max((0.55*pe_med+0.45*pe_3y)*(1+max(g,0)*0.55), 12), 42)
+    if kind=='super_bull_ai_pe':
+        premium = 1.35 if year >= 2024 else 1.08
+        return eps*min(max(pe_3y*premium, pe_med), 48)
+    # 市場派
+    if kind=='momentum_pe_blend':
+        pe_val=eps*pe_3y
+        if len(price_hist)>=2:
+            mom=float(price_hist.iloc[-1])*(1+pg)
+            return 0.60*pe_val+0.40*mom
+        return pe_val
+    if kind=='relative_pe': return eps * min(max(0.50*pe_med+0.50*pe_3y, 12), 38)
+    if kind=='market_multiple': return eps * min(max(pe_3y*(1+max(pg,0)*0.35), 12), 42)
+    if kind=='price_trend_reg':
+        if len(price_hist)>=3:
+            x=np.arange(len(price_hist), dtype=float); y=price_hist.values.astype(float)
+            try:
+                b,a=np.polyfit(x,y,1)
+                val=a+b*len(price_hist)
+                if val>0: return float(val)
+            except Exception: pass
+        return eps*pe_3y
+    if kind=='eps_price_reg':
+        if len(eps_hist)>=3 and len(price_hist)>=3:
             x=eps_hist.values.astype(float); y=price_hist.values.astype(float)
             try:
                 b,a=np.polyfit(x,y,1)
                 val=a+b*eps
-                if val>0:
-                    return float(val)
-            except Exception:
-                pass
+                if val>0: return float(val)
+            except Exception: pass
         return eps*pe_med
-    if kind=='momentum_pe_blend':
-        # 將估值PE與股價動能混合，避免只因EPS落後而低估重估行情。
-        pe_val=eps*pe_3y
-        if len(price_hist)>=2:
-            mom=float(price_hist.iloc[-1])*(1+min(max(float(prev['股價成長率'].dropna().tail(2).mean()),-0.25),0.45))
-            return 0.65*pe_val+0.35*mom
-        return pe_val
-    if kind=='epv':
-        # 盈餘能力價值：用權益成本資本化後折價，較適合穩定企業；台積電可能偏保守。
-        return eps/0.085*0.70
-    if kind=='indexed_earnings':
-        base=float(pe.iloc[0])
-        return eps*((base+pe_med+pe_3y)/3)
+    # 特殊派
+    if kind=='asset_proxy': return eps * min(max(pe_med*0.65, 8), 24)
+    if kind=='replacement_proxy': return eps * min(max(pe_med*0.75, 10), 28)
+    if kind=='option_proxy': return eps * min(max(pe_3y*(1+max(g,0)*0.65), 12), 44) * 0.90
+    if kind=='sotp_proxy': return eps * min(max(0.45*pe_med+0.35*pe_3y+0.20*30, 12), 42)
+    if kind=='esg_premium_pe': return eps * min(max(pe_med*1.05, 12), 36)
+    if kind=='quality_compounder': return eps * min(max((pe_med+pe_3y)/2*(1+0.25*max(g,0)), 12), 40)
+    if kind=='ai_infra_composite': return eps * min(max(0.35*pe_med+0.35*pe_3y+0.30*36, 12), 45)
     return np.nan
 
-def v257_single_backtest():
-    df=v257_tsmc_dataset().sort_values('年度').reset_index(drop=True)
+def v258_single_backtest():
+    df=v258_tsmc_dataset().sort_values('年度').reset_index(drop=True)
     rows=[]
     for i in range(1,len(df)):
         row=df.iloc[i]; prev=df.iloc[:i]
         actual=float(row['平均股價'])
-        for m in V257_MODEL_CONFIG:
-            val=v257_model_value(row,prev,m)
+        for m,meta in V258_MODELS.items():
+            val=v258_model_value(row,prev,m)
             if pd.notna(val) and val>0 and actual>0:
-                rows.append({'年度':int(row['年度']),'模型':m,'模型估值':float(val),'實際平均股價':actual,
+                rows.append({'年度':int(row['年度']),'模型':m,'模型群組':meta['group'],'模型估值':float(val),'實際平均股價':actual,
                              '偏離%':(float(val)/actual-1)*100,'誤差%':abs(float(val)/actual-1)*100})
     detail=pd.DataFrame(rows)
     if detail.empty:
         return df, detail, pd.DataFrame()
-    summary=detail.groupby('模型').agg(
+    summary=detail.groupby(['模型','模型群組']).agg(
         MAPE=('誤差%','mean'),
         RMSE=('誤差%', lambda x: float(np.sqrt(np.mean(np.square(x))))),
         最大誤差=('誤差%','max'),
         測試年數=('誤差%','count')
     ).reset_index().sort_values('MAPE')
-    summary['評級']=summary['MAPE'].apply(v257_grade)
+    summary['評級']=summary['MAPE'].apply(v258_grade)
     return df, detail, summary
 
-def v257_rolling_composite_backtest(detail):
-    if detail is None or detail.empty:
-        return pd.DataFrame()
+def v258_champions(summary):
+    if summary.empty: return pd.DataFrame()
+    return summary.sort_values('MAPE').groupby('模型群組', as_index=False).head(1).sort_values('MAPE')
+
+def v258_portfolio_backtest(detail, summary):
+    if detail is None or detail.empty: return pd.DataFrame()
     years=sorted(detail['年度'].unique())
     out=[]
-    # 從第三個測試年度開始，先用過去年度的模型誤差決定Top3/Top5，再預測該年度。
     for y in years:
         past=detail[detail['年度']<y]
         curr=detail[detail['年度']==y]
-        if past.empty or curr.empty:
-            continue
-        rank=past.groupby('模型').agg(MAPE=('誤差%','mean')).reset_index().sort_values('MAPE')
-        for n in [1,3,5]:
-            chosen=rank.head(n)['模型'].tolist()
+        if past.empty or curr.empty: continue
+        rank=past.groupby(['模型','模型群組']).agg(MAPE=('誤差%','mean')).reset_index().sort_values('MAPE')
+        champ=rank.groupby('模型群組', as_index=False).head(1).sort_values('MAPE')
+        schemes={
+            '單一最佳模型': rank.head(1)['模型'].tolist(),
+            'Top3全模型': rank.head(3)['模型'].tolist(),
+            'Top5全模型': rank.head(5)['模型'].tolist(),
+            'Top10全模型': rank.head(10)['模型'].tolist(),
+            '五大群組冠軍': champ['模型'].tolist(),
+        }
+        # Group Top5：若群組不足5，使用可用群組冠軍。
+        for name, chosen in schemes.items():
             c=curr[curr['模型'].isin(chosen)].merge(rank[['模型','MAPE']], on='模型', how='left')
-            if c.empty:
-                continue
+            if c.empty: continue
             c['權重']=1/c['MAPE'].clip(lower=1)
             c['權重']=c['權重']/c['權重'].sum()
             fair=float((c['模型估值']*c['權重']).sum())
             actual=float(c['實際平均股價'].iloc[0])
-            out.append({'年度':int(y),'方案':('單一最佳模型' if n==1 else f'Top{n}誤差反比加權'),
-                        '使用模型':'、'.join(chosen),'模型估值':fair,'實際平均股價':actual,
+            out.append({'年度':int(y),'方案':name,'使用模型':'、'.join(chosen),'模型估值':fair,'實際平均股價':actual,
                         '偏離%':(fair/actual-1)*100,'誤差%':abs(fair/actual-1)*100})
     res=pd.DataFrame(out)
-    if res.empty:
-        return res
     return res
 
-def v257_current_composite(summary, df, forward_eps=None):
+def v258_current_composites(summary, df, forward_eps=None):
     price=v254_decision('2330.TW').get('price',np.nan)
     if pd.isna(price) or price<=0:
         price=float(df['平均股價'].iloc[-1])
-    base=df.copy()
-    eps=float(forward_eps) if forward_eps and forward_eps>0 else float(base['EPS'].iloc[-1])
-    row=base.iloc[-1].copy(); row['EPS']=eps; row['年度']=2026 if forward_eps and forward_eps>0 else int(row['年度'])
-    prev=base.copy()
+    eps=float(forward_eps) if forward_eps and forward_eps>0 else float(df['EPS'].iloc[-1])
+    row=df.iloc[-1].copy(); row['EPS']=eps; row['年度']=2026 if forward_eps and forward_eps>0 else int(row['年度'])
+    prev=df.copy()
     rows=[]
     for _,s in summary.sort_values('MAPE').iterrows():
-        m=s['模型']; val=v257_model_value(row,prev,m)
+        m=s['模型']; val=v258_model_value(row,prev,m)
         if pd.notna(val) and val>0:
-            rows.append({'模型':m,'MAPE%':round(float(s['MAPE']),2),'評級':s['評級'],'合理價':float(val),'現價':float(price),'與現價偏離%':(float(val)/float(price)-1)*100})
+            rows.append({'模型':m,'模型群組':s['模型群組'],'MAPE%':round(float(s['MAPE']),2),'評級':s['評級'],
+                         '合理價':float(val),'現價':float(price),'與現價偏離%':(float(val)/float(price)-1)*100})
     cur=pd.DataFrame(rows).sort_values('MAPE%') if rows else pd.DataFrame()
     comps=[]
-    for n in [3,5]:
-        b=cur.head(n).copy()
+    if cur.empty: return cur, pd.DataFrame()
+    schemes={
+        '單一最佳模型': cur.head(1)['模型'].tolist(),
+        'Top3全模型': cur.head(3)['模型'].tolist(),
+        'Top5全模型': cur.head(5)['模型'].tolist(),
+        'Top10全模型': cur.head(10)['模型'].tolist(),
+        '五大群組冠軍': cur.sort_values('MAPE%').groupby('模型群組', as_index=False).head(1).sort_values('MAPE%')['模型'].tolist(),
+    }
+    for name, chosen in schemes.items():
+        b=cur[cur['模型'].isin(chosen)].copy()
         if b.empty: continue
         b['權重']=1/b['MAPE%'].clip(lower=1)
         b['權重']=b['權重']/b['權重'].sum()
         fair=float((b['合理價']*b['權重']).sum())
         err=float((b['MAPE%']*b['權重']).sum())/100
-        comps.append({'方案':f'Top{n}誤差反比加權','使用模型':'、'.join(b['模型'].astype(str).tolist()),
+        comps.append({'方案':name,'使用模型':'、'.join(b['模型'].astype(str).tolist()),
                       '加權MAPE%':round(err*100,2),'保守價':round(fair*(1-err),2),'合理價':round(fair,2),'樂觀價':round(fair*(1+err),2),
                       '現價':round(float(price),2),'與現價偏離%':round((fair/price-1)*100,2)})
     return cur, pd.DataFrame(comps)
 
 def model_validation_alpha_page():
-    st.header('🧪 台積電 Model Lab — Top3 / Top5 驗證')
-    st.info('V257：先把台積電測完整，正式比較單一模型、Top3、Top5。若偏離現價太大，代表需要修正模型或該模型不適用。')
-    sym = st.selectbox('選擇測試公司', ['2330.TW'], index=0, format_func=lambda s: f"{STOCK_DB.get(s,{}).get('name',s)} / {s}")
-    df, detail, summary = v257_single_backtest()
+    st.header('🏆 台積電 31 Model Tournament — 模型錦標賽')
+    st.info('V258：把模型分成價值派、現金流派、成長派、市場派、特殊派；每組先選冠軍，再比較 Top3 / Top5 / Top10 / 群組冠軍，避免 Top5 全部都是同一類 PE 模型。')
+    st.selectbox('選擇測試公司', ['2330.TW'], index=0, format_func=lambda s: f"{STOCK_DB.get(s,{}).get('name',s)} / {s}")
+    df, detail, summary = v258_single_backtest()
     price=v254_decision('2330.TW').get('price',np.nan)
     c1,c2,c3,c4=st.columns(4)
     c1.metric('目前現價', v230_fmt(price))
     c2.metric('年報最新EPS', f"{df['EPS'].iloc[-1]:.2f}")
     c3.metric('近五年EPS CAGR', f"{((df['EPS'].iloc[-1]/df['EPS'].iloc[0])**(1/(len(df)-1))-1)*100:.1f}%")
-    c4.metric('資料年數', f"{len(df)}年")
+    c4.metric('測試模型數', f"{len(V258_MODELS)}個")
 
-    with st.expander('台積電黃金資料集（EPS + 年度平均股價）', expanded=True):
+    with st.expander('台積電黃金資料集（EPS + 年度平均股價）', expanded=False):
         show=df[['年度','EPS','平均股價','PE','EPS成長率','股價成長率','note']].copy()
         for col in ['EPS','平均股價','PE','EPS成長率','股價成長率']:
             show[col]=pd.to_numeric(show[col], errors='coerce').round(2)
         st.dataframe(show, use_container_width=True, hide_index=True)
-        st.caption('EPS 來自使用者上傳年報；年度平均股價優先抓 Yahoo Finance，抓不到則用 fallback。')
+        st.caption('EPS 來自台積電年報；年度平均股價優先抓 Yahoo Finance，抓不到則用 fallback。')
 
-    st.subheader('一、單一模型回測排名')
+    st.subheader('一、31模型總排行榜')
     st.dataframe(summary.round(2), use_container_width=True, hide_index=True)
 
-    roll=v257_rolling_composite_backtest(detail)
-    st.subheader('二、單一最佳 vs Top3 vs Top5：滾動回測')
+    st.subheader('二、五大流派冠軍')
+    champ=v258_champions(summary)
+    st.dataframe(champ.round(2), use_container_width=True, hide_index=True)
+
+    st.subheader('三、方案比較：單一 / Top3 / Top5 / Top10 / 群組冠軍')
+    roll=v258_portfolio_backtest(detail, summary)
     if roll.empty:
         st.warning('年度樣本不足，無法產生滾動組合回測。')
     else:
-        comp_sum=roll.groupby('方案').agg(MAPE=('誤差%','mean'), RMSE=('誤差%', lambda x: float(np.sqrt(np.mean(np.square(x))))), 測試年數=('誤差%','count')).reset_index().sort_values('MAPE')
-        comp_sum['評級']=comp_sum['MAPE'].apply(v257_grade)
-        st.dataframe(comp_sum.round(2), use_container_width=True, hide_index=True)
-        best=comp_sum.iloc[0]
+        comp=roll.groupby('方案').agg(MAPE=('誤差%','mean'), RMSE=('誤差%', lambda x: float(np.sqrt(np.mean(np.square(x))))), 測試年數=('誤差%','count')).reset_index().sort_values('MAPE')
+        comp['評級']=comp['MAPE'].apply(v258_grade)
+        st.dataframe(comp.round(2), use_container_width=True, hide_index=True)
+        best=comp.iloc[0]
         st.success(f"目前台積電較佳方案：{best['方案']}｜MAPE {best['MAPE']:.2f}%｜評級 {best['評級']}")
         with st.expander('組合逐年回測明細', expanded=False):
             st.dataframe(roll.round(2), use_container_width=True, hide_index=True)
 
-    st.subheader('三、目前估值：Top3 / Top5 比較')
+    st.subheader('四、目前估值：不同組合比較')
     default_forward=float(df['EPS'].iloc[-1])*1.15
-    forward_eps=st.number_input('Forward EPS 假設（可先留預設；用來測試AI/HPC成長溢價）', min_value=0.0, value=round(default_forward,2), step=1.0)
-    cur, comps=v257_current_composite(summary, df, forward_eps=forward_eps)
+    forward_eps=st.number_input('Forward EPS 假設（用來測試AI/HPC成長溢價）', min_value=0.0, value=round(default_forward,2), step=1.0)
+    cur, comps=v258_current_composites(summary, df, forward_eps=forward_eps)
     if not comps.empty:
         st.dataframe(comps, use_container_width=True, hide_index=True)
-        t=comps.iloc[0]
+        best_row=comps.iloc[(comps['與現價偏離%'].abs()).argsort()].iloc[0] if '與現價偏離%' in comps.columns else comps.iloc[0]
         c1,c2,c3,c4=st.columns(4)
-        c1.metric('建議方案', t['方案'])
-        c2.metric('合理價', v230_fmt(t['合理價']))
-        c3.metric('加權MAPE', f"{t['加權MAPE%']:.2f}%")
-        c4.metric('與現價偏離', f"{t['與現價偏離%']:.1f}%")
-        if abs(float(t['與現價偏離%']))>35:
-            st.warning('目前估值與現價偏離超過35%，不建議直接納入低估排行；需加入更多財報欄位或重新校正模型。')
+        c1.metric('最接近現價方案', best_row['方案'])
+        c2.metric('合理價', v230_fmt(best_row['合理價']))
+        c3.metric('加權MAPE', f"{best_row['加權MAPE%']:.2f}%")
+        c4.metric('與現價偏離', f"{best_row['與現價偏離%']:.1f}%")
+        if abs(float(best_row['與現價偏離%']))>35:
+            st.warning('目前估值與現價偏離超過35%，不建議直接納入低估排行；需補 BVPS/FCF/EBITDA 或重新校正模型。')
     with st.expander('目前各單一模型估值', expanded=False):
         if not cur.empty:
             show=cur.copy(); show['合理價']=show['合理價'].round(2); show['與現價偏離%']=show['與現價偏離%'].round(2)
@@ -6697,7 +6785,7 @@ def settings_page():
     st.write('系統版本：', APP_VERSION)
     st.write('資料庫版本：', DB_VERSION)
     st.write('資料庫股票數：', len(STOCK_DB))
-    st.info('V257：台積電 Model Lab，正式比較單一模型、Top3、Top5，並加入 Forward EPS 假設測試。')
+    st.info('V258：台積電 31 Model Tournament，新增模型分組、流派冠軍、Top10與群組冠軍比較。')
     v254_health_dashboard()
 
 def sidebar_nav():
@@ -6707,10 +6795,10 @@ def sidebar_nav():
     q = st.sidebar.text_input('快速搜尋', placeholder='2330、台積電、2308、台達電')
     if q:
         set_active(q)
-    st.sidebar.caption('V257：台積電Model Lab，先找出合理估值方法。')
+    st.sidebar.caption('V258：台積電31模型錦標賽，先找出合理估值引擎。')
     return page
 
-# ===== V257.0 TSMC MODEL LAB END =====
+# ===== V258.0 TSMC 31 MODEL TOURNAMENT END =====
 
 if __name__ == '__main__':
     main()
