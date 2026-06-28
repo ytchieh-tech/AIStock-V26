@@ -6,7 +6,7 @@ import numpy as np
 import yfinance as yf
 import streamlit as st
 
-APP_VERSION = "V233.0 Live Price Ranking Fix"
+APP_VERSION = "V240.0 Version Fix + Completion Dashboard"
 APP_NAME = "智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -3357,7 +3357,7 @@ def v237_global_detail_panel(row):
 
 
 # ===== V239.0 INDUSTRY/GLOBAL SPLIT + CUSTOMER SOURCE CONFIDENCE START =====
-APP_VERSION = "V239.0 Industry-Global Split + More Price Coverage"
+APP_VERSION = "V240.0 Version Fix + Completion Dashboard"
 
 # V239 重點：
 # 1) 產業分析與全球競爭力分工：產業分析看「類股/子產業」，全球競爭力看「單一公司完整客戶/競爭者」。
@@ -3520,6 +3520,185 @@ def global_competition_page():
         pass
 
 # ===== V239.0 INDUSTRY/GLOBAL SPLIT + CUSTOMER SOURCE CONFIDENCE END =====
+
+# ===== V240.0 VERSION FIX + COMPLETION DASHBOARD START =====
+APP_VERSION = "V240.0 Version Fix + Completion Dashboard"
+DB_VERSION = "TW-STOCK-20260628-V240"
+
+# 繼續補齊較常被搜尋的傳產、金融、通路、電子零組件；先提供可搜尋與估值區間，深度客戶資料持續校正。
+V240_EXTRA_STOCKS = {
+    "1101.TW": _v238_stock("台泥","水泥/建材","水泥/低碳建材","台灣水泥龍頭","★★★★☆","台灣水泥、預拌混凝土與低碳建材主要供應商","亞泥、環泥、國際水泥廠","中高：品牌、通路、礦源與能源轉型布局","房市、公共工程、煤價與碳成本",1.02,"水泥、基建、低碳材料","上游建材","台灣水泥龍頭","營建商、公共工程、預拌混凝土客戶"),
+    "1102.TW": _v238_stock("亞泥","水泥/建材","水泥/建材","台灣水泥主要廠","★★★★☆","水泥與建材主要供應商，具兩岸市場布局","台泥、環泥、國際水泥廠","中高：產能、礦源、通路與集團資源","中國需求、煤價、碳成本",1.02,"水泥、基建、低碳材料","上游建材","台灣水泥主要廠","營建商、公共工程、建材通路"),
+    "1216.TW": _v238_stock("統一","食品/通路","食品/飲料/通路","台灣食品龍頭","★★★★★","台灣食品、飲料、通路與消費品牌龍頭","味全、聯華食、國際食品品牌","高：品牌、通路、產品組合與集團資源","原物料、消費力、匯率",1.04,"食品、通路、民生消費","下游消費品牌","台灣食品龍頭","超商、量販、餐飲通路與終端消費者"),
+    "2912.TW": _v238_stock("統一超","食品/通路","便利商店","台灣超商龍頭","★★★★★","台灣便利商店與零售通路龍頭","全家、萊爾富、OK、量販通路","高：門市密度、會員數據、物流與品牌","展店飽和、工資、租金與消費景氣",1.05,"通路、零售、民生消費","終端零售通路","台灣便利商店#1","消費者、品牌供應商、電商與物流合作夥伴"),
+    "5903.TW": _v238_stock("全家","食品/通路","便利商店","台灣超商主要廠","★★★★☆","台灣便利商店與零售服務主要業者","統一超、萊爾富、OK","中高：會員、展店、物流與鮮食能力","競爭、工資、租金、消費景氣",1.04,"通路、零售、民生消費","終端零售通路","台灣便利商店#2","消費者、品牌供應商、物流與電商合作夥伴"),
+    "1301.TW": _v238_stock("台塑","塑化/材料","PVC/石化原料","台灣石化龍頭之一","★★★★☆","PVC、石化原料與塑膠材料大型供應商","南亞、台化、國際石化廠","中高：一貫化、規模與集團供應鏈","油價、景氣循環、中國產能",1.01,"塑化、材料、景氣循環","上游石化材料","台灣石化龍頭之一","塑膠加工、建材、工業材料客戶"),
+    "1303.TW": _v238_stock("南亞","塑化/材料","塑膠/電子材料","塑化與電子材料大廠","★★★★☆","塑化、聚酯、電子材料與銅箔基板相關供應商","台塑、台化、台光電、國際材料廠","中高：材料技術、規模與集團資源","景氣循環、油價、電子材料需求",1.02,"塑化、電子材料、銅箔基板","上游材料","塑化與電子材料大廠","電子、塑膠加工、工業材料客戶"),
+    "1326.TW": _v238_stock("台化","塑化/材料","芳香烴/纖維/石化","石化與纖維大廠","★★★★☆","芳香烴、纖維、塑化原料大型供應商","台塑、南亞、中石化、國際石化廠","中高：石化一貫化與規模經濟","油價、利差、中國產能與景氣循環",1.01,"塑化、纖維、景氣循環","上游石化材料","台灣石化主要廠","紡織、塑膠加工、工業材料客戶"),
+    "2881.TW": _v238_stock("富邦金","金融","金控/壽險/銀行","大型民營金控","★★★★☆","台灣大型金控，涵蓋壽險、銀行、證券與產險","國泰金、中信金、國際金控","中高：金融通路、資本實力、保險與銀行整合","利率、匯率、股債市波動、信用風險",1.03,"金融、金控、壽險","金融服務","台灣大型金控","存戶、保戶、企業金融與投資客戶"),
+    "2882.TW": _v238_stock("國泰金","金融","金控/壽險/銀行","大型民營金控","★★★★☆","台灣大型金控，壽險與銀行為核心業務","富邦金、中信金、兆豐金","中高：壽險規模、銀行通路、品牌與資本實力","利率、匯率、資本市場、保險準備金",1.03,"金融、金控、壽險","金融服務","台灣大型金控","存戶、保戶、企業金融與財富管理客戶"),
+    "2891.TW": _v238_stock("中信金","金融","金控/銀行","大型民營金控","★★★★☆","銀行、壽險與海外金融布局完整的大型金控","富邦金、國泰金、玉山金、兆豐金","中高：銀行通路、信用卡、企業金融與海外布局","利差、信用風險、資本市場波動",1.03,"金融、金控、銀行","金融服務","台灣大型銀行金控","個人金融、企業金融、財富管理客戶"),
+    "2886.TW": _v238_stock("兆豐金","金融","公股金控/銀行","大型公股金控","★★★★☆","以銀行與外匯業務為核心的大型公股金控","第一金、合庫金、華南金、臺企銀","中高：公股資源、外匯業務、企業金融客戶","利差、信用風險、政策與景氣循環",1.02,"金融、銀行、公股金控","金融服務","大型公股金控","企業金融、外匯、存戶與政府相關客戶"),
+    "2603.TW": _v238_stock("長榮","航運","貨櫃航運","全球貨櫃航運主要業者","★★★★☆","全球貨櫃航運主要公司，受運價循環影響大","陽明、萬海、Maersk、MSC、CMA CGM","中高：船隊、航線、成本與聯盟資源","運價循環、油價、地緣政治、供需失衡",1.04,"航運、貨櫃、景氣循環","全球物流運輸","全球貨櫃航運主要業者","出口商、進口商、物流承攬商與全球供應鏈客戶"),
+    "2609.TW": _v238_stock("陽明","航運","貨櫃航運","台灣貨櫃航運主要業者","★★★★☆","台灣貨櫃航運主要公司，受運價循環影響大","長榮、萬海、Maersk、MSC","中：航線、船隊與聯盟合作","運價、油價、船舶供給、全球貿易",1.03,"航運、貨櫃、景氣循環","全球物流運輸","台灣貨櫃航運主要業者","出口商、進口商與物流承攬商"),
+    "2615.TW": _v238_stock("萬海","航運","貨櫃航運/亞洲線","亞洲線貨櫃航運主要業者","★★★☆☆","以亞洲區域航線為核心的貨櫃航運公司","長榮、陽明、區域航商","中：亞洲航線、船隊與營運彈性","亞洲線運價、油價、供需循環",1.03,"航運、貨櫃、亞洲線","區域物流運輸","亞洲線貨櫃航運主要業者","亞洲區出口商、進口商與物流客戶"),
+    "2002.TW": _v238_stock("中鋼","鋼鐵","一貫作業鋼廠","台灣鋼鐵龍頭","★★★★☆","台灣一貫作業鋼鐵龍頭，供應汽車、營建、機械等產業","中鴻、豐興、國際鋼廠","中高：規模、產品線與關鍵工業材料地位","鋼價、原料、景氣循環、中國供給",1.01,"鋼鐵、基建、景氣循環","上游鋼鐵材料","台灣鋼鐵龍頭","汽車、營建、機械、家電與製造業客戶"),
+    "2014.TW": _v238_stock("中鴻","鋼鐵","熱軋/冷軋鋼品","中鋼集團鋼品廠","★★★☆☆","熱軋、冷軋與鋼品供應商，中鋼集團成員","中鋼、燁輝、盛餘、國際鋼廠","中：集團資源與鋼品通路","鋼價、原料、下游需求",1.00,"鋼鐵、鋼品、景氣循環","中游鋼品加工","台灣鋼品主要廠","製造、營建、加工與外銷客戶"),
+    "1402.TW": _v238_stock("遠東新","紡織/材料","聚酯/紡織/零售","聚酯與紡織整合大廠","★★★★☆","聚酯、紡織、零售與轉投資多元布局公司","新纖、力麗、國際紡織廠","中高：垂直整合、品牌客戶與集團資產","原料、匯率、消費需求與景氣循環",1.02,"紡織、聚酯、資產","中上游材料/紡織","台灣紡織聚酯龍頭之一","國際品牌、成衣、工業材料與零售客戶"),
+    "2105.TW": _v238_stock("正新","橡膠/輪胎","輪胎","全球輪胎主要業者","★★★★☆","汽機車、自行車與工業輪胎主要供應商","建大、普利司通、米其林、固特異","中高：品牌、通路、製造規模","橡膠價格、車市循環、匯率與競爭",1.02,"輪胎、汽車零組件、消費","下游輪胎品牌","全球輪胎主要業者","汽車通路、機車、自行車、OEM與替換胎市場"),
+    "9910.TW": _v238_stock("豐泰","運動用品","製鞋/運動鞋代工","全球運動鞋代工主要廠","★★★★☆","國際運動品牌鞋類代工主要供應商","寶成、鈺齊-KY、國際製鞋廠","中高：製造能力、客戶認證與海外布局","品牌訂單、工資、匯率與庫存循環",1.03,"製鞋、運動用品、品牌供應鏈","下游代工製造","全球運動鞋代工主要廠","Nike等國際運動品牌與通路市場"),
+}
+try:
+    for _sym, _upd in V240_EXTRA_STOCKS.items():
+        STOCK_DB[_sym] = {**STOCK_DB.get(_sym, {}), **_upd}
+    ALIASES.clear()
+    for _sym, _v in STOCK_DB.items():
+        ALIASES[_sym.upper()] = _sym
+        ALIASES[_sym.split('.')[0]] = _sym
+        ALIASES[_v.get('name', _sym)] = _sym
+        ALIASES[_v.get('name', _sym).upper()] = _sym
+    OTC_CODES = {s.split('.')[0] for s in STOCK_DB if s.endswith('.TWO')}
+except Exception:
+    pass
+
+def v240_completion_counts(df=None):
+    if df is None:
+        df = v230_rows_df()
+    total = len(df) if df is not None else 0
+    def good_col(col):
+        if df is None or col not in df.columns:
+            return 0
+        s = df[col].fillna('').astype(str).str.strip()
+        return int(((s != '') & (~s.isin(['待補','nan','None','N/A']))).sum())
+    valuation = good_col('綜合合理價') if '綜合合理價' in df.columns else total
+    return {
+        '個股資料庫': total,
+        '完成估值': valuation,
+        '完成競爭力': good_col('全球競爭力'),
+        '完成主要客戶': good_col('主要客戶'),
+        '完成產業鏈位置': good_col('產業鏈位置'),
+        '資料庫版本': DB_VERSION,
+    }
+
+def v240_system_dashboard(df=None):
+    if df is None:
+        df = v230_rows_df()
+    c = v240_completion_counts(df)
+    st.markdown('### 📊 資料庫完成度')
+    cols = st.columns(5)
+    cols[0].metric('系統版本', APP_VERSION)
+    cols[1].metric('個股資料庫', c['個股資料庫'])
+    cols[2].metric('完成估值', c['完成估值'])
+    cols[3].metric('完成主要客戶', c['完成主要客戶'])
+    cols[4].metric('完成競爭力', c['完成競爭力'])
+    st.caption(f"資料庫版本：{DB_VERSION}｜估值區間先以現價 × 產業乘數區間建立；深度DCF/EVA/EBO會逐步補在研究院/Pro版。")
+
+# 覆蓋首頁：修正右上角仍顯示 V233 的問題，並加入資料庫完成度儀表板。
+def home():
+    v230_css()
+    if 'v227_active_symbol' not in st.session_state:
+        st.session_state['v227_active_symbol'] = '2330.TW'
+    now_show = datetime.now().strftime('%Y/%m/%d %H:%M')
+    st.markdown(f"""
+    <div class="v230-topbar">
+      <div>
+        <div class="v230-brand">📈 智策股市 AI 決策平台</div>
+        <div class="v230-sub">企業價值研究平台｜產業鏈 × 全球競爭力 × 財務預測 × 合理價推估</div>
+      </div>
+      <div class="v230-version">{APP_VERSION}<br>{now_show}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    q = st.text_input('搜尋公司名稱 / 代號 / 產業 / 主題標籤', placeholder='例如：2330、台積電、2313、華通、低軌衛星、CoWoS', key='v240_search')
+    if str(q or '').strip():
+        st.session_state['v227_active_symbol'] = v230_symbol(q)
+    df = v230_rows_df()
+    if df.empty:
+        st.warning('資料庫尚未載入。')
+        return
+    rank = v231_rank_table(df)
+    total = len(df)
+    hot_ind = df['產業'].nunique()
+    hot_theme = len(set('、'.join(df['主題標籤'].fillna('').astype(str)).split('、'))) if '主題標籤' in df.columns else 0
+    ai9 = int((pd.to_numeric(df['AI受惠度'], errors='coerce').fillna(0) >= 9).sum()) if 'AI受惠度' in df.columns else 0
+    valid_price = int(rank['現價'].notna().sum()) if not rank.empty else 0
+    global5 = int(df['全球競爭力'].astype(str).str.contains('★★★★★', regex=False).sum()) if '全球競爭力' in df.columns else 0
+    st.markdown(f"""
+    <div class="v230-kpi-grid">
+      <div class="v230-kpi"><div class="v230-kpi-icon">🔥</div><div class="v230-kpi-label">熱門產業</div><div class="v230-kpi-value">{hot_ind}</div><div class="v230-kpi-note">涵蓋主要主產業</div></div>
+      <div class="v230-kpi"><div class="v230-kpi-icon">🏆</div><div class="v230-kpi-label">個股資料庫</div><div class="v230-kpi-value">{total}</div><div class="v230-kpi-note">持續補齊中</div></div>
+      <div class="v230-kpi"><div class="v230-kpi-icon">🏷️</div><div class="v230-kpi-label">主題標籤</div><div class="v230-kpi-value">{hot_theme}</div><div class="v230-kpi-note">可多重歸屬</div></div>
+      <div class="v230-kpi"><div class="v230-kpi-icon">💹</div><div class="v230-kpi-label">有效現價</div><div class="v230-kpi-value">{valid_price}</div><div class="v230-kpi-note">Yahoo Finance</div></div>
+      <div class="v230-kpi"><div class="v230-kpi-icon">🤖</div><div class="v230-kpi-label">AI高受惠</div><div class="v230-kpi-value">{ai9}</div><div class="v230-kpi-note">AI受惠度 ≥ 9</div></div>
+      <div class="v230-kpi"><div class="v230-kpi-icon">🌏</div><div class="v230-kpi-label">全球強勢</div><div class="v230-kpi-value">{global5}</div><div class="v230-kpi-note">★★★★★</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+    v240_system_dashboard(df)
+    st.markdown('### 核心快速查詢')
+    quick = [('台積電','2330'),('華通','2313'),('昇達科','3491'),('廣達','2382'),('奇鋐','3017'),('聯鈞','3450')]
+    cols = st.columns(len(quick))
+    for col, (name, code_) in zip(cols, quick):
+        with col:
+            if st.button(name, key=f'v240_quick_{code_}', use_container_width=True):
+                st.session_state['v227_active_symbol'] = v230_symbol(code_)
+                st.rerun()
+    with st.expander('排行計算標準', expanded=False):
+        st.markdown("""
+        **V240 修正重點：** 版本顯示已同步修正，不再固定顯示 V233。  
+        低估排行仍以 `預期報酬 = (綜合合理價 - 現價) ÷ 現價` 計算。  
+        現價優先抓 Yahoo Finance 最近價格；抓不到現價者不列入低估排行，避免錯誤價格造成排行失真。
+        """)
+    tab1, tab2, tab3, tab4 = st.tabs(['熱門個股', '低估排行', 'AI受惠排行', '全球競爭力排行'])
+    with tab1:
+        show = df.copy(); show['_stars'] = show['全球競爭力'].astype(str).str.count('★')
+        show = show.sort_values(['AI受惠度','_stars'], ascending=False).head(10)
+        st.dataframe(show[['公司','代碼','產業','子產業','AI受惠度','全球競爭力','產業地位']], use_container_width=True, hide_index=True)
+    with tab2:
+        low = rank.dropna(subset=['現價','綜合合理價','預期報酬%'])
+        low = low[low['現價'] > 0].sort_values('預期報酬%', ascending=False).head(10)
+        st.dataframe(v231_fmt_rank(low[['公司','代碼','產業','子產業','現價','綜合合理價','預期報酬%','AI受惠度']]), use_container_width=True, hide_index=True)
+    with tab3:
+        ai = df.sort_values('AI受惠度', ascending=False).head(15)
+        st.dataframe(ai[['公司','代碼','產業','子產業','AI受惠度','全球競爭力','主要客戶']], use_container_width=True, hide_index=True)
+    with tab4:
+        g = df.copy(); g['_stars'] = g['全球競爭力'].astype(str).str.count('★')
+        g = g.sort_values(['_stars','AI受惠度'], ascending=False).head(15)
+        st.dataframe(g[['公司','代碼','產業','子產業','全球競爭力','全球排名','全球市占率']], use_container_width=True, hide_index=True)
+
+# 修正 main() 呼叫的是 competition_page，但 V239 新版函式名是 global_competition_page。
+try:
+    competition_page = global_competition_page
+except Exception:
+    pass
+
+# 設定頁也顯示完成度，方便確認雲端部署是否為最新版。
+def settings_page():
+    st.header('⚙️ 設定')
+    st.write('系統版本：', APP_VERSION)
+    st.write('資料庫版本：', DB_VERSION)
+    st.write('資料庫股票數：', len(STOCK_DB))
+    try:
+        v240_system_dashboard(v230_rows_df())
+    except Exception:
+        pass
+    st.info('公開版不顯示模型權重；深度估值模型會逐步放入研究院/Pro版。')
+
+# 覆蓋 main，讓設定頁使用新版 settings_page。
+def main():
+    page = sidebar_nav()
+    if page in ['🏠 首頁','📈 股票分析']:
+        home()
+    elif page == '🏭 產業分析':
+        industry_page()
+    elif page == '🌏 全球競爭力':
+        competition_page()
+    elif page == '🏢 企業價值研究院':
+        valuation_page()
+    elif page == '⭐ 自選股':
+        watchlist()
+    else:
+        settings_page()
+
+# ===== V240.0 VERSION FIX + COMPLETION DASHBOARD END =====
 
 if __name__ == '__main__':
     main()
