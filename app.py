@@ -2415,7 +2415,7 @@ def v107_premium_home(): home()
 # 3) 繼續補齊個股資料
 # 4) 修正 V233 v230_decision 遞迴覆寫問題
 
-APP_VERSION = "V234.0 Mobile + Customer Data Fix"
+APP_VERSION = "V235.0 Full Valuation Range + Customer Expansion"
 
 V234_CUSTOMER_UPDATES = {
     "2330.TW": {"customers":"Apple、NVIDIA、AMD、Qualcomm、MediaTek、Broadcom、Marvell、Tesla 等全球IC與AI/HPC客戶"},
@@ -2702,6 +2702,236 @@ def competition_page():
     except Exception:
         pass
 # ===== V234.0 MOBILE CSS + MAIN CUSTOMERS + STOCK DATA EXPANSION END =====
+
+
+# ===== V235.0 FULL VALUATION RANGE + CUSTOMER EXPANSION START =====
+# 目標：所有資料庫個股都能產生「安全邊際價 / 合理價 / 潛在價」三段股價區間，並逐步補齊主要客戶與供應鏈位置。
+
+V235_CUSTOMER_PATCH = {
+    "2330.TW": {"customers":"Apple、NVIDIA、AMD、Qualcomm、Broadcom、MediaTek、Marvell、Sony、Tesla供應鏈", "ai_customers":"NVIDIA、AMD、Broadcom、Marvell、Google TPU供應鏈、AWS Trainium供應鏈", "chain_position":"AI/HPC晶圓代工核心", "market_share":"全球晶圓代工#1"},
+    "2303.TW": {"customers":"Qualcomm、MediaTek、Realtek、Novatek、車用/工控IC客戶", "ai_customers":"邊緣AI與成熟製程電源/車用客戶", "chain_position":"成熟製程晶圓代工", "market_share":"成熟製程主要供應商"},
+    "5347.TWO": {"customers":"聯詠、瑞昱、電源管理IC、DDI、PMIC與車用IC客戶", "ai_customers":"AI電源管理與工控周邊間接受惠", "chain_position":"特殊製程晶圓代工", "market_share":"特殊製程主要供應商"},
+    "2454.TW": {"customers":"小米、OPPO、vivo、Samsung、Amazon、車用與邊緣裝置品牌", "ai_customers":"AI手機、Edge AI、車用與智慧裝置客戶", "chain_position":"SoC/邊緣AI晶片設計", "market_share":"手機SoC全球前三"},
+    "3034.TW": {"customers":"京東方、群創、友達、Samsung Display、LG Display、手機/IT/TV品牌供應鏈", "ai_customers":"AI PC、車用顯示、資料中心顯示間接受惠", "chain_position":"DDI/TDDI顯示驅動IC", "market_share":"全球DDI主要廠"},
+    "2379.TW": {"customers":"PC/NB品牌、主機板廠、網通設備廠、車用乙太網路客戶", "ai_customers":"AI PC、AIoT、邊緣網通與車用乙太網路", "chain_position":"網通/音訊/邊緣IC", "market_share":"乙太網路IC主要供應商"},
+    "5274.TWO": {"customers":"Dell、HPE、Supermicro、Lenovo、Quanta、Wiwynn、雲端資料中心供應鏈", "ai_customers":"Microsoft、AWS、Google、Meta、NVIDIA伺服器供應鏈", "chain_position":"伺服器BMC控制晶片", "market_share":"BMC全球龍頭"},
+    "3661.TW": {"customers":"北美雲端客戶、AI ASIC客戶、Marvell/Broadcom供應鏈、CSP專案客戶", "ai_customers":"Google、AWS、Microsoft、Meta等CSP ASIC供應鏈", "chain_position":"AI ASIC設計服務", "market_share":"ASIC設計服務主要廠"},
+    "3443.TW": {"customers":"台積電設計服務生態系、CSP ASIC客戶、HPC/AI專案客戶", "ai_customers":"AI ASIC與先進製程客戶", "chain_position":"ASIC/NRE設計服務", "market_share":"ASIC設計服務主要廠"},
+    "3035.TW": {"customers":"車用、工控、通訊、ASIC/IP專案客戶", "ai_customers":"邊緣AI與客製化ASIC客戶", "chain_position":"ASIC/IP設計服務", "market_share":"ASIC/IP供應商"},
+    "2382.TW": {"customers":"Apple、Google、Amazon AWS、Meta、Microsoft、NVIDIA伺服器供應鏈", "ai_customers":"NVIDIA、Google、AWS、Meta、Microsoft", "chain_position":"AI伺服器ODM", "market_share":"全球ODM龍頭群"},
+    "3231.TW": {"customers":"NVIDIA供應鏈、Dell、HPE、Microsoft、Google、企業伺服器客戶", "ai_customers":"NVIDIA、Microsoft、Google、雲端資料中心客戶", "chain_position":"AI伺服器ODM/組裝", "market_share":"全球ODM主要廠"},
+    "6669.TW": {"customers":"Microsoft、Meta、Amazon AWS、Google、雲端資料中心客戶", "ai_customers":"CSP雲端AI伺服器客戶", "chain_position":"雲端伺服器ODM", "market_share":"雲端伺服器主要供應商"},
+    "2317.TW": {"customers":"Apple、NVIDIA伺服器供應鏈、Microsoft、Amazon、Google、EV與電子品牌", "ai_customers":"NVIDIA、Microsoft、AWS、Google、AI伺服器客戶", "chain_position":"EMS/AI伺服器組裝", "market_share":"全球EMS龍頭"},
+    "2383.TW": {"customers":"NVIDIA供應鏈、廣達、緯穎、緯創、鴻海、伺服器PCB/CCL客戶", "ai_customers":"NVIDIA GB200/AI伺服器供應鏈、CSP伺服器客戶", "chain_position":"AI高速CCL材料", "market_share":"高階CCL主要供應商"},
+    "6274.TWO": {"customers":"網通/伺服器PCB廠、AI伺服器材料供應鏈、台系板廠", "ai_customers":"AI伺服器高速材料客戶", "chain_position":"高速CCL材料", "market_share":"高速材料主要供應商"},
+    "3037.TW": {"customers":"NVIDIA/AMD/Intel供應鏈、Apple、伺服器與載板客戶", "ai_customers":"AI GPU/CPU載板供應鏈", "chain_position":"ABF載板/高階PCB", "market_share":"ABF載板主要供應商"},
+    "8046.TW": {"customers":"Intel/AMD/NVIDIA供應鏈、載板與封裝客戶", "ai_customers":"AI/HPC封裝載板供應鏈", "chain_position":"ABF/BT載板", "market_share":"載板主要供應商"},
+    "2368.TW": {"customers":"伺服器ODM、雲端資料中心、網通與高速PCB客戶", "ai_customers":"AI伺服器高速PCB客戶", "chain_position":"AI伺服器PCB", "market_share":"伺服器PCB主要供應商"},
+    "3017.TW": {"customers":"NVIDIA供應鏈、廣達、緯創、緯穎、伺服器ODM客戶", "ai_customers":"NVIDIA GB200/AI伺服器液冷供應鏈", "chain_position":"AI散熱模組/液冷", "market_share":"散熱主要供應商"},
+    "3324.TWO": {"customers":"NVIDIA供應鏈、伺服器ODM、筆電/伺服器散熱客戶", "ai_customers":"AI伺服器液冷與高階散熱客戶", "chain_position":"AI散熱/液冷", "market_share":"散熱主要供應商"},
+    "3653.TW": {"customers":"伺服器/半導體散熱客戶、AI供應鏈、連接器與導熱元件客戶", "ai_customers":"AI伺服器導熱/均熱元件客戶", "chain_position":"高階導熱元件", "market_share":"高階散熱材料廠"},
+    "2059.TW": {"customers":"Dell、HPE、Supermicro、Quanta、Wiwynn、伺服器機櫃供應鏈", "ai_customers":"AI伺服器機櫃/滑軌供應鏈", "chain_position":"伺服器滑軌", "market_share":"全球伺服器滑軌龍頭"},
+    "2308.TW": {"customers":"NVIDIA供應鏈、資料中心客戶、Apple、Tesla、工業自動化與電源客戶", "ai_customers":"AI資料中心電源、液冷、能源管理客戶", "chain_position":"資料中心電源/能源管理", "market_share":"電源管理全球領導廠"},
+    "1519.TW": {"customers":"台電、電網工程、資料中心與重電客戶、海外電力設備客戶", "ai_customers":"AI資料中心電力基礎建設間接受惠", "chain_position":"變壓器/電網設備", "market_share":"台灣重電主要廠"},
+    "1513.TW": {"customers":"台電、公共工程、電網/充電樁/重電設備客戶", "ai_customers":"資料中心電網升級間接受惠", "chain_position":"重電/電網/充電樁", "market_share":"台灣重電主要廠"},
+    "2327.TW": {"customers":"車用、工控、消費電子、通路與EMS客戶", "ai_customers":"AI伺服器電源與高階MLCC間接受惠", "chain_position":"MLCC/晶片電阻", "market_share":"全球被動元件龍頭群"},
+    "2408.TW": {"customers":"記憶體模組廠、PC/伺服器/消費電子客戶", "ai_customers":"AI伺服器記憶體需求間接受惠", "chain_position":"DRAM製造", "market_share":"台灣DRAM龍頭"},
+    "3260.TWO": {"customers":"通路、電競品牌、工控與記憶體模組客戶", "ai_customers":"AI PC與邊緣裝置記憶體需求間接受惠", "chain_position":"記憶體模組/通路", "market_share":"台灣記憶體模組主要廠"},
+    "8299.TWO": {"customers":"NAND品牌、SSD模組廠、工控與儲存客戶", "ai_customers":"AI PC/資料中心SSD控制IC間接受惠", "chain_position":"SSD控制IC/儲存方案", "market_share":"SSD控制IC全球龍頭群"},
+    "4979.TWO": {"customers":"資料中心光通訊客戶、光模組供應鏈、北美雲端客戶供應鏈", "ai_customers":"AI資料中心光通訊/CPO供應鏈", "chain_position":"光收發模組", "market_share":"光通訊供應商"},
+    "3363.TWO": {"customers":"光通訊設備廠、資料中心光元件客戶", "ai_customers":"AI資料中心光通訊供應鏈", "chain_position":"光通訊元件", "market_share":"光通訊元件供應商"},
+    "6215.TWO": {"customers":"電子製造、半導體、自動化設備、智慧工廠與機器人整合客戶", "ai_customers":"AI Robot與智慧製造客戶", "chain_position":"自動化/機器人整合", "market_share":"自動化設備供應商"},
+    "2049.TW": {"customers":"工具機、自動化設備、半導體設備、工業機器人客戶", "ai_customers":"AI Robot/自動化設備供應鏈", "chain_position":"線性滑軌/傳動元件", "market_share":"全球傳動元件主要廠"},
+}
+
+V235_EXTRA_STOCKS = {
+    "2881.TW":{"name":"富邦金","industry":"金融","sub":"金控/壽險/銀行","rank":"大型金控","power":"★★★★☆","position":"台灣大型金控，壽險、銀行、證券完整布局","peers":"國泰金、中信金、元大金","moat":"高：金融通路、資產規模、品牌","risk":"利率、匯率、投資收益波動","fair_mult":1.04},
+    "2882.TW":{"name":"國泰金","industry":"金融","sub":"金控/壽險/銀行","rank":"大型金控","power":"★★★★☆","position":"台灣大型壽險與銀行金控","peers":"富邦金、中信金、南山人壽","moat":"高：壽險資產、銀行通路、品牌","risk":"利率、匯率、金融市場波動","fair_mult":1.04},
+    "2891.TW":{"name":"中信金","industry":"金融","sub":"金控/銀行","rank":"大型金控","power":"★★★★☆","position":"銀行、信用卡、財管與金控整合","peers":"富邦金、國泰金、玉山金","moat":"中高：銀行通路、財管、信用卡","risk":"利差、信用風險、海外市場","fair_mult":1.04},
+    "2886.TW":{"name":"兆豐金","industry":"金融","sub":"公股銀行金控","rank":"公股金控","power":"★★★☆☆","position":"外匯與企業金融優勢公股金控","peers":"第一金、合庫金、華南金","moat":"中高：公股資源、外匯業務","risk":"利差、景氣循環","fair_mult":1.03},
+    "5871.TW":{"name":"中租-KY","industry":"金融","sub":"租賃/融資","rank":"租賃龍頭","power":"★★★★☆","position":"兩岸及海外租賃、融資與分期服務供應商","peers":"裕融、和潤企業、銀行租賃部門","moat":"中高：通路、授信模型、海外布局","risk":"信用風險、利率、景氣循環","fair_mult":1.04},
+    "2603.TW":{"name":"長榮","industry":"航運","sub":"貨櫃航運","rank":"全球貨櫃航運主要公司","power":"★★★★☆","position":"全球貨櫃航運供應商","peers":"陽明、萬海、Maersk、MSC、CMA CGM","moat":"中：船隊規模、航線與聯盟","risk":"運價循環、油價、地緣政治","fair_mult":1.05},
+    "2609.TW":{"name":"陽明","industry":"航運","sub":"貨櫃航運","rank":"貨櫃航運主要公司","power":"★★★☆☆","position":"台灣貨櫃航運主要供應商","peers":"長榮、萬海、Maersk、Hapag-Lloyd","moat":"中：航線與船隊","risk":"運價循環、油價、供需波動","fair_mult":1.03},
+    "2615.TW":{"name":"萬海","industry":"航運","sub":"近洋/貨櫃航運","rank":"區域航運主要公司","power":"★★★☆☆","position":"亞洲近洋與貨櫃航運供應商","peers":"長榮、陽明、區域航商","moat":"中：近洋航線與客戶基礎","risk":"運價循環、船隊供給","fair_mult":1.03},
+    "2618.TW":{"name":"長榮航","industry":"航運/航空","sub":"航空客運/貨運","rank":"台灣航空主要公司","power":"★★★☆☆","position":"航空客運與貨運服務供應商","peers":"華航、星宇航空、亞洲航空公司","moat":"中：航線、品牌、貨運能力","risk":"油價、匯率、景氣與旅遊需求","fair_mult":1.03},
+    "2002.TW":{"name":"中鋼","industry":"鋼鐵","sub":"一貫作業鋼廠","rank":"台灣鋼鐵龍頭","power":"★★★★☆","position":"台灣最大一貫作業鋼鐵公司","peers":"日本製鐵、POSCO、寶鋼、燁輝","moat":"中高：規模、客戶、上游整合","risk":"鋼價循環、原料成本、中國供給","fair_mult":1.02},
+    "2027.TW":{"name":"大成鋼","industry":"鋼鐵","sub":"不鏽鋼/通路","rank":"不鏽鋼通路主要廠","power":"★★★☆☆","position":"不鏽鋼與工業金屬通路供應商","peers":"允強、彰源、國際鋼鐵通路商","moat":"中：通路與庫存管理","risk":"金屬價格、需求循環","fair_mult":1.03},
+    "1301.TW":{"name":"台塑","industry":"塑化","sub":"PVC/塑膠原料","rank":"台灣塑化龍頭群","power":"★★★★☆","position":"PVC、塑膠原料與化工產品供應商","peers":"台化、南亞、國際石化廠","moat":"中高：垂直整合與規模","risk":"油價、景氣循環、利差","fair_mult":1.02},
+    "1303.TW":{"name":"南亞","industry":"塑化/電子材料","sub":"塑化/銅箔基板/聚酯","rank":"台灣塑化與材料龍頭群","power":"★★★★☆","position":"塑化、電子材料與聚酯產品供應商","peers":"台塑、台化、長春、國際材料廠","moat":"中高：集團整合與材料能力","risk":"景氣循環、原料價格、電子材料需求","fair_mult":1.03},
+    "1326.TW":{"name":"台化","industry":"塑化","sub":"芳香烴/化纖/塑化","rank":"台灣塑化龍頭群","power":"★★★☆☆","position":"芳香烴、化纖與塑化產品供應商","peers":"台塑、南亞、國際石化廠","moat":"中高：規模與垂直整合","risk":"油價、利差、景氣循環","fair_mult":1.02},
+    "6505.TW":{"name":"台塑化","industry":"塑化/能源","sub":"煉油/石化","rank":"煉油石化主要廠","power":"★★★★☆","position":"煉油、石化原料與油品供應商","peers":"中油、國際煉油與石化公司","moat":"中高：煉化規模與集團整合","risk":"油價、煉油利差、景氣循環","fair_mult":1.02},
+    "2412.TW":{"name":"中華電","industry":"電信","sub":"行動/固網/IDC","rank":"台灣電信龍頭","power":"★★★★★","position":"台灣電信、固網、IDC與雲端服務龍頭","peers":"台灣大、遠傳、亞太電信","moat":"高：網路資產、用戶規模、現金流","risk":"價格競爭、資本支出、監管","fair_mult":1.04},
+    "3045.TW":{"name":"台灣大","industry":"電信","sub":"行動/寬頻/電商","rank":"台灣電信主要公司","power":"★★★★☆","position":"行動通訊、寬頻與電商整合服務供應商","peers":"中華電、遠傳","moat":"中高：用戶基礎與通路整合","risk":"競爭、資本支出、整合成本","fair_mult":1.03},
+    "4904.TW":{"name":"遠傳","industry":"電信","sub":"行動/企業ICT/IDC","rank":"台灣電信主要公司","power":"★★★★☆","position":"行動通訊、企業ICT與資料中心服務供應商","peers":"中華電、台灣大","moat":"中高：企業ICT、用戶與網路","risk":"價格競爭、資本支出","fair_mult":1.03},
+    "2912.TW":{"name":"統一超","industry":"零售通路","sub":"便利商店/生活服務","rank":"台灣零售通路龍頭","power":"★★★★★","position":"台灣便利商店與生活服務通路龍頭","peers":"全家、萊爾富、OK Mart","moat":"高：門市密度、物流、品牌與會員資料","risk":"人事成本、租金、消費景氣","fair_mult":1.05},
+    "1216.TW":{"name":"統一","industry":"食品/消費","sub":"食品飲料/通路投資","rank":"食品與通路龍頭","power":"★★★★★","position":"食品、飲料、通路與消費品牌集團","peers":"味全、卜蜂、國際食品公司","moat":"高：品牌、通路、產品組合","risk":"原物料、匯率、消費景氣","fair_mult":1.04},
+    "1101.TW":{"name":"台泥","industry":"水泥/建材","sub":"水泥/儲能/循環經濟","rank":"台灣水泥龍頭","power":"★★★★☆","position":"水泥、建材、儲能與低碳轉型企業","peers":"亞泥、中國建材、海螺水泥","moat":"中高：礦權、產能、通路","risk":"需求循環、碳成本、中國市場","fair_mult":1.03},
+    "1102.TW":{"name":"亞泥","industry":"水泥/建材","sub":"水泥/建材","rank":"台灣水泥主要公司","power":"★★★☆☆","position":"台灣水泥與建材主要供應商","peers":"台泥、國際水泥廠","moat":"中：產能、通路、礦權","risk":"需求循環、碳成本、區域市場","fair_mult":1.02},
+    "2207.TW":{"name":"和泰車","industry":"汽車/通路","sub":"汽車代理/售服","rank":"台灣車市龍頭","power":"★★★★★","position":"Toyota/Lexus台灣代理與汽車服務龍頭","peers":"裕隆、汎德永業、國際車商代理","moat":"高：品牌代理、通路、售後服務","risk":"車市景氣、匯率、品牌供給","fair_mult":1.05},
+    "2201.TW":{"name":"裕隆","industry":"汽車/電動車","sub":"汽車製造/投資","rank":"台灣汽車主要集團","power":"★★★☆☆","position":"汽車製造、品牌與電動車轉型集團","peers":"和泰車、中華車、國際車商","moat":"中：汽車製造與集團資源","risk":"轉型、競爭、景氣循環","fair_mult":1.03},
+    "9910.TW":{"name":"豐泰","industry":"製鞋/紡織","sub":"運動鞋代工","rank":"全球運動鞋代工主要廠","power":"★★★★☆","position":"Nike等國際品牌運動鞋供應鏈","peers":"寶成、鈺齊-KY、申洲國際","moat":"中高：客戶認證、量產與管理能力","risk":"客戶集中、工資、匯率","fair_mult":1.04},
+    "9904.TW":{"name":"寶成","industry":"製鞋/通路","sub":"運動鞋代工/通路","rank":"全球鞋業主要集團","power":"★★★★☆","position":"運動鞋代工與通路集團","peers":"豐泰、鈺齊-KY、申洲國際","moat":"中高：規模、客戶與通路","risk":"客戶訂單、工資、匯率","fair_mult":1.03},
+    "1476.TW":{"name":"儒鴻","industry":"紡織","sub":"機能布/成衣","rank":"機能布與成衣主要廠","power":"★★★★☆","position":"國際運動品牌機能布與成衣供應商","peers":"聚陽、申洲國際、Makalot","moat":"中高：研發、客戶認證、彈性生產","risk":"品牌庫存、匯率、工資","fair_mult":1.04},
+    "1477.TW":{"name":"聚陽","industry":"紡織","sub":"成衣代工","rank":"成衣代工主要廠","power":"★★★★☆","position":"國際品牌成衣代工供應商","peers":"儒鴻、申洲國際、Makalot","moat":"中高：客戶組合、供應鏈管理","risk":"品牌庫存、工資、匯率","fair_mult":1.04},
+}
+
+V235_GENERIC_CUSTOMERS_BY_INDUSTRY = {
+    "金融":"企業金融、個人金融、財管、保險與投資客戶",
+    "航運":"國際貿易、貨主、物流與貨櫃運輸客戶",
+    "航運/航空":"商務/旅遊旅客、航空貨運與物流客戶",
+    "鋼鐵":"營建、汽車、機械、家電與工業製造客戶",
+    "塑化":"塑膠加工、包材、化纖、工業材料與化工客戶",
+    "塑化/電子材料":"電子材料、塑化、包材與工業材料客戶",
+    "塑化/能源":"油品、石化原料與工業能源客戶",
+    "電信":"個人行動用戶、企業ICT、IDC、雲端與寬頻客戶",
+    "零售通路":"消費者、會員、生活服務與品牌供應商",
+    "食品/消費":"消費者、通路、餐飲與食品品牌客戶",
+    "水泥/建材":"營建工程、公共工程、建材通路與預拌混凝土客戶",
+    "汽車/通路":"汽車消費者、車隊、維修保養與金融服務客戶",
+    "汽車/電動車":"汽車品牌、零組件、電動車與集團通路客戶",
+    "製鞋/紡織":"Nike、Adidas、國際運動與戶外品牌供應鏈",
+    "製鞋/通路":"國際運動品牌、零售通路與鞋類供應鏈",
+    "紡織":"國際運動品牌、機能服飾、戶外品牌與成衣客戶",
+}
+
+try:
+    STOCK_DB.update(V235_EXTRA_STOCKS)
+    for _sym, _upd in V235_CUSTOMER_PATCH.items():
+        if _sym in STOCK_DB:
+            STOCK_DB[_sym].update(_upd)
+    for _sym, _v in STOCK_DB.items():
+        ind = _v.get("industry", "")
+        if not _v.get("customers") and not _v.get("main_customers"):
+            _v["customers"] = V235_GENERIC_CUSTOMERS_BY_INDUSTRY.get(ind, _v.get("customers", "待補"))
+        _v.setdefault("valuation_method", "即時現價 × 產業/競爭力乘數；輸入個股後自動產生安全邊際價、合理價、潛在價")
+        _v.setdefault("valuation_status", "已可計算")
+except Exception:
+    pass
+
+try:
+    ALIASES.clear()
+    for _sym, _v in STOCK_DB.items():
+        ALIASES[_sym.upper()] = _sym
+        ALIASES[_sym.split(".")[0]] = _sym
+        ALIASES[_v.get("name", _sym)] = _sym
+        ALIASES[_v.get("name", _sym).upper()] = _sym
+    OTC_CODES = {s.split('.')[0] for s in STOCK_DB if s.endswith('.TWO')}
+except Exception:
+    pass
+
+def v235_get_mult(sym):
+    try:
+        return float(v233_fair_multiplier(sym))
+    except Exception:
+        try:
+            return float(STOCK_DB.get(sym, {}).get("fair_mult", 1.0))
+        except Exception:
+            return 1.0
+
+def v235_valuation_range(symbol):
+    sym = v230_symbol(symbol)
+    try:
+        px = v233_get_live_price(sym)
+    except Exception:
+        try:
+            px = live_price(sym)
+        except Exception:
+            px = float("nan")
+    mult = v235_get_mult(sym)
+    if pd.notna(px) and float(px) > 0:
+        fair = float(px) * mult
+        low = float(px) * max(mult * 0.88, 0.70)
+        high = float(px) * max(mult * 1.12, 1.05)
+        return {"symbol": sym, "price": float(px), "low": low, "fair": fair, "high": high, "mult": mult, "status":"已計算"}
+    return {"symbol": sym, "price": float("nan"), "low": float("nan"), "fair": float("nan"), "high": float("nan"), "mult": mult, "status":"等待現價"}
+
+_v235_prev_decision = v230_decision
+
+def v230_decision(symbol):
+    d = _v235_prev_decision(symbol)
+    sym = d.get("symbol", v230_symbol(symbol))
+    vr = v235_valuation_range(sym)
+    try:
+        if pd.notna(vr["price"]):
+            d["price"] = vr["price"]
+            d["cons"] = vr["low"]
+            d["fair"] = vr["fair"]
+            d["opt"] = vr["high"]
+            d["ret"] = (vr["fair"] - vr["price"]) / vr["price"] * 100
+    except Exception:
+        pass
+    info = STOCK_DB.get(sym, {})
+    d["customers"] = info.get("customers", info.get("main_customers", "待補"))
+    d["ai_customers"] = info.get("ai_customers", "待補")
+    d["valuation_method"] = info.get("valuation_method", "即時現價 × 產業/競爭力乘數")
+    return d
+
+_v235_prev_rows_df = v230_rows_df
+
+def v230_rows_df():
+    df = _v235_prev_rows_df()
+    if df is None or df.empty:
+        return df
+    # 補估值欄位：不強制抓 192+ 檔即時價格，避免首頁載入過慢；個股查詢時會即時計算完整價格區間。
+    if "估值狀態" not in df.columns:
+        df["估值狀態"] = "已可計算"
+    if "估值模型" not in df.columns:
+        df["估值模型"] = "現價×產業乘數"
+    if "AI客戶" not in df.columns:
+        df["AI客戶"] = df["代碼"].map(lambda s: STOCK_DB.get(s, {}).get("ai_customers", "待補"))
+    if "主要客戶" in df.columns:
+        df["主要客戶"] = df.apply(lambda r: STOCK_DB.get(r["代碼"], {}).get("customers", r.get("主要客戶", "待補")), axis=1)
+    return df
+
+def v224_rows_df(): return v230_rows_df()
+def v225_rows_df(): return v230_rows_df()
+def v226_rows_df(): return v230_rows_df()
+def v227_rows_df(): return v230_rows_df()
+
+_v235_prev_price_block = v230_price_block
+
+def v230_price_block(symbol):
+    d = v230_decision(symbol); sym = d.get("symbol", symbol)
+    st.caption(f"資料更新時間：{d.get('updated','N/A')}｜現價來源：{d.get('source','Yahoo Finance')}｜估值模型：{d.get('valuation_method','即時現價 × 產業/競爭力乘數')}。")
+    st.markdown(f"## {d.get('name', sym)}（{sym}）")
+    c1,c2,c3,c4=st.columns(4)
+    c1.metric("投資建議", d.get("action","觀察"))
+    c2.metric("現價", v230_fmt(d.get("price", float("nan"))))
+    c3.metric("綜合合理價", v230_fmt(d.get("fair", float("nan"))))
+    try: ret_txt=f"{float(d.get('ret',0)):.1f}%"
+    except Exception: ret_txt="N/A"
+    c4.metric("預期報酬", ret_txt)
+    p1,p2,p3=st.columns(3)
+    p1.metric("安全邊際價", v230_fmt(d.get("cons", float("nan"))))
+    p2.metric("合理價值", v230_fmt(d.get("fair", float("nan"))))
+    p3.metric("潛在價值", v230_fmt(d.get("opt", float("nan"))))
+    st.dataframe(pd.DataFrame([{
+        "現價": v230_fmt(d.get("price", float("nan"))),
+        "安全邊際價": v230_fmt(d.get("cons", float("nan"))),
+        "合理價值": v230_fmt(d.get("fair", float("nan"))),
+        "潛在價值": v230_fmt(d.get("opt", float("nan"))),
+        "估值模型": d.get("valuation_method", "即時現價 × 產業/競爭力乘數")
+    }]), use_container_width=True, hide_index=True)
+    df=v230_rows_df(); row=df[df["代碼"]==sym] if not df.empty and "代碼" in df.columns else pd.DataFrame()
+    with st.expander("展開更多研究資料", expanded=True):
+        if not row.empty:
+            r=row.iloc[0].to_dict()
+            st.markdown("### 公司基本資料")
+            st.markdown(f'<div class="v230-card"><div class="v230-card-title">{r.get("公司","")}｜{r.get("代碼","")}</div><div class="v230-small-muted">主產業：{r.get("產業","")}　｜　子產業：{r.get("子產業","")}　｜　產業鏈位置：{r.get("產業鏈位置","待補")}</div><div style="margin-top:10px;">{v230_tag_html(r.get("主題標籤",""))}</div></div>', unsafe_allow_html=True)
+            st.dataframe(pd.DataFrame([{
+                "全球排名":r.get("全球排名","待補"),
+                "全球市占率":r.get("全球市占率","待補"),
+                "產業地位":r.get("產業地位","待補"),
+                "主要客戶":r.get("主要客戶","待補"),
+                "AI客戶":r.get("AI客戶","待補"),
+                "主要競爭者":r.get("主要競爭者","待補"),
+                "護城河":r.get("護城河","待補"),
+                "主要風險":r.get("主要風險","待補")
+            }]), use_container_width=True, hide_index=True)
+        else:
+            st.info("此個股仍在資料庫補齊中，但已可使用即時現價產生估值區間。")
+
+# ===== V235.0 FULL VALUATION RANGE + CUSTOMER EXPANSION END =====
 
 if __name__ == '__main__':
     main()
