@@ -5936,5 +5936,291 @@ def main():
 
 # ===== V254.0 DATA HEALTH + MODEL VALIDATION ALPHA END =====
 
+
+
+# ===== V255.0 FINANCIAL FETCH + MODEL BACKTEST ALPHA START =====
+APP_VERSION = "V255.0 Financial Fetch + Model Backtest Alpha"
+DB_VERSION = "TW-STOCK-20260628-V255"
+
+# V255：開始把資料庫修正與模型驗證一起做。
+# 特色：先用 yfinance 自動抓年度財報與歷史股價，建立 3~5 年模型回測 Alpha。
+# 注意：Yahoo 欄位可能因公司/市場不同而缺漏，因此本頁會標示資料缺口，不會強制產生假估值。
+
+V255_ALPHA_SYMBOLS = ["2330.TW", "2454.TW", "2308.TW"]
+V255_DEFAULT_ASSUMPTIONS = {
+    "2330.TW": {"wacc": 0.09, "terminal_g": 0.03, "target_pe": 24, "target_pb": 5.0, "target_ev_ebitda": 13},
+    "2454.TW": {"wacc": 0.10, "terminal_g": 0.025, "target_pe": 18, "target_pb": 3.5, "target_ev_ebitda": 11},
+    "2308.TW": {"wacc": 0.09, "terminal_g": 0.025, "target_pe": 22, "target_pb": 4.5, "target_ev_ebitda": 14},
+}
+
+def v255_first_existing(df, names, col):
+    try:
+        if df is None or df.empty or col not in df.columns:
+            return float('nan')
+        idx_map = {str(i).lower(): i for i in df.index}
+        for n in names:
+            key = str(n).lower()
+            if key in idx_map:
+                val = df.loc[idx_map[key], col]
+                return v254_parse_float(val)
+        # fuzzy
+        for i in df.index:
+            il = str(i).lower()
+            if any(str(n).lower() in il for n in names):
+                return v254_parse_float(df.loc[i, col])
+    except Exception:
+        pass
+    return float('nan')
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def v255_fetch_financial_pack(symbol):
+    sym = normalize_symbol(symbol)
+    t = yf.Ticker(sym)
+    out = {"symbol": sym, "error": None}
+    try:
+        inc = t.financials
+    except Exception as e:
+        inc = pd.DataFrame(); out['error'] = str(e)
+    try:
+        bs = t.balance_sheet
+    except Exception:
+        bs = pd.DataFrame()
+    try:
+        cf = t.cashflow
+    except Exception:
+        cf = pd.DataFrame()
+    try:
+        hist = t.history(period='7y', interval='1d', auto_adjust=False)
+    except Exception:
+        hist = pd.DataFrame()
+    try:
+        info = t.info or {}
+    except Exception:
+        info = {}
+
+    years = []
+    if inc is not None and not inc.empty:
+        for c in inc.columns:
+            try:
+                years.append(int(pd.to_datetime(c).year))
+            except Exception:
+                pass
+    years = sorted(set(years))[-5:]
+    rows=[]
+    for y in years:
+        # find nearest column for fiscal year
+        col = None
+        for c in inc.columns if inc is not None and not inc.empty else []:
+            try:
+                if int(pd.to_datetime(c).year) == y:
+                    col = c; break
+            except Exception: pass
+        if col is None:
+            continue
+        ni = v255_first_existing(inc, ['Net Income','Net Income Common Stockholders','Net Income From Continuing Operation Net Minority Interest'], col)
+        ebitda = v255_first_existing(inc, ['EBITDA','Normalized EBITDA'], col)
+        revenue = v255_first_existing(inc, ['Total Revenue','Operating Revenue'], col)
+        diluted_eps = v255_first_existing(inc, ['Diluted EPS','Basic EPS'], col)
+        shares = v255_first_existing(inc, ['Diluted Average Shares','Basic Average Shares','Ordinary Shares Number'], col)
+        if pd.isna(shares):
+            shares = v255_first_existing(bs, ['Ordinary Shares Number','Share Issued'], col)
+        equity = v255_first_existing(bs, ['Stockholders Equity','Total Equity Gross Minority Interest','Common Stock Equity'], col)
+        ocf = v255_first_existing(cf, ['Operating Cash Flow','Total Cash From Operating Activities'], col)
+        capex = v255_first_existing(cf, ['Capital Expenditure','Capital Expenditures'], col)
+        # yfinance capex often negative; FCF = OCF + CapEx if capex negative, else OCF - capex
+        fcf = float('nan')
+        if pd.notna(ocf) and pd.notna(capex):
+            fcf = ocf + capex if capex < 0 else ocf - capex
+        elif pd.notna(ocf):
+            fcf = ocf
+        if pd.isna(diluted_eps) and pd.notna(ni) and pd.notna(shares) and shares != 0:
+            diluted_eps = ni / shares
+        bvps = equity / shares if pd.notna(equity) and pd.notna(shares) and shares != 0 else float('nan')
+        fcfps = fcf / shares if pd.notna(fcf) and pd.notna(shares) and shares != 0 else float('nan')
+        ebitda_ps = ebitda / shares if pd.notna(ebitda) and pd.notna(shares) and shares != 0 else float('nan')
+        avg_price = float('nan')
+        try:
+            if hist is not None and not hist.empty:
+                h = hist.copy()
+                h.index = pd.to_datetime(h.index)
+                yr = h[h.index.year == y]
+                if not yr.empty and 'Close' in yr:
+                    avg_price = float(yr['Close'].dropna().mean())
+        except Exception:
+            pass
+        rows.append({
+            '年度': y, '平均股價': avg_price, 'EPS': diluted_eps, 'BVPS': bvps, 'FCF/股': fcfps,
+            'EBITDA/股': ebitda_ps, '營收': revenue, '淨利': ni, 'ROE': (ni/equity if pd.notna(ni) and pd.notna(equity) and equity else float('nan')),
+            '股數': shares
+        })
+    df = pd.DataFrame(rows)
+    if not df.empty:
+        df = df.sort_values('年度')
+        df['營收成長率'] = df['營收'].pct_change()
+    out.update({'income': inc, 'balance': bs, 'cashflow': cf, 'history': hist, 'info': info, 'yearly': df})
+    return out
+
+def v255_model_backtest(yearly, assumptions):
+    if yearly is None or yearly.empty:
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+    df = yearly.copy()
+    for c in ['平均股價','EPS','BVPS','FCF/股','EBITDA/股','ROE','營收成長率']:
+        if c in df.columns: df[c] = pd.to_numeric(df[c], errors='coerce')
+    # Historical market-implied medians. This avoids one fixed arbitrary multiplier for every stock.
+    def safe_median(s):
+        s = pd.to_numeric(s, errors='coerce').replace([np.inf,-np.inf], np.nan).dropna()
+        s = s[(s > 0) & (s < 500)]
+        return float(s.median()) if len(s) else float('nan')
+    pe_med = safe_median(df['平均股價']/df['EPS']) if 'EPS' in df else float('nan')
+    pb_med = safe_median(df['平均股價']/df['BVPS']) if 'BVPS' in df else float('nan')
+    ev_med = safe_median(df['平均股價']/df['EBITDA/股']) if 'EBITDA/股' in df else float('nan')
+    wacc = assumptions.get('wacc',0.09); tg = min(assumptions.get('terminal_g',0.025), wacc-0.005)
+    rows=[]
+    for _, r in df.iterrows():
+        actual = r.get('平均股價')
+        if pd.isna(actual) or actual <= 0: continue
+        eps, bvps, fcfps, ebitda_ps, roe, g = [r.get(x, float('nan')) for x in ['EPS','BVPS','FCF/股','EBITDA/股','ROE','營收成長率']]
+        models={}
+        if pd.notna(eps) and pd.notna(pe_med): models['PE(歷史中位數)'] = eps*pe_med
+        if pd.notna(eps): models['PE(產業假設)'] = eps*assumptions.get('target_pe',18)
+        if pd.notna(bvps) and pd.notna(pb_med): models['PB(歷史中位數)'] = bvps*pb_med
+        if pd.notna(bvps): models['PB(產業假設)'] = bvps*assumptions.get('target_pb',3)
+        if pd.notna(ebitda_ps) and pd.notna(ev_med): models['EV/EBITDA(歷史中位數)'] = ebitda_ps*ev_med
+        if pd.notna(ebitda_ps): models['EV/EBITDA(產業假設)'] = ebitda_ps*assumptions.get('target_ev_ebitda',12)
+        if pd.notna(fcfps) and (wacc-tg)>0: models['DCF(簡化FCF)'] = fcfps*(1+max(g if pd.notna(g) else tg, -0.3))/(wacc-tg)
+        if pd.notna(bvps) and pd.notna(roe) and (wacc-tg)>0: models['EBO/RIM(簡化)'] = bvps + max(roe-wacc, -0.5)*bvps/(wacc-tg)
+        if pd.notna(bvps) and pd.notna(roe) and (wacc-tg)>0: models['EVA(簡化)'] = bvps + max(roe-wacc, -0.5)*bvps/(wacc-tg)
+        if pd.notna(eps) and pd.notna(g): models['PEG(簡化)'] = eps*min(max(g*100,5),35)
+        for m,v in models.items():
+            if pd.notna(v) and v > 0:
+                rows.append({'年度': int(r['年度']), '模型': m, '模型估值': float(v), '實際平均股價': float(actual), '誤差%': abs(float(v)/float(actual)-1)*100})
+    detail = pd.DataFrame(rows)
+    if detail.empty:
+        return detail, pd.DataFrame(), df
+    summary = detail.groupby('模型').agg(MAPE=('誤差%','mean'), RMSE=('誤差%', lambda x: float(np.sqrt(np.mean(np.square(x))))), 測試年數=('誤差%','count')).reset_index()
+    summary = summary[summary['測試年數'] >= 2].sort_values('MAPE')
+    # Conservative guard: over 60% MAPE is considered unsuitable for ranking.
+    summary['模型狀態'] = np.where(summary['MAPE'] <= 20, '可用', np.where(summary['MAPE'] <= 40, '觀察', '不適用'))
+    return detail, summary, df
+
+def v255_current_valuation(symbol, yearly, summary, assumptions):
+    price = v254_decision(symbol).get('price', float('nan'))
+    if yearly is None or yearly.empty or summary is None or summary.empty:
+        return pd.DataFrame(), None
+    last = yearly.dropna(subset=['EPS','BVPS'], how='all').tail(1)
+    if last.empty:
+        return pd.DataFrame(), None
+    r = last.iloc[0]
+    df = yearly.copy()
+    pe_med = (df['平均股價']/df['EPS']).replace([np.inf,-np.inf],np.nan).dropna().median() if 'EPS' in df else np.nan
+    pb_med = (df['平均股價']/df['BVPS']).replace([np.inf,-np.inf],np.nan).dropna().median() if 'BVPS' in df else np.nan
+    ev_med = (df['平均股價']/df['EBITDA/股']).replace([np.inf,-np.inf],np.nan).dropna().median() if 'EBITDA/股' in df else np.nan
+    wacc = assumptions.get('wacc',0.09); tg=min(assumptions.get('terminal_g',0.025), wacc-0.005)
+    candidates = {}
+    eps, bvps, fcfps, ebitda_ps, roe, g = [r.get(x, float('nan')) for x in ['EPS','BVPS','FCF/股','EBITDA/股','ROE','營收成長率']]
+    if pd.notna(eps) and pd.notna(pe_med): candidates['PE(歷史中位數)']=eps*pe_med
+    if pd.notna(eps): candidates['PE(產業假設)']=eps*assumptions.get('target_pe',18)
+    if pd.notna(bvps) and pd.notna(pb_med): candidates['PB(歷史中位數)']=bvps*pb_med
+    if pd.notna(bvps): candidates['PB(產業假設)']=bvps*assumptions.get('target_pb',3)
+    if pd.notna(ebitda_ps) and pd.notna(ev_med): candidates['EV/EBITDA(歷史中位數)']=ebitda_ps*ev_med
+    if pd.notna(ebitda_ps): candidates['EV/EBITDA(產業假設)']=ebitda_ps*assumptions.get('target_ev_ebitda',12)
+    if pd.notna(fcfps) and (wacc-tg)>0: candidates['DCF(簡化FCF)']=fcfps*(1+max(g if pd.notna(g) else tg,-0.3))/(wacc-tg)
+    if pd.notna(bvps) and pd.notna(roe) and (wacc-tg)>0:
+        candidates['EBO/RIM(簡化)']=bvps + max(roe-wacc,-0.5)*bvps/(wacc-tg)
+        candidates['EVA(簡化)']=candidates['EBO/RIM(簡化)']
+    if pd.notna(eps) and pd.notna(g): candidates['PEG(簡化)']=eps*min(max(g*100,5),35)
+    rows=[]
+    for _, s in summary.iterrows():
+        m=s['模型']
+        if m in candidates:
+            val=float(candidates[m]); mape=float(s['MAPE'])/100
+            # guard unreasonable current value
+            status=s['模型狀態']
+            if pd.notna(price) and price>0 and (val/price>3 or val/price<0.3):
+                status='現價偏離過大，需人工確認'
+            rows.append({'模型':m,'MAPE%':round(float(s['MAPE']),2),'模型狀態':status,'保守價':round(val*(1-mape),2),'合理價':round(val,2),'樂觀價':round(val*(1+mape),2),'與現價偏離%':round((val/price-1)*100,2) if pd.notna(price) and price>0 else np.nan})
+    out=pd.DataFrame(rows)
+    if not out.empty:
+        out=out.sort_values(['模型狀態','MAPE%'])
+    best=out[out['模型狀態'].isin(['可用','觀察'])].head(3) if not out.empty else pd.DataFrame()
+    return out, best
+
+def model_validation_alpha_page():
+    st.header('🧪 模型驗證中心 Alpha')
+    st.info('V255：開始自動抓取年度財報與歷史股價，先對台積電、聯發科、台達電做 3~5 年模型回測。若資料抓不到，仍可在後續手動補財報。')
+    sym = st.selectbox('選擇測試公司', V255_ALPHA_SYMBOLS, format_func=lambda s: f"{STOCK_DB.get(s,{}).get('name',s)} / {s}")
+    assumptions = V255_DEFAULT_ASSUMPTIONS.get(sym, {}).copy()
+    with st.expander('模型假設參數', expanded=False):
+        c1,c2,c3,c4,c5 = st.columns(5)
+        assumptions['wacc'] = c1.number_input('WACC', value=float(assumptions.get('wacc',0.09)), min_value=0.01, max_value=0.30, step=0.005, format='%.3f')
+        assumptions['terminal_g'] = c2.number_input('永續成長率', value=float(assumptions.get('terminal_g',0.025)), min_value=0.0, max_value=0.10, step=0.005, format='%.3f')
+        assumptions['target_pe'] = c3.number_input('產業PE假設', value=float(assumptions.get('target_pe',18)), min_value=1.0, max_value=100.0, step=1.0)
+        assumptions['target_pb'] = c4.number_input('產業PB假設', value=float(assumptions.get('target_pb',3)), min_value=0.1, max_value=20.0, step=0.1)
+        assumptions['target_ev_ebitda'] = c5.number_input('EV/EBITDA假設', value=float(assumptions.get('target_ev_ebitda',12)), min_value=1.0, max_value=50.0, step=1.0)
+
+    price = v254_decision(sym).get('price', float('nan'))
+    st.metric('目前現價', v230_fmt(price))
+    pack = v255_fetch_financial_pack(sym)
+    yearly = pack.get('yearly', pd.DataFrame())
+    if yearly is None or yearly.empty:
+        st.warning('Yahoo Finance 未抓到足夠年度財報。請改用手動補財報，或稍後再試。')
+        v254_health_dashboard()
+        return
+    st.subheader('年度財報資料檢查')
+    show = yearly.copy()
+    for col in ['平均股價','EPS','BVPS','FCF/股','EBITDA/股','ROE','營收成長率']:
+        if col in show.columns:
+            show[col] = pd.to_numeric(show[col], errors='coerce').round(2)
+    st.dataframe(show[['年度','平均股價','EPS','BVPS','FCF/股','EBITDA/股','ROE','營收成長率']], use_container_width=True, hide_index=True)
+    detail, summary, clean = v255_model_backtest(yearly, assumptions)
+    if summary is None or summary.empty:
+        st.warning('目前年度資料不足，無法完成模型回測。')
+        v254_health_dashboard(); return
+    st.subheader('模型回測排名（以年度平均股價為比較基準）')
+    st.dataframe(summary.round(2), use_container_width=True, hide_index=True)
+    current_table, best = v255_current_valuation(sym, clean, summary, assumptions)
+    st.subheader('目前估值區間測試')
+    if current_table is not None and not current_table.empty:
+        st.dataframe(current_table, use_container_width=True, hide_index=True)
+        if best is not None and not best.empty:
+            st.success('暫定可用前三名模型：' + '、'.join(best['模型'].astype(str).tolist()))
+            # ensemble: inverse MAPE weighted fair price
+            b = best.copy()
+            b['w'] = 1 / b['MAPE%'].clip(lower=1)
+            fair = float((b['合理價']*b['w']).sum()/b['w'].sum())
+            err = float((b['MAPE%']*b['w']).sum()/b['w'].sum())/100
+            c1,c2,c3,c4 = st.columns(4)
+            c1.metric('綜合保守價', v230_fmt(fair*(1-err)))
+            c2.metric('綜合合理價', v230_fmt(fair))
+            c3.metric('綜合樂觀價', v230_fmt(fair*(1+err)))
+            c4.metric('加權歷史誤差', f'{err*100:.1f}%')
+            st.caption('區間算法：前三名模型依 MAPE 反向加權，保守/樂觀價用加權歷史誤差形成區間。')
+    else:
+        st.warning('目前模型可用資料不足，無法產生當期區間。')
+    with st.expander('逐年模型明細', expanded=False):
+        st.dataframe(detail.round(2), use_container_width=True, hide_index=True)
+    st.divider()
+    v254_health_dashboard()
+
+def settings_page():
+    st.header('⚙️ 設定')
+    st.write('系統版本：', APP_VERSION)
+    st.write('資料庫版本：', DB_VERSION)
+    st.write('資料庫股票數：', len(STOCK_DB))
+    st.info('V255：模型驗證中心開始自動抓取財報與歷史股價，進行 3~5 年回測 Alpha。')
+    v254_health_dashboard()
+
+def sidebar_nav():
+    st.sidebar.title('智策股市 AI 平台')
+    st.sidebar.caption(APP_VERSION)
+    page = st.sidebar.radio('主選單', ['🏠 首頁','📈 股票分析','🏭 產業分析','🌏 全球競爭力','🧪 模型驗證中心','🏢 企業價值研究院','⭐ 自選股','⚙️ 設定'])
+    q = st.sidebar.text_input('快速搜尋', placeholder='2330、台積電、2308、台達電')
+    if q:
+        set_active(q)
+    st.sidebar.caption('V255：資料庫健康檢查 + 財報抓取 + 模型回測 Alpha。')
+    return page
+
+# ===== V255.0 FINANCIAL FETCH + MODEL BACKTEST ALPHA END =====
+
 if __name__ == '__main__':
     main()
