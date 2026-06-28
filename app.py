@@ -6222,5 +6222,220 @@ def sidebar_nav():
 
 # ===== V255.0 FINANCIAL FETCH + MODEL BACKTEST ALPHA END =====
 
+
+# ===== V256.0 TSMC TOP3/TOP5 MODEL TEST START =====
+APP_VERSION = "V256.0 TSMC Top3 Top5 Model Test"
+DB_VERSION = "TW-STOCK-20260628-V256"
+
+# 依使用者上傳之台積電 2021~2025 年報先建立台積電 Alpha 手動校正資料。
+# EPS 採年報披露數字；年度平均股價優先用 Yahoo Finance 抓取，抓不到則用 fallback。
+V256_TSMC_MANUAL = pd.DataFrame([
+    {"年度":2021,"EPS":23.01,"fallback_avg_price":596.0,"note":"2021年報EPS"},
+    {"年度":2022,"EPS":39.20,"fallback_avg_price":503.0,"note":"2022年報EPS"},
+    {"年度":2023,"EPS":32.34,"fallback_avg_price":552.0,"note":"2023年報EPS"},
+    {"年度":2024,"EPS":45.25,"fallback_avg_price":879.0,"note":"2024年報EPS"},
+    {"年度":2025,"EPS":66.25,"fallback_avg_price":1260.0,"note":"2025年報EPS"},
+])
+
+V256_MODEL_CONFIG = {
+    "PE(歷史中位數)": {"kind":"pe_hist"},
+    "PE(歷史平均)": {"kind":"pe_mean"},
+    "PE(近三年中位數)": {"kind":"pe_3y"},
+    "Forward PE(成長修正)": {"kind":"forward_pe"},
+    "PEG(簡化)": {"kind":"peg"},
+    "Earnings Power Value": {"kind":"epv"},
+    "Indexed Earnings": {"kind":"indexed"},
+    "AI Premium PE": {"kind":"ai_pe"},
+}
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def v256_tsmc_price_history():
+    """回傳 2021~2025 台積電年度平均股價；線上可抓 Yahoo，離線用 fallback。"""
+    df = V256_TSMC_MANUAL.copy()
+    try:
+        hist = yf.Ticker('2330.TW').history(start='2021-01-01', end='2026-01-01', interval='1d', auto_adjust=False)
+        if hist is not None and not hist.empty and 'Close' in hist:
+            hist = hist.copy(); hist.index = pd.to_datetime(hist.index)
+            avg = hist.groupby(hist.index.year)['Close'].mean().to_dict()
+            df['平均股價'] = df['年度'].map(lambda y: float(avg.get(int(y), np.nan)))
+        else:
+            df['平均股價'] = np.nan
+    except Exception:
+        df['平均股價'] = np.nan
+    df['平均股價'] = df['平均股價'].fillna(df['fallback_avg_price'])
+    df['PE'] = df['平均股價'] / df['EPS']
+    df['EPS成長率'] = df['EPS'].pct_change()
+    return df
+
+def v256_estimate_by_model(row, hist_until_prev, model_name):
+    eps = float(row['EPS'])
+    # 僅使用前一年度以前資訊，避免 look-ahead bias。
+    pe_series = pd.to_numeric(hist_until_prev.get('PE', pd.Series(dtype=float)), errors='coerce').replace([np.inf,-np.inf], np.nan).dropna()
+    growth_series = pd.to_numeric(hist_until_prev.get('EPS成長率', pd.Series(dtype=float)), errors='coerce').replace([np.inf,-np.inf], np.nan).dropna()
+    if len(pe_series) == 0:
+        return np.nan
+    kind = V256_MODEL_CONFIG[model_name]['kind']
+    pe_med = float(pe_series.median())
+    pe_mean = float(pe_series.mean())
+    pe_3y = float(pe_series.tail(3).median())
+    g_med = float(growth_series.tail(3).median()) if len(growth_series) else 0.08
+    g_med = min(max(g_med, -0.20), 0.45)
+    if kind == 'pe_hist':
+        return eps * pe_med
+    if kind == 'pe_mean':
+        return eps * pe_mean
+    if kind == 'pe_3y':
+        return eps * pe_3y
+    if kind == 'forward_pe':
+        # 歷史PE乘上溫和成長修正，不允許過度膨脹。
+        return eps * pe_med * (1 + max(g_med, 0) * 0.35)
+    if kind == 'peg':
+        return eps * min(max(g_med*100, 8), 35)
+    if kind == 'epv':
+        # Earnings Power Value：用資本化盈餘近似，權益成本假設8.5%，再用折價避免過度樂觀。
+        return eps / 0.085 * 0.65
+    if kind == 'indexed':
+        base_pe = pe_series.iloc[0]
+        return eps * ((base_pe + pe_med)/2)
+    if kind == 'ai_pe':
+        # AI premium PE：從2024後允許較高PE，但仍受上限控管。
+        ai_pe = min(max(pe_med*1.25, pe_med), 35)
+        return eps * ai_pe
+    return np.nan
+
+def v256_tsmc_backtest():
+    df = v256_tsmc_price_history().copy().sort_values('年度')
+    details=[]
+    for i in range(1, len(df)):
+        row = df.iloc[i]
+        prev = df.iloc[:i]
+        actual = float(row['平均股價'])
+        for m in V256_MODEL_CONFIG.keys():
+            val = v256_estimate_by_model(row, prev, m)
+            if pd.notna(val) and val > 0 and actual > 0:
+                details.append({
+                    '年度': int(row['年度']), '模型': m, '模型估值': float(val), '實際平均股價': actual,
+                    '誤差%': abs(float(val)/actual - 1) * 100,
+                    '偏離%': (float(val)/actual - 1) * 100
+                })
+    detail = pd.DataFrame(details)
+    if detail.empty:
+        return df, detail, pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+    summary = detail.groupby('模型').agg(
+        MAPE=('誤差%','mean'),
+        RMSE=('誤差%', lambda x: float(np.sqrt(np.mean(np.square(x))))),
+        測試年數=('誤差%','count')
+    ).reset_index().sort_values('MAPE')
+    summary['模型狀態'] = np.where(summary['MAPE'] <= 15, '可用', np.where(summary['MAPE'] <= 30, '觀察', '暫不適用'))
+    current = v256_tsmc_current(summary, df)
+    return df, detail, summary, current.get('top3'), current.get('top5')
+
+def v256_tsmc_current(summary, df):
+    if summary is None or summary.empty:
+        return {'rows':pd.DataFrame(),'top3':pd.DataFrame(),'top5':pd.DataFrame()}
+    # current price uses platform decision price; fallback to latest annual avg if Yahoo current unavailable.
+    price = v254_decision('2330.TW').get('price', np.nan)
+    if pd.isna(price) or price <= 0:
+        price = float(df['平均股價'].iloc[-1])
+    last = df.iloc[-1]
+    prev = df.iloc[:-1]
+    rows=[]
+    for _, s in summary.iterrows():
+        m = s['模型']
+        val = v256_estimate_by_model(last, prev, m)
+        if pd.notna(val) and val > 0:
+            mape=float(s['MAPE'])/100
+            status = s['模型狀態']
+            if val/price > 2.0 or val/price < 0.5:
+                status = '現價偏離過大'
+            rows.append({
+                '模型':m, 'MAPE%':round(float(s['MAPE']),2), '模型狀態':status,
+                '保守價':round(val*(1-mape),2), '合理價':round(val,2), '樂觀價':round(val*(1+mape),2),
+                '與現價偏離%':round((val/price-1)*100,2), '現價':round(float(price),2)
+            })
+    rows=pd.DataFrame(rows).sort_values('MAPE%') if rows else pd.DataFrame()
+    usable = rows[rows['模型狀態'].isin(['可用','觀察'])].copy() if not rows.empty else pd.DataFrame()
+    def weighted_ensemble(n):
+        b=usable.head(n).copy()
+        if b.empty:
+            return pd.DataFrame()
+        b['權重'] = 1 / b['MAPE%'].clip(lower=1)
+        b['權重'] = b['權重'] / b['權重'].sum()
+        fair = float((b['合理價']*b['權重']).sum())
+        err = float((b['MAPE%']*b['權重']).sum())/100
+        out = pd.DataFrame([{
+            '組合':f'Top{n} 誤差反比加權', '使用模型':'、'.join(b['模型'].astype(str).tolist()),
+            '加權MAPE%':round(err*100,2), '保守價':round(fair*(1-err),2), '合理價':round(fair,2), '樂觀價':round(fair*(1+err),2),
+            '現價':round(float(price),2), '與現價偏離%':round((fair/price-1)*100,2)
+        }])
+        return out
+    return {'rows':rows, 'top3':weighted_ensemble(3), 'top5':weighted_ensemble(5)}
+
+def model_validation_alpha_page():
+    st.header('🧪 模型驗證中心 Alpha')
+    st.info('V256：先試作台積電模型競賽，使用年報EPS + 年度平均股價回測；同時比較 Top3 與 Top5 誤差反比加權。')
+    sym = st.selectbox('選擇測試公司', ['2330.TW','2454.TW','2308.TW'], index=0, format_func=lambda s: f"{STOCK_DB.get(s,{}).get('name',s)} / {s}")
+    if sym != '2330.TW':
+        st.warning('V256 先完成台積電手動年報校正；聯發科、台達電維持 V255 自動抓取 Alpha。')
+        assumptions = V255_DEFAULT_ASSUMPTIONS.get(sym, {}).copy()
+        pack = v255_fetch_financial_pack(sym)
+        yearly = pack.get('yearly', pd.DataFrame())
+        if yearly is None or yearly.empty:
+            st.warning('Yahoo Finance 未抓到足夠年度財報。')
+            return
+        detail, summary, clean = v255_model_backtest(yearly, assumptions)
+        st.dataframe(summary.round(2), use_container_width=True, hide_index=True)
+        return
+
+    price = v254_decision('2330.TW').get('price', np.nan)
+    st.metric('目前現價', v230_fmt(price))
+    df, detail, summary, top3, top5 = v256_tsmc_backtest()
+    st.subheader('台積電年報 EPS 校正資料')
+    show=df[['年度','平均股價','EPS','PE','EPS成長率','note']].copy()
+    for c in ['平均股價','EPS','PE','EPS成長率']:
+        show[c]=pd.to_numeric(show[c], errors='coerce').round(2)
+    st.dataframe(show, use_container_width=True, hide_index=True)
+    st.caption('年度平均股價：線上優先抓 Yahoo Finance；抓不到時使用 fallback 平均價。EPS：使用使用者上傳之2021~2025台積電年報揭露數字。')
+
+    st.subheader('模型回測排名')
+    st.dataframe(summary.round(2), use_container_width=True, hide_index=True)
+    st.subheader('Top3 / Top5 加權區間比較')
+    comp = pd.concat([top3, top5], ignore_index=True) if top3 is not None and top5 is not None else pd.DataFrame()
+    if not comp.empty:
+        st.dataframe(comp, use_container_width=True, hide_index=True)
+        c1,c2,c3,c4 = st.columns(4)
+        t3 = comp.iloc[0]
+        c1.metric('Top3合理價', v230_fmt(t3['合理價']))
+        c2.metric('Top3加權MAPE', f"{t3['加權MAPE%']:.2f}%")
+        c3.metric('Top3與現價偏離', f"{t3['與現價偏離%']:.1f}%")
+        if len(comp)>1:
+            t5 = comp.iloc[1]
+            c4.metric('Top5合理價', v230_fmt(t5['合理價']))
+    st.warning('若 Top3/Top5 合理價仍大幅低於或高於現價，代表市場已給予不同估值邏輯，例如 AI/HPC 溢價、未來EPS預期，或目前模型仍需加入Forward EPS。')
+    with st.expander('逐年模型明細', expanded=False):
+        st.dataframe(detail.round(2), use_container_width=True, hide_index=True)
+    st.divider()
+    v254_health_dashboard()
+
+def settings_page():
+    st.header('⚙️ 設定')
+    st.write('系統版本：', APP_VERSION)
+    st.write('資料庫版本：', DB_VERSION)
+    st.write('資料庫股票數：', len(STOCK_DB))
+    st.info('V256：台積電模型競賽試作，新增 Top3 / Top5 誤差反比加權比較。')
+    v254_health_dashboard()
+
+def sidebar_nav():
+    st.sidebar.title('智策股市 AI 平台')
+    st.sidebar.caption(APP_VERSION)
+    page = st.sidebar.radio('主選單', ['🏠 首頁','📈 股票分析','🏭 產業分析','🌏 全球競爭力','🧪 模型驗證中心','🏢 企業價值研究院','⭐ 自選股','⚙️ 設定'])
+    q = st.sidebar.text_input('快速搜尋', placeholder='2330、台積電、2308、台達電')
+    if q:
+        set_active(q)
+    st.sidebar.caption('V256：台積電Top3/Top5模型競賽試作。')
+    return page
+
+# ===== V256.0 TSMC TOP3/TOP5 MODEL TEST END =====
+
 if __name__ == '__main__':
     main()
