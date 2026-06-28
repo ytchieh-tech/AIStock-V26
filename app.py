@@ -2407,5 +2407,301 @@ def v107_premium_home(): home()
 # ===== V233.0 LIVE PRICE RANKING FIX END =====
 
 
+
+
+# ===== V234.0 MOBILE CSS + MAIN CUSTOMERS + STOCK DATA EXPANSION START =====
+# 1) 修正手機版 Sidebar 淺底白字問題
+# 2) 新增「主要客戶/終端客戶」欄位
+# 3) 繼續補齊個股資料
+# 4) 修正 V233 v230_decision 遞迴覆寫問題
+
+APP_VERSION = "V234.0 Mobile + Customer Data Fix"
+
+V234_CUSTOMER_UPDATES = {
+    "2330.TW": {"customers":"Apple、NVIDIA、AMD、Qualcomm、MediaTek、Broadcom、Marvell、Tesla 等全球IC與AI/HPC客戶"},
+    "2303.TW": {"customers":"車用、工控、通訊與消費IC客戶；含IDM與IC設計公司"},
+    "5347.TWO": {"customers":"PMIC、DDI、電源管理IC與車用/工控IC設計客戶"},
+    "2454.TW": {"customers":"Android手機品牌、智慧電視、Wi-Fi/網通、車用與邊緣AI裝置客戶"},
+    "3034.TW": {"customers":"面板廠、手機/IT/電視品牌、車用顯示供應鏈"},
+    "2379.TW": {"customers":"PC、NB、主機板、網通設備、音訊與車用電子客戶"},
+    "5274.TWO": {"customers":"全球伺服器OEM/ODM、雲端資料中心、BMC平台客戶"},
+    "3661.TW": {"customers":"AI ASIC、HPC、雲端服務商與客製化晶片專案客戶"},
+    "3443.TW": {"customers":"ASIC/NRE、AI/HPC、網通與系統廠客製化晶片客戶"},
+    "3035.TW": {"customers":"ASIC、IP、工控、網通、AIoT與邊緣裝置晶片客戶"},
+    "3711.TW": {"customers":"全球IDM、晶圓代工、IC設計、手機與AI/HPC晶片客戶"},
+    "2449.TW": {"customers":"晶圓測試、AI/HPC、車用、通訊與IC設計客戶"},
+    "3131.TWO": {"customers":"台積電與先進封裝/半導體濕製程設備客戶群"},
+    "6223.TWO": {"customers":"晶圓測試、探針卡、AI/HPC、手機與車用晶片測試客戶"},
+    "2382.TW": {"customers":"雲端CSP、AI伺服器客戶、品牌NB與資料中心客戶"},
+    "3231.TW": {"customers":"雲端資料中心、AI伺服器、企業伺服器與品牌PC客戶"},
+    "6669.TW": {"customers":"大型雲端服務商、資料中心、AI伺服器平台客戶"},
+    "2356.TW": {"customers":"伺服器、NB、企業IT與雲端客戶"},
+    "2317.TW": {"customers":"Apple、雲端/AI伺服器、電動車與全球品牌電子客戶"},
+    "2345.TW": {"customers":"雲端資料中心、白牌交換器、網通品牌與電信設備客戶"},
+    "2383.TW": {"customers":"AI伺服器、交換器、PCB/載板廠、品牌與雲端供應鏈客戶"},
+    "6274.TWO": {"customers":"高速網通、AI伺服器、PCB廠與資料中心供應鏈客戶"},
+    "3037.TW": {"customers":"CPU/GPU/ASIC、ABF載板、伺服器與消費電子客戶"},
+    "8046.TW": {"customers":"ABF/BT載板、CPU/GPU/網通與封裝供應鏈客戶"},
+    "3189.TW": {"customers":"IC載板、ABF、手機/網通/半導體封裝客戶"},
+    "2368.TW": {"customers":"AI伺服器、網通、交換器與高階PCB客戶"},
+    "3017.TW": {"customers":"AI伺服器ODM、GPU平台、資料中心與散熱模組客戶"},
+    "3324.TWO": {"customers":"AI伺服器、NB、顯卡與液冷/散熱模組客戶"},
+    "3653.TW": {"customers":"AI伺服器、CPU/GPU、散熱導熱與均熱元件客戶"},
+    "2059.TW": {"customers":"全球伺服器滑軌、資料中心與伺服器機構件客戶"},
+    "2308.TW": {"customers":"資料中心、電源管理、工業自動化、電動車與能源基礎建設客戶"},
+    "1519.TW": {"customers":"台電、電網工程、變壓器、重電與海外電力基礎建設客戶"},
+    "1513.TW": {"customers":"台電、電網設備、充電樁、重電工程與公共建設客戶"},
+    "2327.TW": {"customers":"車用、工控、AI伺服器、通訊與消費電子被動元件客戶"},
+    "2492.TW": {"customers":"車用、工控、通訊、消費電子與被動元件客戶"},
+    "3026.TW": {"customers":"MLCC、被動元件通路、車用與工控客戶"},
+    "2408.TW": {"customers":"DRAM、記憶體模組、PC、伺服器與消費電子客戶"},
+    "2344.TW": {"customers":"NOR Flash、Specialty DRAM、車用、工控與消費電子客戶"},
+    "2337.TW": {"customers":"NOR Flash、車用、工控、網通與消費電子客戶"},
+    "3260.TWO": {"customers":"記憶體模組、電競、工控、通路與品牌客戶"},
+    "2451.TW": {"customers":"工控儲存、嵌入式記憶體、品牌與通路客戶"},
+    "4967.TWO": {"customers":"電競記憶體、消費儲存、通路與品牌客戶"},
+    "8271.TW": {"customers":"工控記憶體、嵌入式儲存、邊緣裝置與通路客戶"},
+    "8299.TWO": {"customers":"NAND控制晶片、SSD、記憶體品牌、工控與AI儲存客戶"},
+    "6215.TWO": {"customers":"工業自動化、智慧工廠、機器人、自動化零組件與整合客戶"},
+    "2049.TW": {"customers":"工具機、自動化設備、半導體設備、醫療與機器人客戶"},
+}
+
+V234_EXTRA_STOCKS = {
+    "3450.TW": {"name":"聯鈞", "industry":"光通訊/CPO", "sub":"光通訊元件/雷射", "rank":"光通訊供應商", "power":"★★★★☆", "position":"AI資料中心光通訊與高速傳輸供應鏈", "peers":"華星光、上詮、眾達、光聖", "moat":"中高：光通訊元件、客戶認證與AI資料中心需求", "risk":"AI資料中心出貨節奏、價格競爭、客戶集中", "fair_mult":1.08, "theme_text":"光通訊、CPO、AI資料中心、800G、矽光子", "chain_position":"中游光通訊元件", "market_share":"光通訊元件供應商", "customers":"AI資料中心、光模組、交換器與雲端供應鏈客戶"},
+    "3491.TWO": {"name":"昇達科", "industry":"低軌衛星/通訊", "sub":"微波/毫米波元件", "rank":"衛星通訊利基供應商", "power":"★★★☆☆", "position":"低軌衛星、微波通訊與毫米波元件供應商", "peers":"啟碁、穩懋、宏捷科、國際微波元件商", "moat":"中：射頻/微波設計與小量多樣利基訂單", "risk":"低軌衛星建置時程、客戶集中、題材波動", "fair_mult":1.06, "theme_text":"低軌衛星、微波通訊、國防通訊、5G", "chain_position":"上游射頻/微波元件", "market_share":"低軌衛星通訊供應鏈", "customers":"低軌衛星、微波通訊、電信設備與國防通訊客戶"},
+    "2313.TW": {"name":"華通", "industry":"PCB", "sub":"HDI/伺服器PCB/衛星通訊", "rank":"PCB主要廠", "power":"★★★★☆", "position":"HDI、伺服器、低軌衛星與消費電子PCB供應商", "peers":"欣興、健鼎、金像電、臻鼎-KY", "moat":"中高：PCB量產、HDI與多元客戶認證", "risk":"消費電子循環、AI與低軌出貨節奏、匯率", "fair_mult":1.05, "theme_text":"PCB、AI伺服器、低軌衛星、HDI、車用電子", "chain_position":"上游PCB", "market_share":"全球PCB主要供應商", "customers":"Apple供應鏈、低軌衛星、伺服器、網通與消費電子客戶"},
+    "6285.TW": {"name":"啟碁", "industry":"網通/低軌衛星", "sub":"網通設備/衛星通訊", "rank":"網通設備主要廠", "power":"★★★★☆", "position":"網通、衛星通訊、車用與寬頻設備供應商", "peers":"智邦、中磊、合勤控、國際網通設備商", "moat":"中高：網通整合、客戶認證與多產品線", "risk":"客戶需求波動、價格競爭、庫存", "fair_mult":1.05, "theme_text":"低軌衛星、網通、車聯網、寬頻設備", "chain_position":"中下游系統/網通設備", "market_share":"網通設備主要供應商", "customers":"電信營運商、網通品牌、車用與低軌衛星設備客戶"},
+    "3105.TWO": {"name":"穩懋", "industry":"化合物半導體", "sub":"GaAs晶圓代工/RF", "rank":"GaAs晶圓代工主要廠", "power":"★★★★☆", "position":"射頻PA、Wi-Fi、手機與衛星通訊GaAs晶圓代工", "peers":"宏捷科、全新、Skyworks供應鏈、Qorvo供應鏈", "moat":"中高：GaAs製程、RF客戶認證與產能規模", "risk":"手機射頻循環、稼動率、價格競爭", "fair_mult":1.04, "theme_text":"射頻、GaAs、低軌衛星、Wi-Fi、手機PA", "chain_position":"上游化合物半導體代工", "market_share":"全球GaAs代工主要廠", "customers":"RF IC、手機PA、Wi-Fi、衛星通訊與IDM客戶"},
+    "8086.TWO": {"name":"宏捷科", "industry":"化合物半導體", "sub":"GaAs磊晶/晶圓代工", "rank":"GaAs供應商", "power":"★★★☆☆", "position":"射頻元件、手機PA與衛星通訊GaAs供應鏈", "peers":"穩懋、全新、Skyworks供應鏈、Qorvo供應鏈", "moat":"中：GaAs製程與RF客戶基礎", "risk":"手機需求循環、稼動率、競爭", "fair_mult":1.03, "theme_text":"射頻、GaAs、低軌衛星、手機PA", "chain_position":"上游化合物半導體", "market_share":"GaAs供應商", "customers":"手機PA、RF IC、Wi-Fi與衛星通訊客戶"},
+    "2455.TW": {"name":"全新", "industry":"化合物半導體", "sub":"GaAs磊晶", "rank":"GaAs磊晶供應商", "power":"★★★☆☆", "position":"GaAs磊晶、射頻與光通訊材料供應商", "peers":"穩懋、宏捷科、IQE、AXT", "moat":"中：磊晶技術與RF/光通訊應用", "risk":"手機PA需求、客戶集中、價格競爭", "fair_mult":1.04, "theme_text":"GaAs、射頻、光通訊、低軌衛星", "chain_position":"上游磊晶材料", "market_share":"GaAs磊晶供應商", "customers":"RF晶圓代工、PA、光通訊與衛星通訊客戶"},
+    "5388.TWO": {"name":"中磊", "industry":"網通", "sub":"寬頻/網通設備", "rank":"寬頻網通設備主要廠", "power":"★★★☆☆", "position":"寬頻、電信網通、智慧家庭與企業網通設備供應商", "peers":"啟碁、智邦、合勤控、國際網通設備商", "moat":"中：電信客戶與網通設備整合", "risk":"電信資本支出、價格競爭、庫存", "fair_mult":1.03, "theme_text":"網通、寬頻、Wi-Fi 7、電信設備", "chain_position":"中下游網通設備", "market_share":"寬頻網通設備供應商", "customers":"電信營運商、寬頻設備、企業網通與智慧家庭客戶"},
+}
+
+try:
+    for _sym, _upd in V234_EXTRA_STOCKS.items():
+        STOCK_DB[_sym] = {**STOCK_DB.get(_sym, {}), **_upd}
+    for _sym, _upd in V234_CUSTOMER_UPDATES.items():
+        if _sym in STOCK_DB:
+            STOCK_DB[_sym].update(_upd)
+    ALIASES.clear()
+    for _sym, _v in STOCK_DB.items():
+        ALIASES[_sym.upper()] = _sym
+        ALIASES[_sym.split(".")[0]] = _sym
+        ALIASES[_v.get("name", _sym)] = _sym
+        ALIASES[_v.get("name", _sym).upper()] = _sym
+except Exception:
+    pass
+
+try:
+    _v234_original_decision = decision
+except Exception:
+    _v234_original_decision = None
+
+def v230_decision(symbol):
+    """V234 safe decision: avoid V233 recursive v230_decision -> v233_decision loop."""
+    sym = v230_symbol(symbol)
+    try:
+        if _v234_original_decision is not None:
+            d = _v234_original_decision(sym)
+        else:
+            d = {"symbol": sym, "name": STOCK_DB.get(sym, {}).get("name", sym), "price": float("nan"), "fair": float("nan"), "cons": float("nan"), "opt": float("nan"), "ret": 0, "action": "觀察", "source": "N/A", "updated": tw_now()}
+    except Exception:
+        d = {"symbol": sym, "name": STOCK_DB.get(sym, {}).get("name", sym), "price": float("nan"), "fair": float("nan"), "cons": float("nan"), "opt": float("nan"), "ret": 0, "action": "觀察", "source": "N/A", "updated": tw_now()}
+    try:
+        px = v233_get_live_price(sym)
+        if pd.notna(px) and float(px) > 0:
+            mult = v233_fair_multiplier(sym)
+            d["price"] = float(px)
+            d["fair"] = float(px) * mult
+            d["cons"] = float(px) * max(mult * 0.88, 0.70)
+            d["opt"] = float(px) * max(mult * 1.12, 1.05)
+            d["ret"] = (d["fair"] - d["price"]) / d["price"] * 100
+            d["source"] = "Yahoo Finance"
+            d["updated"] = tw_now()
+    except Exception:
+        pass
+    try:
+        info = STOCK_DB.get(sym, {})
+        d["customers"] = info.get("customers", "待補")
+        d["main_customers"] = info.get("customers", "待補")
+    except Exception:
+        pass
+    return d
+
+def v230_css():
+    st.markdown("""
+    <style>
+    #MainMenu, footer {visibility:hidden;}
+    .main .block-container{padding-top:1.2rem;max-width:1320px;}
+    section[data-testid="stSidebar"]{background:#f3f6fb !important;}
+    section[data-testid="stSidebar"] *{color:#0f172a !important;}
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] span,
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] div,
+    section[data-testid="stSidebar"] .stMarkdown,
+    section[data-testid="stSidebar"] [data-baseweb="radio"] *{color:#0f172a !important;}
+    section[data-testid="stSidebar"] input{color:#0f172a !important;background:#ffffff !important;}
+    section[data-testid="stSidebar"] [data-testid="stSidebarNav"] *{color:#0f172a !important;}
+    .v230-topbar{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e6edf7;border-radius:18px;padding:18px 22px;margin:8px 0 18px 0;box-shadow:0 10px 30px rgba(15,23,42,.06);}
+    .v230-brand{font-size:28px;font-weight:900;color:#102033;line-height:1.1;}
+    .v230-sub{font-size:13px;color:#64748b;margin-top:5px;}
+    .v230-version{font-size:13px;color:#2563eb;font-weight:700;}
+    .v230-card{background:#fff;border:1px solid #e6edf7;border-radius:18px;padding:18px;margin:10px 0;box-shadow:0 10px 24px rgba(15,23,42,.05);overflow:hidden;}
+    .v230-card-title{font-size:18px;font-weight:850;color:#102033;margin-bottom:10px;}
+    .v230-kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin:16px 0 18px 0;}
+    .v230-kpi{background:#fff;border:1px solid #e6edf7;border-radius:18px;padding:16px;min-height:108px;box-shadow:0 8px 22px rgba(15,23,42,.05);overflow:hidden;}
+    .v230-kpi-icon{font-size:24px;margin-bottom:8px;}
+    .v230-kpi-label{color:#64748b;font-size:13px;font-weight:700;}
+    .v230-kpi-value{font-size:28px;font-weight:900;color:#0f172a;margin-top:4px;word-break:break-word;}
+    .v230-kpi-note{font-size:12px;color:#64748b;margin-top:4px;}
+    .v230-tag-wrap{display:flex;flex-wrap:wrap;gap:7px;max-width:100%;white-space:normal;line-height:2.2;}
+    .v230-tag{display:inline-flex;align-items:center;border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;border-radius:9px;padding:3px 8px;font-size:13px;font-weight:750;white-space:nowrap;}
+    .v230-tag:nth-child(2n){background:#faf5ff;color:#7e22ce;border-color:#d8b4fe;}
+    .v230-tag:nth-child(3n){background:#fff7ed;color:#c2410c;border-color:#fed7aa;}
+    .v230-tag:nth-child(4n){background:#ecfdf5;color:#15803d;border-color:#bbf7d0;}
+    .v230-tag:nth-child(5n){background:#fdf2f8;color:#be185d;border-color:#fbcfe8;}
+    .v230-small-muted{color:#64748b;font-size:12px;line-height:1.7;}
+    div[data-testid="stDataFrame"] div[role="gridcell"]{white-space:normal !important;}
+    .stButton>button{border-radius:12px;border:1px solid #dbe7f5;background:#fff;min-height:42px;font-weight:700;color:#1e293b;}
+    .stButton>button:hover{border-color:#60a5fa;color:#1d4ed8;background:#eff6ff;}
+    @media(max-width:1000px){.v230-kpi-grid{grid-template-columns:repeat(2,1fr);} .v230-topbar{display:block;}}
+    @media(max-width:768px){
+        .main .block-container{padding-left:1rem !important;padding-right:1rem !important;}
+        .v230-brand{font-size:26px !important;}
+        .v230-sub{font-size:16px !important;line-height:1.55 !important;}
+        .v230-version{font-size:16px !important;margin-top:10px !important;}
+        .v230-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:14px !important;}
+        .v230-kpi{min-height:155px !important;padding:18px 16px !important;}
+        .v230-kpi-value{font-size:34px !important;line-height:1.15 !important;}
+        .v230-kpi-label{font-size:16px !important;}
+        .v230-kpi-note{font-size:14px !important;}
+        section[data-testid="stSidebar"]{background:#f3f6fb !important;}
+        section[data-testid="stSidebar"] *{color:#0f172a !important;text-shadow:none !important;opacity:1 !important;}
+        section[data-testid="stSidebar"] input{background:#111827 !important;color:#f9fafb !important;}
+    }
+    @media(max-width:420px){
+        .v230-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+        .v230-kpi{min-height:165px !important;}
+        .v230-brand{font-size:24px !important;}
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+def v230_rows_df():
+    rows=[]
+    for sym, v in STOCK_DB.items():
+        vv={**v,"symbol":sym}
+        try:
+            ai=v227_ai_score(vv)
+        except Exception:
+            ai=3
+        rows.append({
+            "產業":v.get("industry","待補"),
+            "子產業":v.get("sub","待補"),
+            "公司":v.get("name",sym),
+            "代碼":sym,
+            "產業鏈位置":v.get("chain_position","待補"),
+            "主題標籤":v.get("theme_text","一般產業" if ai>0 else "非AI主題"),
+            "AI受惠度":ai,
+            "全球競爭力":v.get("power","★★★☆☆"),
+            "全球排名":v.get("rank","待補"),
+            "全球市占率":v.get("market_share","待補"),
+            "產業地位":v.get("position","待補"),
+            "主要客戶":v.get("customers", v.get("main_customers", "待補")),
+            "主要競爭者":v.get("peers","待補"),
+            "護城河":v.get("moat","待補"),
+            "主要風險":v.get("risk","待補"),
+        })
+    return pd.DataFrame(rows)
+
+def v224_rows_df(): return v230_rows_df()
+def v225_rows_df(): return v230_rows_df()
+def v226_rows_df(): return v230_rows_df()
+def v227_rows_df(): return v230_rows_df()
+
+def v230_price_block(symbol):
+    d=v230_decision(symbol); sym=d.get("symbol", symbol)
+    st.caption(f"資料更新時間：{d.get('updated','N/A')}｜現價來源：{d.get('source','Yahoo Finance')}｜預期報酬率＝(綜合合理價－現價)÷現價。")
+    st.markdown(f"## {d.get('name', sym)}（{sym}）")
+    c1,c2,c3,c4=st.columns(4)
+    c1.metric("投資建議", d.get("action","觀察"))
+    c2.metric("現價", v230_fmt(d.get("price", float("nan"))))
+    c3.metric("綜合合理價", v230_fmt(d.get("fair", float("nan"))))
+    try: ret_txt=f"{float(d.get('ret',0)):.1f}%"
+    except Exception: ret_txt="N/A"
+    c4.metric("預期報酬", ret_txt)
+    p1,p2,p3=st.columns(3)
+    p1.metric("安全邊際價", v230_fmt(d.get("cons", float("nan"))))
+    p2.metric("合理價值", v230_fmt(d.get("fair", float("nan"))))
+    p3.metric("潛在價值", v230_fmt(d.get("opt", float("nan"))))
+    df=v230_rows_df(); row=df[df["代碼"]==sym] if not df.empty and "代碼" in df.columns else pd.DataFrame()
+    with st.expander("展開更多研究資料", expanded=True):
+        if not row.empty:
+            r=row.iloc[0].to_dict()
+            st.markdown("### 公司基本資料")
+            st.markdown(f'<div class="v230-card"><div class="v230-card-title">{r.get("公司","")}｜{r.get("代碼","")}</div><div class="v230-small-muted">主產業：{r.get("產業","")}　｜　子產業：{r.get("子產業","")}　｜　產業鏈位置：{r.get("產業鏈位置","待補")}</div><div style="margin-top:10px;">{v230_tag_html(r.get("主題標籤",""))}</div></div>', unsafe_allow_html=True)
+            st.dataframe(pd.DataFrame([{
+                "全球排名":r.get("全球排名","待補"),
+                "全球市占率":r.get("全球市占率","待補"),
+                "產業地位":r.get("產業地位","待補"),
+                "主要客戶":r.get("主要客戶","待補"),
+                "主要競爭者":r.get("主要競爭者","待補"),
+                "護城河":r.get("護城河","待補"),
+                "主要風險":r.get("主要風險","待補")
+            }]), use_container_width=True, hide_index=True)
+        else:
+            st.info("此個股仍在資料庫補齊中，後續會補上產業鏈位置、主題標籤、主要客戶、競爭者與護城河。")
+
+def industry_page():
+    v230_css(); st.header("🏭 產業分析")
+    df=v230_rows_df()
+    c1,c2,c3=st.columns(3)
+    with c1: ind=st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v234_industry_ind")
+    dff=df[df["產業"]==ind]
+    with c2: sub=st.selectbox("子產業", sorted(dff["子產業"].dropna().unique()), key="v234_industry_sub")
+    dff=dff[dff["子產業"]==sub]
+    labels={f"{r['公司']} / {r['代碼']}":r["代碼"] for _,r in dff.iterrows()}
+    with c3: picked=st.selectbox("個股（選到即查詢）", list(labels.keys()), key="v234_industry_stock")
+    code=labels[picked]; st.session_state["v227_active_symbol"]=code
+    row=dff[dff["代碼"]==code].iloc[0].to_dict()
+    meta=V224_INDUSTRY_META.get(ind, {"規模":"待補","成長率":"待補","AI關聯度":"待補","說明":"待補"})
+    k1,k2,k3,k4=st.columns(4); k1.metric("產業規模", meta.get("規模","待補")); k2.metric("成長率", meta.get("成長率","待補")); k3.metric("AI關聯度", meta.get("AI關聯度","待補")); k4.metric("同產業公司", len(dff))
+    st.info(meta.get("說明",""))
+    st.markdown("### 公司基本資料")
+    st.markdown(f'<div class="v230-card"><div class="v230-card-title">{row.get("公司","")}｜{row.get("代碼","")}</div><div class="v230-small-muted">主產業：{row.get("產業","")}　｜　子產業：{row.get("子產業","")}　｜　產業鏈位置：{row.get("產業鏈位置","待補")}</div><div style="margin-top:10px;">{v230_tag_html(row.get("主題標籤",""))}</div></div>', unsafe_allow_html=True)
+    st.dataframe(pd.DataFrame([{"全球排名":row.get("全球排名","待補"),"全球市占率":row.get("全球市占率","待補"),"產業地位":row.get("產業地位","待補"),"主要客戶":row.get("主要客戶","待補"),"主要競爭者":row.get("主要競爭者","待補"),"護城河":row.get("護城河","待補"),"主要風險":row.get("主要風險","待補")}]), use_container_width=True, hide_index=True)
+    st.markdown("### 同產業主要公司")
+    cols=["公司","代碼","子產業","產業鏈位置","主要客戶","AI受惠度","全球競爭力","產業地位"]
+    st.dataframe(dff[[c for c in cols if c in dff.columns]], use_container_width=True, hide_index=True)
+
+def competition_page():
+    v230_css(); st.header("🌏 全球競爭力")
+    df=v230_rows_df()
+    themes=["全部"]+sorted(set([p.strip() for s in df["主題標籤"].fillna("").astype(str) for p in s.replace("，","、").split("、") if p.strip()]))
+    c0,c1,c2,c3=st.columns(4)
+    with c0: theme=st.selectbox("主題標籤", themes, key="v234_global_theme")
+    if theme!="全部": df=df[df["主題標籤"].astype(str).str.contains(theme, na=False)]
+    with c1: ind=st.selectbox("主產業", sorted(df["產業"].dropna().unique()), key="v234_global_ind")
+    dff=df[df["產業"]==ind]
+    with c2: sub=st.selectbox("子產業", sorted(dff["子產業"].dropna().unique()), key="v234_global_sub")
+    dff=dff[dff["子產業"]==sub]
+    labels={f"{r['公司']} / {r['代碼']}":r["代碼"] for _,r in dff.iterrows()}
+    with c3: picked=st.selectbox("個股（選到即查詢）", list(labels.keys()), key="v234_global_stock")
+    code=labels[picked]; st.session_state["v227_active_symbol"]=code
+    row=dff[dff["代碼"]==code].iloc[0].to_dict()
+    st.markdown(f"## {row['公司']}（{row['代碼']}）")
+    g1,g2,g3,g4=st.columns(4)
+    try: ai_txt=f"{int(row['AI受惠度'])}/10" if int(row["AI受惠度"])>0 else "非AI主題"
+    except Exception: ai_txt="N/A"
+    g1.metric("全球排名", row["全球排名"]); g2.metric("AI受惠度", ai_txt); g3.metric("全球競爭力", row["全球競爭力"]); g4.metric("全球市占率", row["全球市占率"])
+    st.markdown(v230_tag_html(row.get("主題標籤","")), unsafe_allow_html=True)
+    st.dataframe(pd.DataFrame([{"產業地位":row["產業地位"],"主要客戶":row.get("主要客戶","待補"),"競爭者":row["主要競爭者"],"護城河":row["護城河"],"主要風險":row["主要風險"],"產業鏈位置":row["產業鏈位置"]}]), use_container_width=True, hide_index=True)
+    try:
+        st.markdown("---"); v224_ai_score_explanation()
+    except Exception:
+        pass
+# ===== V234.0 MOBILE CSS + MAIN CUSTOMERS + STOCK DATA EXPANSION END =====
+
 if __name__ == '__main__':
     main()
