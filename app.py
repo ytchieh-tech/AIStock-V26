@@ -6,7 +6,7 @@ import numpy as np
 import yfinance as yf
 import streamlit as st
 
-APP_VERSION = "V260-Lite Adaptive Valuation Cache Engine"
+APP_VERSION = "V253.0 Formal Valuation Guard + Ranking Fix"
 APP_NAME = "智策股市 AI 決策平台"
 st.set_page_config(page_title=f"{APP_NAME} {APP_VERSION}", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -6802,171 +6802,166 @@ def sidebar_nav():
 
 
 
-# ===== V260-LITE ADAPTIVE VALUATION CACHE ENGINE START =====
-APP_VERSION = "V260-Lite Adaptive Valuation Cache Engine"
-DB_VERSION = "TW-STOCK-20260629-V260-LITE"
+# ===== V261.0 MODEL ELIMINATION ENGINE BETA START =====
+APP_VERSION = "V261.0 Model Elimination Engine Beta"
 
-V260_INDUSTRY_MODEL_MATRIX = {
-    "AI半導體": {"代表股":"2330.TW 台積電","啟用模型":["DCF/FCFF","EVA","EBO/RIM","EV/EBITDA","Forward PE","AI Premium"],"關閉模型":["航運循環","金融PB股利","資產清算"],"AI溢價權重":"高","說明":"高ROIC、高資本支出、高AI基礎設施壟斷性，允許AI Premium，但仍需傳統模型作底。"},
-    "電源/工業自動化": {"代表股":"2308.TW 台達電","啟用模型":["DCF/FCFF","EVA","EBO/RIM","PB-ROE","Quality Compounder"],"關閉模型":["航運循環","金融PB股利"],"AI溢價權重":"中","說明":"穩定現金流與高品質複利特性，AI資料中心電源給中度溢價。"},
-    "AI伺服器/ODM": {"代表股":"2382.TW 廣達","啟用模型":["EV/EBITDA","PE","FCF Yield","AI Server Cycle","Forward PE"],"關閉模型":["金融PB股利","資產清算"],"AI溢價權重":"中高","說明":"營收大但毛利較薄，重點看AI Server訂單、現金流與EV/EBITDA。"},
-    "航運循環": {"代表股":"2603.TW 長榮","啟用模型":["EV/EBITDA","FCF Yield","Cycle PE","景氣循環模型"],"關閉模型":["AI Premium","PEG","EVA長期穩定模型"],"AI溢價權重":"關閉","說明":"航運獲利高度循環，不適合AI Premium與一般成長股PEG。"},
-    "金融金控": {"代表股":"2881.TW 富邦金","啟用模型":["PB-ROE","Dividend Yield","Residual Income","股利折現"],"關閉模型":["AI Premium","EV/EBITDA","DCF-FCFF","PEG"],"AI溢價權重":"關閉","說明":"金融業以淨值、ROE、股利與資產品質為核心，不使用AI溢價。"},
+V261_COMPANY_TYPES = {
+    '2330.TW': {'type':'AI半導體', 'note':'AI晶圓代工/先進製程/CoWoS，允許AI Premium但仍需通過回測。'},
+    '2308.TW': {'type':'Quality Compounder', 'note':'電源管理與工業自動化，偏向EVA、EBO、DCF、PB-ROE，AI Premium不可直接主導。'},
+    '2382.TW': {'type':'AI伺服器', 'note':'AI Server ODM，適合EV/EBITDA、PE、FCF、營收動能，需控制毛利率風險。'},
+    '2603.TW': {'type':'航運循環', 'note':'航運景氣循環股，適合EV/EBITDA、FCF Yield、Cycle Model，不適合AI Premium。'},
+    '2881.TW': {'type':'金融', 'note':'金控/金融股，適合PB-ROE、Residual Income、Dividend，不適合EV/EBITDA與AI Premium。'},
 }
 
-V260_VALUATION_CACHE = {
-    "2330.TW": {"name":"台積電","category":"AI半導體","method":"AVE-Lite：DCF/EVA/EBO + AI Premium","safe":2100.0,"fair":2480.0,"opt":2730.0,"confidence":"B+ / 試驗","model_status":"需要補齊真FCFF、真EVA、真EV/EBITDA","best_models":["DCF-FCFF","EVA","EBO","AI Premium","Forward PE"],"updated":"2026-06-29","note":"傳統模型無法解釋現價，暫用AI基礎建設溢價做試驗。"},
-    "2308.TW": {"name":"台達電","category":"電源/工業自動化","method":"AVE-Lite：EVA/DCF/PB-ROE","safe":380.0,"fair":470.0,"opt":540.0,"confidence":"C+ / 待回測","model_status":"待建立台達電財報因子","best_models":["EVA","DCF-FCFF","PB-ROE","Quality Compounder"],"updated":"2026-06-29","note":"中度AI資料中心電源溢價，正式結果需回測。"},
-    "2382.TW": {"name":"廣達","category":"AI伺服器/ODM","method":"AVE-Lite：EV/EBITDA + PE + AI Server Cycle","safe":250.0,"fair":320.0,"opt":380.0,"confidence":"C+ / 待回測","model_status":"待建立廣達財報因子","best_models":["EV/EBITDA","Forward PE","FCF Yield","AI Server Cycle"],"updated":"2026-06-29","note":"ODM毛利率較薄，不宜直接用高AI Premium。"},
-    "2603.TW": {"name":"長榮","category":"航運循環","method":"AVE-Lite：Cycle EV/EBITDA + FCF Yield","safe":150.0,"fair":190.0,"opt":230.0,"confidence":"C / 待回測","model_status":"AI Premium關閉；需建立景氣循環因子","best_models":["EV/EBITDA","FCF Yield","Cycle Model"],"updated":"2026-06-29","note":"航運需用循環模型，不使用AI溢價。"},
-    "2881.TW": {"name":"富邦金","category":"金融金控","method":"AVE-Lite：PB-ROE + Dividend Yield","safe":75.0,"fair":90.0,"opt":105.0,"confidence":"C / 待回測","model_status":"AI Premium關閉；需建立ROE/BVPS/股利資料","best_models":["PB-ROE","Dividend Yield","Residual Income"],"updated":"2026-06-29","note":"金融股以淨值、ROE、股利為核心，不用EV/EBITDA與AI Premium。"},
+V261_INDUSTRY_FIT = {
+    'AI半導體': {'A 價值派':72,'B 現金流派':92,'C 成長派':85,'D 市場派':74,'E 特殊派':78,'AI/HPC Premium PE':88,'AI Infrastructure Composite':90,'DCF-FCFF Proxy':92,'DCF-FCFE Proxy':88,'EVA Proxy':86,'EBO/RIM Proxy':82,'Asset Value Proxy':35,'Replacement Cost Proxy':45},
+    'Quality Compounder': {'A 價值派':88,'B 現金流派':86,'C 成長派':55,'D 市場派':65,'E 特殊派':62,'EVA Proxy':92,'EBO/RIM Proxy':88,'DCF-FCFF Proxy':84,'DCF-FCFE Proxy':82,'AI/HPC Premium PE':25,'AI Infrastructure Composite':25,'Super Bull AI PE':20},
+    'AI伺服器': {'A 價值派':75,'B 現金流派':82,'C 成長派':78,'D 市場派':78,'E 特殊派':70,'Market Multiple':85,'動能PE混合':82,'EV/EBITDA':85,'AI Infrastructure Composite':70},
+    '航運循環': {'A 價值派':55,'B 現金流派':82,'C 成長派':20,'D 市場派':55,'E 特殊派':72,'AI/HPC Premium PE':0,'AI Infrastructure Composite':0,'Super Bull AI PE':0,'Replacement Cost Proxy':80,'Asset Value Proxy':76,'DCF-FCFF Proxy':70},
+    '金融': {'A 價值派':88,'B 現金流派':35,'C 成長派':20,'D 市場派':50,'E 特殊派':45,'EBO/RIM Proxy':90,'EVA Proxy':65,'Asset Value Proxy':70,'AI/HPC Premium PE':0,'AI Infrastructure Composite':0,'Super Bull AI PE':0},
 }
-V260_TARGETS = list(V260_VALUATION_CACHE.keys())
 
-def v260_normalize_to_cache_symbol(symbol):
-    try:
-        return normalize_symbol(symbol)
-    except Exception:
-        return str(symbol or '').strip().upper()
+def v261_industry_fit(model, group, ctype='AI半導體'):
+    m = V261_INDUSTRY_FIT.get(ctype, {})
+    if model in m:
+        return float(m[model])
+    return float(m.get(group, 60))
 
-def v260_get_cached_valuation(symbol):
-    return V260_VALUATION_CACHE.get(v260_normalize_to_cache_symbol(symbol))
+def v261_direction_hit(detail):
+    if detail is None or detail.empty:
+        return pd.DataFrame(columns=['模型','方向命中率'])
+    out=[]
+    for model, g in detail.copy().sort_values(['模型','年度']).groupby('模型'):
+        g=g.sort_values('年度')
+        hits=0; cnt=0; prev_actual=None
+        for _, r in g.iterrows():
+            actual=float(r['實際平均股價']); pred=float(r['模型估值'])
+            if prev_actual is not None and prev_actual>0:
+                if np.sign(actual-prev_actual)==np.sign(pred-prev_actual): hits+=1
+                cnt+=1
+            prev_actual=actual
+        out.append({'模型':model,'方向命中率':(hits/cnt*100 if cnt else np.nan),'方向樣本數':cnt})
+    return pd.DataFrame(out)
 
-def v260_cache_decision(symbol):
-    sym = v260_normalize_to_cache_symbol(symbol)
-    base = v254_decision(sym) if 'v254_decision' in globals() else decision(sym)
-    cache = v260_get_cached_valuation(sym)
-    if not cache:
-        return base
-    price = base.get('price', np.nan)
-    fair = cache.get('fair', np.nan)
-    ret = np.nan
-    try:
-        if pd.notna(price) and price > 0 and pd.notna(fair):
-            ret = (float(fair) / float(price) - 1) * 100
-    except Exception:
-        pass
-    action = '正式回測前先觀察'
-    if pd.notna(ret):
-        action = '低估觀察' if ret >= 15 else ('合理附近' if ret >= -10 else '偏高觀察')
-    return {**base, 'cons': cache.get('safe', np.nan), 'fair': cache.get('fair', np.nan), 'opt': cache.get('opt', np.nan),
-            'ret': ret, 'action': action, 'valuation_quality': 'AVE-Lite快取', 'valuation_method': cache.get('method', 'AVE-Lite'),
-            'confidence': cache.get('confidence','試驗'), 'best_models': '、'.join(cache.get('best_models', [])),
-            'cache_note': cache.get('note',''), 'model_status': cache.get('model_status',''), 'cache_updated': cache.get('updated','')}
+def v261_score_models(symbol='2330.TW', company_type='AI半導體'):
+    df, detail, summary = v258_single_backtest()
+    if summary is None or summary.empty:
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+    default_forward=float(df['EPS'].iloc[-1])*1.15
+    cur, comps = v258_current_composites(summary, df, forward_eps=default_forward)
+    if cur is None or cur.empty:
+        cur=pd.DataFrame(columns=['模型','合理價','現價','與現價偏離%'])
+    direction=v261_direction_hit(detail)
+    s=summary.merge(direction,on='模型',how='left')
+    if not cur.empty:
+        s=s.merge(cur[['模型','合理價','現價','與現價偏離%']],on='模型',how='left')
+    else:
+        s['合理價']=np.nan; s['現價']=np.nan; s['與現價偏離%']=np.nan
+    s['產業適用分數']=s.apply(lambda r: v261_industry_fit(r['模型'],r['模型群組'],company_type),axis=1)
+    s['MAPE分數']=(100-pd.to_numeric(s['MAPE'],errors='coerce').clip(0,40)*2.5).clip(0,100)
+    s['現價偏離分數']=(100-pd.to_numeric(s['與現價偏離%'],errors='coerce').abs().fillna(60).clip(0,60)*1.667).clip(0,100)
+    s['方向分數']=pd.to_numeric(s['方向命中率'],errors='coerce').fillna(50).clip(0,100)
+    s['穩定分數']=(100-pd.to_numeric(s['RMSE'],errors='coerce').clip(0,50)*2).clip(0,100)
+    s['模型總分']=0.40*s['MAPE分數']+0.25*s['現價偏離分數']+0.20*s['方向分數']+0.10*s['穩定分數']+0.05*s['產業適用分數']
+    def _status(row):
+        if row['產業適用分數']<25: return '產業不適用'
+        if row['MAPE']>35 or abs(row.get('與現價偏離%',0))>65: return '淘汰'
+        score=float(row['模型總分'])
+        if score>=85: return '核心模型'
+        if score>=75: return '保留模型'
+        if score>=65: return '觀察模型'
+        return '淘汰'
+    s['生存狀態']=s.apply(_status,axis=1)
+    s['模型等級']=pd.cut(s['模型總分'],bins=[-1,60,70,80,90,101],labels=['D','C','B','A','S'])
+    cols=['模型','模型群組','MAPE','RMSE','最大誤差','方向命中率','與現價偏離%','產業適用分數','模型總分','模型等級','生存狀態','合理價','現價']
+    s=s[cols].sort_values('模型總分',ascending=False).reset_index(drop=True)
+    survivors=s[s['生存狀態'].isin(['核心模型','保留模型','觀察模型'])].copy()
+    if not survivors.empty:
+        survivors['權重']=survivors['模型總分'].clip(lower=1); survivors['權重']=survivors['權重']/survivors['權重'].sum()
+        fair=float((survivors['合理價']*survivors['權重']).sum()) if survivors['合理價'].notna().any() else np.nan
+        weighted_mape=float((survivors['MAPE']*survivors['權重']).sum()) if survivors['MAPE'].notna().any() else np.nan
+        price=float(survivors['現價'].dropna().iloc[0]) if survivors['現價'].notna().any() else np.nan
+        cache=pd.DataFrame([{'股票':symbol,'公司':STOCK_DB.get(symbol,{}).get('name',symbol),'公司類型':company_type,'存活模型數':len(survivors),'核心/保留模型':'、'.join(survivors.head(8)['模型'].astype(str).tolist()),'加權MAPE%':weighted_mape,'安全價':fair*(1-weighted_mape/100) if pd.notna(fair) and pd.notna(weighted_mape) else np.nan,'合理價':fair,'樂觀價':fair*(1+weighted_mape/100) if pd.notna(fair) and pd.notna(weighted_mape) else np.nan,'現價':price,'與現價偏離%':(fair/price-1)*100 if pd.notna(fair) and pd.notna(price) and price>0 else np.nan,'更新時間':tw_now()}])
+    else:
+        cache=pd.DataFrame()
+    return s, survivors, cache
 
-def v260_query_panel(symbol):
-    try:
-        sym = v230_symbol(symbol)
-    except Exception:
-        sym = symbol or '2330.TW'
-    cache = v260_get_cached_valuation(sym)
-    if not cache:
-        if 'v254_query_panel' in globals():
-            return v254_query_panel(sym)
-        return v247_query_panel(sym) if 'v247_query_panel' in globals() and v247_query_panel is not v260_query_panel else None
-    d = v260_cache_decision(sym)
-    info = STOCK_DB.get(sym, {})
-    st.markdown('### 🔎 查詢結果 / AVE-Lite 快取估值區間')
-    st.markdown(f"#### {cache.get('name', info.get('name', sym))}（{sym}）")
-    c1,c2,c3,c4 = st.columns(4)
-    c1.metric('現價', v230_fmt(d.get('price', np.nan)))
-    c2.metric('安全價', v230_fmt(d.get('cons', np.nan)))
-    c3.metric('合理價', v230_fmt(d.get('fair', np.nan)))
-    c4.metric('樂觀價', v230_fmt(d.get('opt', np.nan)))
-    c5,c6,c7,c8 = st.columns(4)
-    ret=d.get('ret', np.nan)
-    c5.metric('預期報酬', 'N/A' if pd.isna(ret) else f"{ret:.1f}%")
-    c6.metric('投資建議', d.get('action','觀察'))
-    c7.metric('模型信心度', d.get('confidence','試驗'))
-    c8.metric('更新時間', cache.get('updated',''))
-    st.dataframe(pd.DataFrame([{'產業類型': cache.get('category'), '估值方法': cache.get('method'), '最佳模型組': d.get('best_models'), '模型狀態': cache.get('model_status'), '重要說明': cache.get('note')}]), use_container_width=True, hide_index=True)
-    with st.expander('展開公司與模型資料', expanded=False):
-        st.write('產業：', info.get('industry','待補'), ' / ', info.get('sub','待補'))
-        st.write('主要客戶：', info.get('customers', info.get('major_customers','待補')))
-        st.write('競爭者：', info.get('peers','待補'))
-        st.write('護城河：', info.get('moat','待補'))
-        st.write('風險：', info.get('risk','待補'))
-        st.caption('V260-Lite：前台只讀快取，不即時計算31模型；正式數字需由後台財報因子引擎批次更新。')
+def v261_model_matrix_page():
+    st.header('🧬 V261 Model Elimination Engine — 模型淘汰引擎')
+    st.info('依 MAPE、現價偏離、方向命中率、穩定度、產業適用性，先淘汰不合理模型，再建立公司專屬模型池。')
+    sym=st.selectbox('選擇測試公司', list(V261_COMPANY_TYPES.keys()), index=0, format_func=lambda s: f"{STOCK_DB.get(s,{}).get('name',s)} / {s} / {V261_COMPANY_TYPES[s]['type']}")
+    ctype=V261_COMPANY_TYPES[sym]['type']
+    st.caption(V261_COMPANY_TYPES[sym]['note'])
+    if sym!='2330.TW':
+        st.warning('Beta 版目前只有台積電有完整 2021~2025 回測；其他公司先展示產業模型池規則，補齊財報因子後即可啟用。')
+        rules=pd.DataFrame([{'模型':m,'模型群組':meta['group'],'產業適用分數':v261_industry_fit(m,meta['group'],ctype)} for m,meta in V258_MODELS.items()]).sort_values('產業適用分數',ascending=False)
+        st.dataframe(rules,use_container_width=True,hide_index=True)
+        return
+    score,survivors,cache=v261_score_models(sym,ctype)
+    c1,c2,c3,c4=st.columns(4)
+    c1.metric('測試模型',f'{len(score)}個')
+    c2.metric('存活模型',f'{len(survivors)}個')
+    c3.metric('淘汰/不適用',f'{len(score)-len(survivors)}個')
+    best=score.iloc[0]
+    c4.metric('最高分模型',f"{best['模型']} ({best['模型總分']:.1f})")
+    st.subheader('一、模型生存排行榜')
+    show=score.copy()
+    for col in ['MAPE','RMSE','最大誤差','方向命中率','與現價偏離%','產業適用分數','模型總分','合理價','現價']:
+        if col in show: show[col]=pd.to_numeric(show[col],errors='coerce').round(2)
+    st.dataframe(show,use_container_width=True,hide_index=True)
+    st.subheader('二、公司專屬模型池')
+    if survivors.empty:
+        st.warning('沒有模型通過生存條件。')
+    else:
+        surv=survivors.copy(); surv['權重%']=(surv['模型總分']/surv['模型總分'].sum()*100).round(2)
+        st.dataframe(surv[['模型','模型群組','MAPE','與現價偏離%','方向命中率','產業適用分數','模型總分','生存狀態','權重%']].round(2),use_container_width=True,hide_index=True)
+    st.subheader('三、快取估值結果（前台未來只讀這張表）')
+    if cache.empty:
+        st.warning('尚無快取結果。')
+    else:
+        st.dataframe(cache.round(2),use_container_width=True,hide_index=True)
+        r=cache.iloc[0]
+        cc1,cc2,cc3,cc4=st.columns(4)
+        cc1.metric('安全價',v230_fmt(r['安全價']))
+        cc2.metric('合理價',v230_fmt(r['合理價']))
+        cc3.metric('樂觀價',v230_fmt(r['樂觀價']))
+        cc4.metric('與現價偏離',f"{r['與現價偏離%']:.1f}%")
+        if abs(float(r['與現價偏離%']))>35:
+            st.warning('快取估值仍與現價偏離超過35%，不建議進入低估排行；需補更多真財報因子或重新校正模型。')
+    with st.expander('評分公式與淘汰條件',expanded=False):
+        st.markdown("""
+**Model Score = 40% × MAPE分數 + 25% × 現價偏離分數 + 20% × 方向命中率 + 10% × 穩定度 + 5% × 產業適用分數**
 
-v247_query_panel = v260_query_panel
-v246_query_panel = v260_query_panel
-v245_query_panel = v260_query_panel
-v244_query_panel = v260_query_panel
-
-def v260_ave_lite_page():
-    st.header('⚡ V260-Lite Adaptive Valuation Engine｜自適應估值快取引擎')
-    st.info('試驗版：前台只讀估值快取，31模型與財報因子改由後台批次計算，避免查詢變慢或不穩定。')
-    st.subheader('一、五種產業適用矩陣')
-    matrix_rows=[]
-    for k,v in V260_INDUSTRY_MODEL_MATRIX.items():
-        matrix_rows.append({'產業類型': k, '代表股': v.get('代表股'), '啟用模型': '、'.join(v.get('啟用模型',[])), '關閉模型': '、'.join(v.get('關閉模型',[])), 'AI溢價權重': v.get('AI溢價權重'), '說明': v.get('說明')})
-    st.dataframe(pd.DataFrame(matrix_rows), use_container_width=True, hide_index=True)
-    st.subheader('二、五家公司快取估值結果')
-    rows=[]
-    for sym,c in V260_VALUATION_CACHE.items():
-        d=v260_cache_decision(sym); price=d.get('price', np.nan)
-        rows.append({'代號': sym, '公司': c.get('name'), '類型': c.get('category'), '現價': None if pd.isna(price) else round(float(price),2), '安全價': c.get('safe'), '合理價': c.get('fair'), '樂觀價': c.get('opt'), '與現價偏離%': None if pd.isna(d.get('ret',np.nan)) else round(float(d.get('ret')),2), '信心度': c.get('confidence'), '方法': c.get('method'), '更新': c.get('updated')})
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-    st.subheader('三、單股測試')
-    sym = st.selectbox('選擇 V260-Lite 試驗標的', V260_TARGETS, format_func=lambda s: f"{V260_VALUATION_CACHE[s]['name']} / {s}")
-    v260_query_panel(sym)
-    st.subheader('四、效能設計')
-    st.markdown("""
-- 前台查詢：只讀 `V260_VALUATION_CACHE`，速度快、失敗風險低。  
-- 後台批次：未來每日/每週更新財報因子、模型排名、估值區間。  
-- 模型隔離：傳產、金融、航運不套 AI Premium；AI股才啟用溢價模型。  
-- 正式上線前：五家公司需完成回測，確認誤差是否可控制在 ±15% 內。
+- MAPE > 35%：淘汰
+- 與現價偏離 > 65%：淘汰
+- 產業適用分數 < 25：產業不適用
+- 85分以上：核心模型
+- 75～84分：保留模型
+- 65～74分：觀察模型
+- 65分以下：淘汰
 """)
-    st.divider()
-    if 'v254_health_dashboard' in globals():
-        v254_health_dashboard()
+    st.divider(); v254_health_dashboard()
 
-def model_validation_alpha_page():
-    tabs = st.tabs(['⚡ V260-Lite AVE快取', '🏆 V258 台積電31模型'])
-    with tabs[0]:
-        v260_ave_lite_page()
-    with tabs[1]:
-        st.header('🏆 台積電 31 Model Tournament — 模型錦標賽')
-        st.info('V258保留作為模型研究區；V260-Lite負責前台快取估值。')
-        df, detail, summary = v258_single_backtest()
-        price=v254_decision('2330.TW').get('price',np.nan)
-        c1,c2,c3,c4=st.columns(4)
-        c1.metric('目前現價', v230_fmt(price))
-        c2.metric('年報最新EPS', f"{df['EPS'].iloc[-1]:.2f}")
-        c3.metric('近五年EPS CAGR', f"{((df['EPS'].iloc[-1]/df['EPS'].iloc[0])**(1/(len(df)-1))-1)*100:.1f}%")
-        c4.metric('測試模型數', f"{len(V258_MODELS)}個")
-        st.subheader('31模型總排行榜')
-        st.dataframe(summary.round(2), use_container_width=True, hide_index=True)
-        st.subheader('五大流派冠軍')
-        st.dataframe(v258_champions(summary).round(2), use_container_width=True, hide_index=True)
-        st.subheader('方案比較')
-        roll=v258_portfolio_backtest(detail, summary)
-        if not roll.empty:
-            comp=roll.groupby('方案').agg(MAPE=('誤差%','mean'), RMSE=('誤差%', lambda x: float(np.sqrt(np.mean(np.square(x))))), 測試年數=('誤差%','count')).reset_index().sort_values('MAPE')
-            comp['評級']=comp['MAPE'].apply(v258_grade)
-            st.dataframe(comp.round(2), use_container_width=True, hide_index=True)
-
-def sidebar_nav():
-    st.sidebar.title('智策股市 AI 平台')
-    st.sidebar.caption(APP_VERSION)
-    page = st.sidebar.radio('主選單', ['🏠 首頁','📈 股票分析','🏭 產業分析','🌏 全球競爭力','🧪 模型驗證中心','🏢 企業價值研究院','⭐ 自選股','⚙️ 設定'])
-    q = st.sidebar.text_input('快速搜尋', placeholder='2330、台積電、2308、台達電、2603、2881')
-    if q:
-        set_active(q)
-    st.sidebar.caption('V260-Lite：自適應估值快取引擎，前台只讀結果，後台再批次更新模型。')
-    return page
+model_validation_alpha_page = v261_model_matrix_page
 
 def settings_page():
     st.header('⚙️ 設定')
     st.write('系統版本：', APP_VERSION)
     st.write('資料庫版本：', DB_VERSION)
     st.write('資料庫股票數：', len(STOCK_DB))
-    st.info('V260-Lite：新增產業適用矩陣、五家公司AVE快取估值、前台快速讀取與模型隔離設計。')
-    st.write('V260-Lite 快取標的：', '、'.join([f"{V260_VALUATION_CACHE[s]['name']}({s})" for s in V260_TARGETS]))
-    if 'v254_health_dashboard' in globals():
-        v254_health_dashboard()
+    st.info('V261：Model Elimination Engine，先淘汰不適用模型，再建立公司專屬模型池與快取估值。')
+    v254_health_dashboard()
 
-# ===== V260-LITE ADAPTIVE VALUATION CACHE ENGINE END =====
+def sidebar_nav():
+    st.sidebar.title('智策股市 AI 平台')
+    st.sidebar.caption(APP_VERSION)
+    page=st.sidebar.radio('主選單',['🏠 首頁','📈 股票分析','🏭 產業分析','🌏 全球競爭力','🧪 模型驗證中心','🏢 企業價值研究院','⭐ 自選股','⚙️ 設定'])
+    q=st.sidebar.text_input('快速搜尋',placeholder='2330、台積電、2308、台達電')
+    if q: set_active(q)
+    st.sidebar.caption('V261：模型淘汰引擎 Beta，先排除不合理模型，再做估值。')
+    return page
+
+# ===== V261.0 MODEL ELIMINATION ENGINE BETA END =====
 
 if __name__ == '__main__':
     main()
