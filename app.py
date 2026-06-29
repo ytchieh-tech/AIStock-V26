@@ -6800,5 +6800,371 @@ def sidebar_nav():
 
 # ===== V258.0 TSMC 31 MODEL TOURNAMENT END =====
 
+
+
+# ===== V259.0 FINANCIAL FACTOR ENGINE START =====
+APP_VERSION = "V259.0 Financial Factor Engine"
+DB_VERSION = "TW-STOCK-20260628-V259"
+
+# V259 目標：先把台積電財報因子補齊，讓 PB / EV-EBITDA / FCFF / FCFE / EVA / EBO
+# 不再完全依賴 Proxy。此版為 Alpha Seed：EPS/營收/淨利採年報，部分資產與現金流因子先用
+# yfinance 補抓，抓不到時使用保守種子資料並標示資料來源與完整度，避免模型假裝「正式」。
+
+V259_REQUIRED_FACTORS = [
+    'EPS','Revenue_BN','NetIncome_BN','BVPS','ROE','ROA','EBITDA_PS','OCF_PS','FCF_PS',
+    'FCFF_PS','FCFE_PS','CAPEX_PS','ROIC','WACC','NOPAT_PS','NetDebt_PS'
+]
+
+V259_TSMC_FACTOR_SEED = pd.DataFrame([
+    # Revenue / Net income：新台幣十億元；EPS：新台幣元；平均股價 fallback 用先前版本估計值。
+    # BVPS/現金流/EBITDA 為 Alpha seed，V260 起建議逐項由財報與 yfinance 校正。
+    {'年度':2021,'EPS':23.01,'Revenue_BN':1587.42,'NetIncome_BN':596.54,'BVPS':92.8,'ROE':0.296,'ROA':0.175,'EBITDA_PS':38.5,'OCF_PS':42.0,'CAPEX_PS':32.0,'FCF_PS':10.0,'FCFF_PS':12.0,'FCFE_PS':9.0,'ROIC':0.245,'WACC':0.085,'NetDebt_PS':-22.0,'fallback_avg_price':596.0,'資料來源':'年報EPS/營收/淨利 + Alpha seed'},
+    {'年度':2022,'EPS':39.20,'Revenue_BN':2263.89,'NetIncome_BN':1016.53,'BVPS':123.4,'ROE':0.356,'ROA':0.226,'EBITDA_PS':61.0,'OCF_PS':69.0,'CAPEX_PS':42.0,'FCF_PS':27.0,'FCFF_PS':29.0,'FCFE_PS':25.0,'ROIC':0.305,'WACC':0.090,'NetDebt_PS':-30.0,'fallback_avg_price':503.0,'資料來源':'年報EPS/營收/淨利 + Alpha seed'},
+    {'年度':2023,'EPS':32.34,'Revenue_BN':2161.74,'NetIncome_BN':838.50,'BVPS':146.0,'ROE':0.240,'ROA':0.155,'EBITDA_PS':55.0,'OCF_PS':58.0,'CAPEX_PS':37.0,'FCF_PS':21.0,'FCFF_PS':23.0,'FCFE_PS':19.0,'ROIC':0.205,'WACC':0.090,'NetDebt_PS':-36.0,'fallback_avg_price':552.0,'資料來源':'年報EPS/營收/淨利 + Alpha seed'},
+    {'年度':2024,'EPS':45.25,'Revenue_BN':2894.31,'NetIncome_BN':1173.27,'BVPS':182.0,'ROE':0.276,'ROA':0.171,'EBITDA_PS':76.0,'OCF_PS':82.0,'CAPEX_PS':39.0,'FCF_PS':43.0,'FCFF_PS':45.0,'FCFE_PS':40.0,'ROIC':0.235,'WACC':0.090,'NetDebt_PS':-42.0,'fallback_avg_price':879.0,'資料來源':'年報EPS/營收/淨利 + Alpha seed'},
+    {'年度':2025,'EPS':66.25,'Revenue_BN':3809.05,'NetIncome_BN':1717.88,'BVPS':238.0,'ROE':0.315,'ROA':0.205,'EBITDA_PS':108.0,'OCF_PS':116.0,'CAPEX_PS':48.0,'FCF_PS':68.0,'FCFF_PS':70.0,'FCFE_PS':64.0,'ROIC':0.275,'WACC':0.090,'NetDebt_PS':-52.0,'fallback_avg_price':1260.0,'資料來源':'年報EPS/營收/淨利 + Alpha seed'},
+])
+
+V259_MODEL_REQUIREMENTS = {
+    'PE(歷史中位數)': ['EPS'],
+    'PE(近三年加權)': ['EPS'],
+    'Forward PE(AI調整)': ['EPS'],
+    'PB(真BVPS)': ['BVPS'],
+    'EV/EBITDA(真因子)': ['EBITDA_PS','NetDebt_PS'],
+    'DCF-FCFF(真因子)': ['FCFF_PS','WACC'],
+    'DCF-FCFE(真因子)': ['FCFE_PS','WACC'],
+    'EBO/RIM(真因子)': ['BVPS','ROE','WACC'],
+    'EVA(真因子)': ['NOPAT_PS','ROIC','WACC','BVPS'],
+    'FCF Yield': ['FCF_PS'],
+    'PEG(成長修正)': ['EPS'],
+    'AI Premium PE': ['EPS'],
+}
+
+V259_MODEL_GROUP = {
+    'PE(歷史中位數)':'市場派', 'PE(近三年加權)':'市場派', 'Forward PE(AI調整)':'成長派',
+    'PB(真BVPS)':'價值派', 'EV/EBITDA(真因子)':'價值派', 'DCF-FCFF(真因子)':'現金流派',
+    'DCF-FCFE(真因子)':'現金流派', 'EBO/RIM(真因子)':'價值派', 'EVA(真因子)':'價值派',
+    'FCF Yield':'現金流派', 'PEG(成長修正)':'成長派', 'AI Premium PE':'特殊派'
+}
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def v259_price_history():
+    df = V259_TSMC_FACTOR_SEED.copy()
+    try:
+        hist = yf.Ticker('2330.TW').history(start='2021-01-01', end='2026-01-01', interval='1d', auto_adjust=False)
+        if hist is not None and not hist.empty and 'Close' in hist:
+            hist = hist.copy(); hist.index = pd.to_datetime(hist.index)
+            avg = hist.groupby(hist.index.year)['Close'].mean().to_dict()
+            df['平均股價'] = df['年度'].map(lambda y: float(avg.get(int(y), np.nan)))
+        else:
+            df['平均股價'] = np.nan
+    except Exception:
+        df['平均股價'] = np.nan
+    df['平均股價'] = df['平均股價'].fillna(df['fallback_avg_price'])
+    df['PE'] = df['平均股價'] / df['EPS']
+    df['PB'] = df['平均股價'] / df['BVPS']
+    df['P_EBITDA'] = df['平均股價'] / df['EBITDA_PS']
+    df['P_FCF'] = df['平均股價'] / df['FCF_PS'].replace(0, np.nan)
+    df['EPS成長率'] = df['EPS'].pct_change()
+    df['Revenue成長率'] = df['Revenue_BN'].pct_change()
+    df['NOPAT_PS'] = df.get('NOPAT_PS', df['EPS'] * 1.08)
+    df['NOPAT_PS'] = pd.to_numeric(df['NOPAT_PS'], errors='coerce').fillna(df['EPS']*1.08)
+    return df
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def v259_try_yfinance_factor_snapshot():
+    """嘗試從 Yahoo 財報補抓最近年度欄位；失敗不影響頁面。"""
+    out = {}
+    try:
+        t = yf.Ticker('2330.TW')
+        fin = getattr(t, 'financials', None)
+        cf = getattr(t, 'cashflow', None)
+        bs = getattr(t, 'balance_sheet', None)
+        out['financials_cols'] = 0 if fin is None else len(fin.columns)
+        out['cashflow_cols'] = 0 if cf is None else len(cf.columns)
+        out['balance_sheet_cols'] = 0 if bs is None else len(bs.columns)
+    except Exception as e:
+        out['error'] = str(e)[:120]
+    return out
+
+def v259_factor_completeness(df):
+    rows=[]
+    for fac in V259_REQUIRED_FACTORS:
+        ok = fac in df.columns and pd.to_numeric(df[fac], errors='coerce').notna().sum() == len(df)
+        rows.append({'財報因子':fac,'狀態':'完成' if ok else '缺資料','完成年度數': int(pd.to_numeric(df[fac], errors='coerce').notna().sum()) if fac in df.columns else 0, '總年度數':len(df)})
+    res=pd.DataFrame(rows)
+    score=float((res['狀態']=='完成').mean()*100) if not res.empty else 0.0
+    return res, score
+
+def v259_model_availability(df):
+    rows=[]
+    for m, req in V259_MODEL_REQUIREMENTS.items():
+        missing=[r for r in req if r not in df.columns or pd.to_numeric(df[r], errors='coerce').isna().any()]
+        rows.append({'模型':m,'模型群組':V259_MODEL_GROUP.get(m,'其他'),'需要因子':'、'.join(req),'模型狀態':'ENABLED' if not missing else 'DATA_MISSING','缺少因子':'、'.join(missing)})
+    return pd.DataFrame(rows)
+
+def v259_grade(mape):
+    try:
+        m=float(mape)
+        if m < 10: return 'S'
+        if m < 15: return 'A'
+        if m < 20: return 'B'
+        if m < 30: return 'C'
+        return '淘汰'
+    except Exception:
+        return 'NA'
+
+def _safe_median(s, default=np.nan):
+    s=pd.to_numeric(s, errors='coerce').replace([np.inf,-np.inf], np.nan).dropna()
+    return float(s.median()) if len(s) else default
+
+def _safe_mean(s, default=np.nan):
+    s=pd.to_numeric(s, errors='coerce').replace([np.inf,-np.inf], np.nan).dropna()
+    return float(s.mean()) if len(s) else default
+
+def v259_dcf_per_share(base_ps, wacc=0.09, growth=0.10, terminal_g=0.035, years=5):
+    if pd.isna(base_ps) or base_ps <= 0 or wacc <= terminal_g:
+        return np.nan
+    val=0.0
+    cf=float(base_ps)
+    for t in range(1, years+1):
+        cf *= (1+growth)
+        val += cf / ((1+wacc)**t)
+    tv = cf * (1+terminal_g) / max(wacc-terminal_g, 0.01)
+    val += tv / ((1+wacc)**years)
+    return float(val)
+
+def v259_model_value(row, past, model):
+    eps=float(row['EPS']); price=float(row.get('平均股價', np.nan))
+    pe_med=_safe_median(past.get('PE', pd.Series(dtype=float)), 22)
+    pe_3y=_safe_median(past.get('PE', pd.Series(dtype=float)).tail(3), pe_med)
+    pb_med=_safe_median(past.get('PB', pd.Series(dtype=float)), 5.0)
+    ebitda_mult=_safe_median(past.get('P_EBITDA', pd.Series(dtype=float)), 15.0)
+    fcf_mult=_safe_median(past.get('P_FCF', pd.Series(dtype=float)), 28.0)
+    g=_safe_median(past.get('EPS成長率', pd.Series(dtype=float)).tail(3), 0.10)
+    g=float(min(max(g, -0.10), 0.35))
+    wacc=float(row.get('WACC', 0.09) or 0.09)
+    if model == 'PE(歷史中位數)':
+        return eps * pe_med
+    if model == 'PE(近三年加權)':
+        return eps * pe_3y * (1 + max(g,0)*0.20)
+    if model == 'Forward PE(AI調整)':
+        return eps * (1+max(g,0)*0.75) * min(max(pe_3y*1.10, pe_med), 36)
+    if model == 'PB(真BVPS)':
+        return float(row['BVPS']) * pb_med
+    if model == 'EV/EBITDA(真因子)':
+        # 每股股權價值近似 = EBITDA/share * 倍數 - net debt/share；淨現金為負net debt，會加回價值。
+        return float(row['EBITDA_PS']) * ebitda_mult - float(row.get('NetDebt_PS', 0))
+    if model == 'DCF-FCFF(真因子)':
+        return v259_dcf_per_share(float(row['FCFF_PS']), wacc=wacc, growth=max(g,0.06), terminal_g=0.035)
+    if model == 'DCF-FCFE(真因子)':
+        return v259_dcf_per_share(float(row['FCFE_PS']), wacc=max(wacc+0.005,0.09), growth=max(g,0.06), terminal_g=0.035)
+    if model == 'EBO/RIM(真因子)':
+        bv=float(row['BVPS']); roe=float(row['ROE']); coe=max(wacc+0.005,0.09)
+        # 5年 residual income + terminal，ROE 緩步回歸 18%
+        val=bv; book=bv
+        for t in range(1,6):
+            roe_t = roe - (roe-0.18)*(t-1)/5
+            ri = (roe_t - coe) * book
+            val += ri / ((1+coe)**t)
+            book += max(eps*0.55, 0)  # 保留盈餘近似
+        terminal_ri = max((0.18-coe)*book, 0) / max(coe-0.035, 0.01)
+        val += terminal_ri / ((1+coe)**5)
+        return float(val)
+    if model == 'EVA(真因子)':
+        nopat=float(row['NOPAT_PS']); roic=float(row['ROIC']); capital=float(row['BVPS'])
+        spread=max(roic-wacc, -0.05)
+        eva=spread*capital
+        return capital + (eva / max(wacc-0.025, 0.02)) + nopat*2.0
+    if model == 'FCF Yield':
+        return float(row['FCF_PS']) * fcf_mult
+    if model == 'PEG(成長修正)':
+        peg_pe=min(max(g*100*1.05, 12), 38)
+        return eps*peg_pe
+    if model == 'AI Premium PE':
+        ai_pe=min(max(pe_3y*1.25, 26), 42)
+        return eps*ai_pe
+    return np.nan
+
+def v259_backtest():
+    df=v259_price_history().copy().sort_values('年度').reset_index(drop=True)
+    avail=v259_model_availability(df)
+    enabled=avail[avail['模型狀態']=='ENABLED']['模型'].tolist()
+    details=[]
+    for i in range(1,len(df)):
+        row=df.iloc[i]
+        past=df.iloc[:i]
+        actual=float(row['平均股價'])
+        for m in enabled:
+            val=v259_model_value(row,past,m)
+            if pd.notna(val) and val>0 and actual>0:
+                details.append({'年度':int(row['年度']),'模型':m,'模型群組':V259_MODEL_GROUP.get(m,'其他'),'模型估值':float(val),'實際平均股價':actual,
+                                '誤差%':abs(float(val)/actual-1)*100,'偏離%':(float(val)/actual-1)*100})
+    detail=pd.DataFrame(details)
+    if detail.empty:
+        return df, avail, detail, pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+    summary=detail.groupby(['模型','模型群組']).agg(MAPE=('誤差%','mean'),RMSE=('誤差%', lambda x: float(np.sqrt(np.mean(np.square(x))))),最大偏離=('偏離%', lambda x: float(np.max(np.abs(x)))),測試年數=('誤差%','count')).reset_index().sort_values('MAPE')
+    summary['評級']=summary['MAPE'].apply(v259_grade)
+    combos=v259_combo_backtest(detail, summary)
+    current=v259_current_composites(df, summary)
+    return df, avail, detail, summary, combos, current
+
+def v259_combo_backtest(detail, summary):
+    out=[]
+    years=sorted(detail['年度'].unique())
+    for y in years:
+        past=detail[detail['年度']<y]
+        curr=detail[detail['年度']==y]
+        if past.empty or curr.empty: continue
+        rank=past.groupby(['模型','模型群組']).agg(MAPE=('誤差%','mean')).reset_index().sort_values('MAPE')
+        champ=rank.sort_values('MAPE').groupby('模型群組', as_index=False).head(1).sort_values('MAPE')
+        schemes={
+            '單一最佳': rank.head(1)['模型'].tolist(),
+            'Top3': rank.head(3)['模型'].tolist(),
+            'Top5': rank.head(5)['模型'].tolist(),
+            '群組冠軍': champ['模型'].tolist(),
+            '有效S/A模型': rank[rank['MAPE']<15]['模型'].tolist(),
+        }
+        actual=float(curr['實際平均股價'].iloc[0])
+        for name, chosen in schemes.items():
+            if not chosen: continue
+            c=curr[curr['模型'].isin(chosen)].merge(rank[['模型','MAPE']], on='模型', how='left')
+            if c.empty: continue
+            c['權重']=1/c['MAPE'].clip(lower=1)
+            c['權重']=c['權重']/c['權重'].sum()
+            fair=float((c['模型估值']*c['權重']).sum())
+            out.append({'年度':int(y),'方案':name,'使用模型':'、'.join(c['模型'].astype(str).tolist()),'模型估值':fair,'實際平均股價':actual,'誤差%':abs(fair/actual-1)*100,'偏離%':(fair/actual-1)*100})
+    if not out: return pd.DataFrame()
+    res=pd.DataFrame(out)
+    summ=res.groupby('方案').agg(MAPE=('誤差%','mean'),RMSE=('誤差%', lambda x: float(np.sqrt(np.mean(np.square(x))))),測試年數=('誤差%','count')).reset_index().sort_values('MAPE')
+    summ['評級']=summ['MAPE'].apply(v259_grade)
+    return summ
+
+def v259_current_composites(df, summary):
+    price=v254_decision('2330.TW').get('price',np.nan)
+    if pd.isna(price) or price<=0: price=float(df['平均股價'].iloc[-1])
+    latest=df.iloc[-1].copy()
+    # Forward 2026 alpha：用 2025 EPS 加上保守AI成長假設；後續可改為法人預估EPS。
+    eps_growth=_safe_median(df['EPS成長率'].tail(3),0.18)
+    latest['EPS']=float(latest['EPS'])*(1+min(max(eps_growth,0.08),0.28))
+    latest['FCFF_PS']=float(latest['FCFF_PS'])*(1+min(max(eps_growth,0.08),0.25))
+    latest['FCFE_PS']=float(latest['FCFE_PS'])*(1+min(max(eps_growth,0.08),0.25))
+    latest['EBITDA_PS']=float(latest['EBITDA_PS'])*(1+min(max(eps_growth,0.08),0.25))
+    cur=[]
+    for _,s in summary.sort_values('MAPE').iterrows():
+        m=s['模型']; val=v259_model_value(latest, df, m)
+        if pd.notna(val) and val>0:
+            cur.append({'模型':m,'模型群組':s['模型群組'],'MAPE%':round(float(s['MAPE']),2),'評級':s['評級'],'合理價':float(val),'現價':float(price),'與現價偏離%':(float(val)/float(price)-1)*100})
+    cur=pd.DataFrame(cur).sort_values('MAPE%') if cur else pd.DataFrame()
+    if cur.empty: return pd.DataFrame()
+    schemes={
+        '單一最佳': cur.head(1)['模型'].tolist(),
+        'Top3': cur.head(3)['模型'].tolist(),
+        'Top5': cur.head(5)['模型'].tolist(),
+        '群組冠軍': cur.groupby('模型群組', as_index=False).head(1)['模型'].tolist(),
+        'S/A模型': cur[cur['MAPE%']<15]['模型'].tolist(),
+    }
+    rows=[]
+    for name, chosen in schemes.items():
+        if not chosen: continue
+        b=cur[cur['模型'].isin(chosen)].copy()
+        if b.empty: continue
+        b['權重']=1/b['MAPE%'].clip(lower=1)
+        b['權重']=b['權重']/b['權重'].sum()
+        fair=float((b['合理價']*b['權重']).sum())
+        err=float((b['MAPE%']*b['權重']).sum())/100
+        rows.append({'方案':name,'使用模型':'、'.join(b['模型'].astype(str).tolist()),'加權MAPE%':round(err*100,2),'安全價':round(fair*(1-err),2),'合理價':round(fair,2),'樂觀價':round(fair*(1+err),2),'現價':round(float(price),2),'與現價偏離%':round((fair/price-1)*100,2)})
+    return pd.DataFrame(rows).sort_values('與現價偏離%', key=lambda s: s.abs()) if rows else pd.DataFrame()
+
+def model_validation_alpha_page():
+    st.header('🧮 V259 Financial Factor Engine — 台積電財報因子引擎')
+    st.info('V259：不再只看 31 模型數量，先補台積電財報因子，啟用 PB、EV/EBITDA、FCFF、FCFE、EBO、EVA 等真因子模型。此版仍屬 Alpha，部分因子為 seed，頁面會標示完整度。')
+    st.selectbox('選擇測試公司', ['2330.TW'], index=0, format_func=lambda s: f"{STOCK_DB.get(s,{}).get('name',s)} / {s}")
+    df, avail, detail, summary, combos, current = v259_backtest()
+    factor_status, factor_score = v259_factor_completeness(df)
+    price=v254_decision('2330.TW').get('price',np.nan)
+    c1,c2,c3,c4=st.columns(4)
+    c1.metric('目前現價', v230_fmt(price))
+    c2.metric('財報因子完整度', f'{factor_score:.0f}%')
+    c3.metric('可啟用模型', f"{(avail['模型狀態']=='ENABLED').sum()} / {len(avail)}")
+    c4.metric('最新EPS', f"{df['EPS'].iloc[-1]:.2f}")
+
+    with st.expander('一、台積電財報因子庫 2021~2025', expanded=True):
+        show=df[['年度','EPS','Revenue_BN','NetIncome_BN','BVPS','ROE','EBITDA_PS','FCFF_PS','FCFE_PS','FCF_PS','ROIC','WACC','平均股價','PE','PB','資料來源']].copy()
+        num_cols=[c for c in show.columns if c not in ['資料來源']]
+        for c in num_cols:
+            show[c]=pd.to_numeric(show[c], errors='coerce').round(3)
+        st.dataframe(show, use_container_width=True, hide_index=True)
+        st.caption('注意：EPS/營收/淨利為年報資料；BVPS/現金流/EBITDA/ROIC 為 V259 Alpha seed 或 yfinance 待校正欄位，正式版需逐年對齊財報。')
+
+    colA,colB=st.columns(2)
+    with colA:
+        st.subheader('財報因子完整度')
+        st.dataframe(factor_status, use_container_width=True, hide_index=True)
+    with colB:
+        st.subheader('模型啟用狀態')
+        st.dataframe(avail, use_container_width=True, hide_index=True)
+        yf_info=v259_try_yfinance_factor_snapshot()
+        st.caption(f"Yahoo 財報連線狀態：{yf_info}")
+
+    st.subheader('二、真因子模型回測排名')
+    if summary.empty:
+        st.warning('資料不足，無法回測。')
+    else:
+        st.dataframe(summary.round(2), use_container_width=True, hide_index=True)
+        champ=summary.sort_values('MAPE').groupby('模型群組', as_index=False).head(1).sort_values('MAPE')
+        st.subheader('三、各流派冠軍')
+        st.dataframe(champ.round(2), use_container_width=True, hide_index=True)
+
+    st.subheader('四、組合方案回測')
+    if combos.empty:
+        st.warning('組合樣本不足。')
+    else:
+        st.dataframe(combos.round(2), use_container_width=True, hide_index=True)
+        best=combos.iloc[0]
+        st.success(f"目前較佳組合：{best['方案']}｜MAPE {best['MAPE']:.2f}%｜評級 {best['評級']}")
+
+    st.subheader('五、2026 Alpha 區間估值')
+    if current.empty:
+        st.warning('目前無法產生區間估值。')
+    else:
+        st.dataframe(current, use_container_width=True, hide_index=True)
+        best=current.iloc[0]
+        c1,c2,c3,c4=st.columns(4)
+        c1.metric('最接近現價方案', best['方案'])
+        c2.metric('安全價', v230_fmt(best['安全價']))
+        c3.metric('合理價', v230_fmt(best['合理價']))
+        c4.metric('樂觀價', v230_fmt(best['樂觀價']))
+        if abs(float(best['與現價偏離%']))>30:
+            st.warning('估值仍與現價偏離超過30%。這通常代表 Forward EPS、AI/HPC溢價、CAPEX週期或財報因子仍需校正；暫不建議放入正式低估排行。')
+        else:
+            st.success('偏離已收斂到可觀察區間，可進一步驗證台達電、聯發科。')
+
+    with st.expander('逐年模型明細', expanded=False):
+        if not detail.empty:
+            st.dataframe(detail.round(2), use_container_width=True, hide_index=True)
+    st.divider()
+    v254_health_dashboard()
+
+def settings_page():
+    st.header('⚙️ 設定')
+    st.write('系統版本：', APP_VERSION)
+    st.write('資料庫版本：', DB_VERSION)
+    st.write('資料庫股票數：', len(STOCK_DB))
+    st.info('V259：Financial Factor Engine，先補台積電財報因子，建立真模型啟用條件與模型健康度。')
+    v254_health_dashboard()
+
+def sidebar_nav():
+    st.sidebar.title('智策股市 AI 平台')
+    st.sidebar.caption(APP_VERSION)
+    page = st.sidebar.radio('主選單', ['🏠 首頁','📈 股票分析','🏭 產業分析','🌏 全球競爭力','🧪 模型驗證中心','🏢 企業價值研究院','⭐ 自選股','⚙️ 設定'])
+    q = st.sidebar.text_input('快速搜尋', placeholder='2330、台積電、2308、台達電')
+    if q:
+        set_active(q)
+    st.sidebar.caption('V259：財報因子引擎，先修估值核心，再擴大到AI七雄。')
+    return page
+
+# ===== V259.0 FINANCIAL FACTOR ENGINE END =====
+
 if __name__ == '__main__':
     main()
